@@ -14,6 +14,7 @@ export type CalendarClient = {
     status: string;
     date: string | null;
     taxAmount: number | null;
+    durationMinutes: number | null;
   }[];
 };
 
@@ -58,6 +59,22 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
     )
   );
 
+  // Итоговое время (мин) по всем клиентам для каждой даты
+  const totalByDate = dates.map((d) => {
+    const k = dayKey(d);
+    let sum = 0;
+    for (const c of clients) {
+      for (const t of c.tasks) {
+        if (t.date && dayKey(new Date(t.date)) === k) {
+          sum += t.durationMinutes ?? 0;
+        }
+      }
+    }
+    return sum;
+  });
+
+  const hasAnyTime = totalByDate.some((s) => s > 0);
+
   return (
     <div className="h-full overflow-auto rounded-xl border border-zinc-200 bg-white">
       <table className="w-full border-collapse">
@@ -75,6 +92,21 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
               </th>
             ))}
           </tr>
+          {hasAnyTime && (
+            <tr>
+              <th className="sticky left-0 z-20 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-1 text-left text-[11px] font-medium text-zinc-500">
+                Общее время
+              </th>
+              {totalByDate.map((sum, i) => (
+                <td
+                  key={i}
+                  className="border-b border-zinc-200 bg-zinc-50 px-2 py-1 text-center text-[11px] font-semibold text-zinc-600"
+                >
+                  {sum > 0 ? `${sum} мин` : ""}
+                </td>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           {clients.map((client) => (
@@ -107,9 +139,17 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
                           {TASK_TYPE_LABELS[t.taskType] ?? t.taskType}
                         </div>
                         <div className="line-clamp-2">{t.title}</div>
-                        {t.taxAmount != null && (
+                        {(t.taxAmount != null || t.durationMinutes != null) && (
                           <div className="font-semibold text-blue-700">
-                            {t.taxAmount.toLocaleString("ru-RU")} ₽
+                            {t.taxAmount != null && (
+                              <span>{t.taxAmount.toLocaleString("ru-RU")} ₽</span>
+                            )}
+                            {t.taxAmount != null && t.durationMinutes != null && (
+                              <span> · </span>
+                            )}
+                            {t.durationMinutes != null && (
+                              <span>{t.durationMinutes} мин</span>
+                            )}
                           </div>
                         )}
                       </div>
