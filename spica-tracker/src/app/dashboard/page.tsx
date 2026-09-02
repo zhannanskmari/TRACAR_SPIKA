@@ -49,6 +49,11 @@ export default async function DashboardPage() {
             OR: [
               { primaryExecutorId: user.id },
               { secondaryExecutorId: user.id },
+              {
+                tasks: {
+                  some: { assignedToId: user.id },
+                },
+              },
             ],
           },
     select: { id: true, name: true, taxSystem: true },

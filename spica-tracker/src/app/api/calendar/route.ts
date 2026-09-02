@@ -36,6 +36,11 @@ export async function GET() {
               OR: [
                 { primaryExecutorId: session.id },
                 { secondaryExecutorId: session.id },
+                {
+                  tasks: {
+                    some: { assignedToId: session.id },
+                  },
+                },
               ],
             },
     orderBy: { name: "asc" },

@@ -125,3 +125,33 @@ export async function PATCH(
 
   return NextResponse.json({ task: updated });
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const task = await prisma.task.findUnique({ where: { id } });
+  if (!task) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  // Руководитель и сотрудники удаляют любую карточку.
+  // Клиент удаляет только ту, которую создал сам.
+  if (session.role !== "ADMIN" && session.role !== "EXECUTOR") {
+    if (task.createdById !== session.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  // Комментарии и документы удаляются каскадно через onDelete: Cascade
+  await prisma.task.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

@@ -17,6 +17,9 @@ const TASK_TYPES = [
   "REPORT",
   "IFNS_DEMAND",
   "CLIENT_REQUEST",
+  "PAYMENT_ORDER",
+  "DIADOK",
+  "ECP",
   "OTHER",
 ];
 

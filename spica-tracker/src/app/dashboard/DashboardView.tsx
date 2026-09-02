@@ -168,6 +168,18 @@ export default function DashboardView({
     [refreshTasks]
   );
 
+  const deleteTask = useCallback(
+    async (id: string) => {
+      const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Ошибка удаления");
+      }
+      await refreshTasks();
+    },
+    [refreshTasks]
+  );
+
   async function openCalendar() {
     setLoadingCalendar(true);
     try {
@@ -273,6 +285,8 @@ export default function DashboardView({
           <KanbanBoard
             tasks={tasks}
             patchTask={patchTask}
+            deleteTask={deleteTask}
+            user={user}
             canEditTax={canEditTax}
             executors={executors}
           />

@@ -34,6 +34,9 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   REPORT: "Отчётность",
   IFNS_DEMAND: "Требование ИФНС",
   CLIENT_REQUEST: "Запрос клиента",
+  PAYMENT_ORDER: "Платежка",
+  DIADOK: "Диадок",
+  ECP: "ЭЦП",
   OTHER: "Другое",
 };
 
@@ -44,5 +47,8 @@ export const TASK_TYPE_BADGES: Record<string, string> = {
   REPORT: "bg-indigo-100 text-indigo-700",
   IFNS_DEMAND: "bg-rose-100 text-rose-700",
   CLIENT_REQUEST: "bg-sky-100 text-sky-700",
+  PAYMENT_ORDER: "bg-cyan-100 text-cyan-700",
+  DIADOK: "bg-violet-100 text-violet-700",
+  ECP: "bg-fuchsia-100 text-fuchsia-700",
   OTHER: "bg-zinc-100 text-zinc-600",
 };

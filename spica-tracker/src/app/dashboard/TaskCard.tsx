@@ -6,14 +6,13 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   Calendar,
   MessageSquare,
-  Bell,
-  BellOff,
   Building2,
   Flame,
   Clock4,
   Pencil,
   Check,
   X,
+  Trash2,
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
@@ -25,6 +24,9 @@ const TASK_TYPES = [
   "REPORT",
   "IFNS_DEMAND",
   "CLIENT_REQUEST",
+  "PAYMENT_ORDER",
+  "DIADOK",
+  "ECP",
   "OTHER",
 ];
 
@@ -66,6 +68,8 @@ function isOverdue(task: DashboardTask): boolean {
 export default function TaskCard({
   task,
   patchTask,
+  deleteTask,
+  user,
   canEditTax,
   executors,
 }: {
@@ -74,6 +78,8 @@ export default function TaskCard({
     id: string,
     data: Record<string, unknown>
   ) => Promise<unknown>;
+  deleteTask: (id: string) => Promise<unknown>;
+  user: { id: string; role: string };
   canEditTax: boolean;
   executors: { id: string; name: string; specialization: string | null }[];
 }) {
@@ -83,7 +89,6 @@ export default function TaskCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState(task.comments);
-  const [notified, setNotified] = useState(task.isClientNotified);
 
   const [editing, setEditing] = useState(false);
   const [edTitle, setEdTitle] = useState(task.title);
@@ -105,6 +110,21 @@ export default function TaskCard({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
+  const canDelete =
+    user.role === "ADMIN" ||
+    user.role === "EXECUTOR" ||
+    task.createdBy?.id === user.id;
+
+  async function handleDelete() {
+    if (!window.confirm("Удалить карточку?")) return;
+    try {
+      await deleteTask(task.id);
+    } catch (e) {
+      console.error(e);
+      window.alert("Не удалось удалить карточку");
+    }
+  }
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -121,17 +141,6 @@ export default function TaskCard({
       const data = await res.json();
       setComments((prev) => [...prev, data.comment]);
       setCommentText("");
-    }
-  }
-
-  async function toggleNotify() {
-    try {
-      const updated = (await patchTask(task.id, {
-        isClientNotified: !notified,
-      })) as DashboardTask;
-      setNotified(updated.isClientNotified);
-    } catch (e) {
-      console.error(e);
     }
   }
 
@@ -263,8 +272,67 @@ export default function TaskCard({
               <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
+          {!editing && canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              title="Удалить"
+              className="rounded p-1 text-zinc-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
+
+      <div className="mb-2 flex items-center justify-end border-b border-zinc-100 pb-1.5">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowComments((v) => !v);
+          }}
+          title={showComments ? "Скрыть комментарии" : "Показать комментарии"}
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
+        >
+          <MessageSquare className="h-3 w-3" />
+          Комментарии {comments.length}
+        </button>
+      </div>
+
+      {showComments && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="mb-2 border-b border-zinc-100 pb-2"
+        >
+          <div className="mb-2 space-y-2">
+            {comments.length === 0 && (
+              <p className="text-xs text-zinc-400">Комментариев пока нет</p>
+            )}
+            {comments.map((c) => (
+              <div key={c.id} className="text-xs">
+                <div className="font-medium text-zinc-700">{c.user.name}</div>
+                <div className="text-zinc-500">{c.text}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Добавить комментарий..."
+              className="min-w-0 flex-1 rounded border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
+            />
+            <button
+              onClick={addComment}
+              className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+            >
+              Отпр.
+            </button>
+          </div>
+        </div>
+      )}
 
       {editing ? (
         <div
@@ -446,66 +514,6 @@ export default function TaskCard({
             </div>
           )}
         </>
-      )}
-
-      <div className="flex items-center justify-between border-t border-zinc-100 pt-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleNotify();
-          }}
-          className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition ${
-            notified
-              ? "bg-blue-100 text-blue-700"
-              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-          }`}
-        >
-          {notified ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
-          {notified ? "Клиент уведомлён" : "Уведомить клиента"}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowComments((v) => !v);
-          }}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
-        >
-          <MessageSquare className="h-3 w-3" />
-          {comments.length}
-        </button>
-      </div>
-
-      {showComments && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="mt-2 border-t border-zinc-100 pt-2"
-        >
-          <div className="mb-2 space-y-2">
-            {comments.length === 0 && (
-              <p className="text-xs text-zinc-400">Комментариев пока нет</p>
-            )}
-            {comments.map((c) => (
-              <div key={c.id} className="text-xs">
-                <div className="font-medium text-zinc-700">{c.user.name}</div>
-                <div className="text-zinc-500">{c.text}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Добавить комментарий..."
-              className="min-w-0 flex-1 rounded border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
-            />
-            <button
-              onClick={addComment}
-              className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
-            >
-              Отпр.
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

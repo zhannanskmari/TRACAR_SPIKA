@@ -15,8 +15,25 @@ export type CalendarClient = {
     date: string | null;
     taxAmount: number | null;
     durationMinutes: number | null;
+    assignedTo: { id: string; name: string } | null;
   }[];
 };
+
+const CAL_COLORS: Record<string, { bg: string; text: string; amount: string }> = {
+  blue:   { bg: "bg-sky-100",   text: "text-sky-900",   amount: "text-sky-700" },
+  green:  { bg: "bg-emerald-100", text: "text-emerald-900", amount: "text-emerald-700" },
+  beige:  { bg: "bg-amber-50",  text: "text-amber-900",  amount: "text-amber-700" },
+};
+
+function cardColor(task: {
+  assignedTo: { id: string; name: string } | null;
+  taskType: string;
+}): { bg: string; text: string; amount: string } {
+  const name = task.assignedTo?.name ?? "";
+  if (name.includes("Булгакова")) return CAL_COLORS.beige;
+  if (name.includes("Анастасия") && task.taskType === "SALARY_CALC") return CAL_COLORS.blue;
+  return CAL_COLORS.green;
+}
 
 function dayKey(date: Date): string {
   const y = date.getFullYear();
@@ -129,10 +146,12 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
                     key={i}
                     className="border-b border-zinc-100 px-1.5 py-1.5 align-top"
                   >
-                    {dayTasks.map((t) => (
+                    {dayTasks.map((t) => {
+                      const col = cardColor(t);
+                      return (
                       <div
                         key={t.id}
-                        className="mb-1 rounded bg-blue-50 px-1.5 py-1 text-[11px] leading-tight text-blue-900"
+                        className={`mb-1 rounded ${col.bg} px-1.5 py-1 text-[11px] leading-tight ${col.text}`}
                         title={t.title}
                       >
                         <div className="font-medium">
@@ -140,7 +159,7 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
                         </div>
                         <div className="line-clamp-2">{t.title}</div>
                         {(t.taxAmount != null || t.durationMinutes != null) && (
-                          <div className="font-semibold text-blue-700">
+                          <div className={`font-semibold ${col.amount}`}>
                             {t.taxAmount != null && (
                               <span>{t.taxAmount.toLocaleString("ru-RU")} ₽</span>
                             )}
@@ -153,7 +172,8 @@ export default function CalendarPlan({ clients }: { clients: CalendarClient[] })
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </td>
                 );
               })}

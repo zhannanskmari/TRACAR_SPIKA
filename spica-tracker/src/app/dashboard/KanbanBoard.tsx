@@ -25,8 +25,8 @@ const COLUMN_ORDER: TaskStatus[] = [
   "NEW",
   "IN_PROGRESS",
   "REWORK",
-  "SENT_TO_CLIENT",
   "DONE",
+  "SENT_TO_CLIENT",
   "OVERDUE",
 ];
 
@@ -68,6 +68,8 @@ function ColumnDropZone({ status }: { status: string }) {
 export default function KanbanBoard({
   tasks,
   patchTask,
+  deleteTask,
+  user,
   canEditTax,
   executors,
 }: {
@@ -76,6 +78,8 @@ export default function KanbanBoard({
     id: string,
     data: Record<string, unknown>
   ) => Promise<unknown>;
+  deleteTask: (id: string) => Promise<unknown>;
+  user: { id: string; role: string };
   canEditTax: boolean;
   executors: { id: string; name: string; specialization: string | null }[];
 }) {
@@ -290,6 +294,8 @@ export default function KanbanBoard({
                     key={task.id}
                     task={task}
                     patchTask={patchTask}
+                    deleteTask={deleteTask}
+                    user={user}
                     canEditTax={canEditTax}
                     executors={executors}
                   />

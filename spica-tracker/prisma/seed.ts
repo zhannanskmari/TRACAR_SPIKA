@@ -10,7 +10,7 @@ async function main() {
     where: { email: "admin@spica.ru" },
     update: {},
     create: {
-      name: "Ирина Соколова",
+      name: "Жанна Васильевна",
       email: "admin@spica.ru",
       passwordHash,
       role: "ADMIN",
@@ -21,7 +21,7 @@ async function main() {
     where: { email: "salary@spica.ru" },
     update: {},
     create: {
-      name: "Анна Петрова",
+      name: "Анастасия К.",
       email: "salary@spica.ru",
       passwordHash,
       role: "EXECUTOR",
@@ -33,7 +33,7 @@ async function main() {
     where: { email: "tax@spica.ru" },
     update: {},
     create: {
-      name: "Олег Иванов",
+      name: "Булгакова Ж.В.",
       email: "tax@spica.ru",
       passwordHash,
       role: "EXECUTOR",

@@ -224,13 +224,6 @@ export default function ClientsView({
             <div className="text-xs text-zinc-500">Руководитель</div>
           </div>
           <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            На доску
-          </button>
-          <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50"
           >
@@ -242,9 +235,18 @@ export default function ClientsView({
 
       <main className="flex-1 overflow-auto p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-zinc-900">
-            Клиенты ({clients.length})
-          </h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-base font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              На доску
+            </button>
+            <h1 className="text-xl font-semibold text-zinc-900">
+              Клиенты ({clients.length})
+            </h1>
+          </div>
           <button
             onClick={() => (open && !editingId ? setOpen(false) : startCreate())}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
