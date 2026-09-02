@@ -31,7 +31,16 @@ model User {
 model Client {
   id                  String   @id @default(cuid())
   name                String
-  taxSystem           String   // OSNO | USN | PSN | ESHN | PATENT
+  taxSystem           String   // OSNO | USN | USN15 | AUSN8 | AUSN20 | PSN | ESHN | PATENT
+  legalForm           String?  // ООО | ИП | АО | ...
+  shortName           String?  // краткое название
+  salaryPaymentDay    Int?     // день месяца выплаты зарплаты
+  advanceDay          Int?     // день месяца выплаты аванса
+  employeeCount       Int?     // кол-во сотрудников
+  invoiceDay          Int?     // день выписки счёта
+  accountNote         String?  // расч. счёт (присылает или авто) — текст
+  hasCashRegister     Boolean  @default(false) // касса есть
+  salaryViaCash       Boolean  @default(false) // зарплата выдаётся через кассу
   primaryExecutorId   String
   secondaryExecutorId String?
   clientUserId        String?  @unique
