@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователи (руководитель, исполнители, клиенты)
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          String   // ADMIN | EXECUTOR | CLIENT
+  specialization String? // SALARY | TAX | null
+  createdAt     DateTime @default(now())
+
+  assignedTasks    Task[]      @relation("TaskAssignee")
+  createdTasks     Task[]      @relation("TaskCreator")
+  comments         Comment[]
+  documents        Document[]
+  primaryClients   Client[]    @relation("PrimaryExecutor")
+  secondaryClients Client[]    @relation("SecondaryExecutor")
+  assignmentRules  AssignmentRule[]
+  clientCompany    Client?
+}
+
+// Клиенты (компании)
+model Client {
+  id                  String   @id @default(cuid())
+  name                String
+  taxSystem           String   // OSNO | USN | PSN | ESHN | PATENT
+  primaryExecutorId   String
+  secondaryExecutorId String?
+  clientUserId        String?  @unique
+  createdAt           DateTime @default(now())
+
+  primaryExecutor   User    @relation("PrimaryExecutor", fields: [primaryExecutorId], references: [id])
+  secondaryExecutor User?   @relation("SecondaryExecutor", fields: [secondaryExecutorId], references: [id])
+  clientUser        User?   @relation(fields: [clientUserId], references: [id])
+  tasks             Task[]
+  assignmentRules   AssignmentRule[]
+}
+
+// Правила авто-распределения задач
+model AssignmentRule {
+  id        String @id @default(cuid())
+  clientId  String
+  taskType  String
+  executorId String
+
+  client   Client @relation(fields: [clientId], references: [id])
+  executor User   @relation(fields: [executorId], references: [id])
+
+  @@unique([clientId, taskType])
+}
+
+// Задачи
+model Task {
+  id                 String    @id @default(cuid())
+  title              String
+  clientId           String
+  taskType           String    // SALARY_CALC | SALARY_PAYMENT | TAX_PAYMENT | REPORT | IFNS_DEMAND | CLIENT_REQUEST | OTHER
+  status             String    @default("NEW") // NEW | IN_PROGRESS | DONE | SENT_TO_CLIENT | REWORK | OVERDUE
+  assignedToId       String
+  createdById        String
+  deadline           DateTime?
+  salaryCalcDate     DateTime?
+  salaryPaymentDate  DateTime?
+  taxAmount          Float?
+  taxPaymentDate     DateTime?
+  isClientNotified   Boolean   @default(false)
+  urgent             Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  client     Client     @relation(fields: [clientId], references: [id])
+  assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy  User       @relation("TaskCreator", fields: [createdById], references: [id])
+  comments   Comment[]
+  documents  Document[]
+}
+
+// Комментарии к задачам
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Документы
+model Document {
+  id          String   @id @default(cuid())
+  taskId      String
+  uploadedById String
+  fileName    String
+  fileUrl     String
+  category    String   @default("OTHER") // PRIMARY | CERTIFICATE | OTHER
+  createdAt   DateTime @default(now())
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+}

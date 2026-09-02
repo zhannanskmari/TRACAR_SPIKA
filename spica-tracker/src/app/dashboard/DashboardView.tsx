@@ -1,0 +1,266 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare } from "lucide-react";
+import KanbanBoard from "./KanbanBoard";
+import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
+import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
+
+export type DashboardTask = {
+  id: string;
+  title: string;
+  taskType: string;
+  status: string;
+  deadline: string | null;
+  taxAmount: number | null;
+  isClientNotified: boolean;
+  urgent: boolean;
+  createdAt: string;
+  client: { id: string; name: string; taxSystem: string };
+  assignedTo: { id: string; name: string; specialization: string | null };
+  createdBy: { id: string; name: string };
+  comments: {
+    id: string;
+    text: string;
+    createdAt: string;
+    user: { id: string; name: string; role: string };
+  }[];
+  _count: { documents: number };
+};
+
+export type DashboardUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  specialization: string | null;
+};
+
+type Tab = "kanban" | "calendar";
+
+type RawComment = {
+  id: string;
+  text: string;
+  createdAt: string | null;
+  user: { id: string; name: string; role: string };
+};
+
+type RawTask = {
+  id: string;
+  title: string;
+  taskType: string;
+  status: string;
+  deadline: string | null;
+  taxAmount: number | null;
+  isClientNotified: boolean;
+  urgent: boolean;
+  createdAt: string | null;
+  client: { id: string; name: string; taxSystem: string };
+  assignedTo: { id: string; name: string; specialization: string | null };
+  createdBy: { id: string; name: string };
+  comments: RawComment[];
+  _count: { documents: number };
+};
+
+function serialize(raw: RawTask): DashboardTask {
+  return {
+    ...raw,
+    deadline: raw.deadline ? new Date(raw.deadline).toISOString() : null,
+    createdAt: raw.createdAt
+      ? new Date(raw.createdAt).toISOString()
+      : new Date().toISOString(),
+    comments: raw.comments.map((c) => ({
+      ...c,
+      createdAt: c.createdAt
+        ? new Date(c.createdAt).toISOString()
+        : new Date().toISOString(),
+    })),
+  };
+}
+
+export default function DashboardView({
+  user,
+  tasks: initialTasks,
+  clients,
+}: {
+  user: DashboardUser;
+  tasks: DashboardTask[];
+  clients: DashboardClient[];
+}) {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("kanban");
+  const [tasks, setTasks] = useState<DashboardTask[]>(initialTasks);
+  const [calendar, setCalendar] = useState<CalendarClient[] | null>(null);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
+
+  const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
+  const isClient = user.role === "CLIENT";
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
+  const refreshTasks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.tasks)) {
+          setTasks(data.tasks.map(serialize));
+        }
+      }
+    } catch {
+      // игнорируем сетевые сбои
+    }
+  }, []);
+
+  const refreshCalendar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/calendar", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.clients)) setCalendar(data.clients);
+      }
+    } catch {
+      // игнорируем
+    }
+  }, []);
+
+  async function handleTaskCreated() {
+    await refreshTasks();
+    if (tab !== "kanban") setTab("kanban");
+  }
+
+  // Авто-обновление каждые 10 секунд
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (tab === "kanban") refreshTasks();
+      else refreshCalendar();
+    }, 10000);
+
+    return () => clearInterval(id);
+  }, [tab, refreshTasks, refreshCalendar]);
+
+  const patchTask = useCallback(
+    async (id: string, data: Record<string, unknown>) => {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Ошибка обновления");
+      }
+      return (await res.json()).task;
+    },
+    []
+  );
+
+  async function openCalendar() {
+    setLoadingCalendar(true);
+    try {
+      const res = await fetch("/api/calendar", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.clients)) setCalendar(data.clients);
+      }
+    } finally {
+      setLoadingCalendar(false);
+    }
+  }
+
+  const roleLabel =
+    user.role === "ADMIN"
+      ? "Руководитель"
+      : user.role === "CLIENT"
+        ? "Клиент"
+        : "Исполнитель";
+
+  return (
+    <div className="flex h-screen flex-col bg-zinc-100">
+      <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3">
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="h-5 w-5 text-blue-600" />
+          <span className="text-lg font-bold text-zinc-900">Спика</span>
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+            Кабинет сотрудника
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm font-medium text-zinc-900">{user.name}</div>
+            <div className="text-xs text-zinc-500">
+              {roleLabel}{" "}
+              {user.specialization
+                ? user.specialization === "SALARY"
+                  ? "• ЗП"
+                  : "• Налоги"
+                : ""}
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Выйти
+          </button>
+        </div>
+      </header>
+
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-6 py-2">
+        <div className="flex gap-1">
+          <button
+            onClick={() => setTab("kanban")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              tab === "kanban"
+                ? "bg-blue-100 text-blue-700"
+                : "text-zinc-600 hover:bg-zinc-100"
+            }`}
+          >
+            <KanbanSquare className="h-4 w-4" />
+            Доска задач
+          </button>
+          <button
+            onClick={() => {
+              setTab("calendar");
+              openCalendar();
+            }}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              tab === "calendar"
+                ? "bg-blue-100 text-blue-700"
+                : "text-zinc-600 hover:bg-zinc-100"
+            }`}
+          >
+            <CalendarDays className="h-4 w-4" />
+            Календарный план
+          </button>
+        </div>
+        {clients.length > 0 && (
+          <CreateTaskForm
+            clients={clients}
+            canEditTax={canEditTax}
+            isClient={isClient}
+            onCreated={handleTaskCreated}
+          />
+        )}
+      </div>
+
+      <main className="flex-1 overflow-hidden p-6">
+        {tab === "kanban" ? (
+          <KanbanBoard tasks={tasks} patchTask={patchTask} />
+        ) : loadingCalendar ? (
+          <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+            Загрузка календаря...
+          </div>
+        ) : (
+          <CalendarPlan clients={calendar ?? []} />
+        )}
+      </main>
+    </div>
+  );
+}
