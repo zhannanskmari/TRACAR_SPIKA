@@ -10,6 +10,10 @@ export async function GET() {
 
   const clients = await prisma.client.findMany({
     orderBy: { name: "asc" },
+    include: {
+      primaryExecutor: { select: { id: true, name: true } },
+      secondaryExecutor: { select: { id: true, name: true } },
+    },
   });
 
   return NextResponse.json({ clients });
