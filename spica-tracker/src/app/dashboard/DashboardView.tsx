@@ -14,8 +14,10 @@ export type DashboardTask = {
   status: string;
   deadline: string | null;
   taxAmount: number | null;
+  taxPaymentDate: string | null;
   isClientNotified: boolean;
   urgent: boolean;
+  durationMinutes: number | null;
   createdAt: string;
   client: { id: string; name: string; taxSystem: string };
   assignedTo: { id: string; name: string; specialization: string | null };
@@ -53,8 +55,10 @@ type RawTask = {
   status: string;
   deadline: string | null;
   taxAmount: number | null;
+  taxPaymentDate: string | null;
   isClientNotified: boolean;
   urgent: boolean;
+  durationMinutes: number | null;
   createdAt: string | null;
   client: { id: string; name: string; taxSystem: string };
   assignedTo: { id: string; name: string; specialization: string | null };
@@ -83,10 +87,12 @@ export default function DashboardView({
   user,
   tasks: initialTasks,
   clients,
+  executors,
 }: {
   user: DashboardUser;
   tasks: DashboardTask[];
   clients: DashboardClient[];
+  executors: { id: string; name: string; specialization: string | null }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("kanban");
@@ -155,9 +161,11 @@ export default function DashboardView({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Ошибка обновления");
       }
+      // сразу подтягиваем свежие данные, чтобы изменения были видны мгновенно
+      await refreshTasks();
       return (await res.json()).task;
     },
-    []
+    [refreshTasks]
   );
 
   async function openCalendar() {
@@ -245,6 +253,7 @@ export default function DashboardView({
             clients={clients}
             canEditTax={canEditTax}
             isClient={isClient}
+            executors={executors}
             onCreated={handleTaskCreated}
           />
         )}
@@ -252,7 +261,12 @@ export default function DashboardView({
 
       <main className="flex-1 overflow-hidden p-6">
         {tab === "kanban" ? (
-          <KanbanBoard tasks={tasks} patchTask={patchTask} />
+          <KanbanBoard
+            tasks={tasks}
+            patchTask={patchTask}
+            canEditTax={canEditTax}
+            executors={executors}
+          />
         ) : loadingCalendar ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-400">
             Загрузка календаря...

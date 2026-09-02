@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -8,12 +8,15 @@ import {
   useSensors,
   type DragEndEvent,
   type DragOverEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
+  useSortable,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import TaskCard from "./TaskCard";
 import type { DashboardTask } from "./DashboardView";
 import { STATUS_LABELS, STATUS_COLORS, type TaskStatus } from "@/lib/task-meta";
@@ -27,15 +30,54 @@ const COLUMN_ORDER: TaskStatus[] = [
   "OVERDUE",
 ];
 
+function sameTask(a: DashboardTask, b: DashboardTask): boolean {
+  return (
+    a.title === b.title &&
+    a.taskType === b.taskType &&
+    a.status === b.status &&
+    a.deadline === b.deadline &&
+    a.taxAmount === b.taxAmount &&
+    a.taxPaymentDate === b.taxPaymentDate &&
+    a.urgent === b.urgent &&
+    a.isClientNotified === b.isClientNotified &&
+    a.assignedTo?.id === b.assignedTo?.id
+  );
+}
+
+// Идентификатор невидимой «зоны сброса» в конце каждой колонки,
+// чтобы карточку можно было бросить в пустой конец колонки
+const PLACEHOLDER = (status: string) => `${status}-drop-zone`;
+
+function ColumnDropZone({ status }: { status: string }) {
+  const { setNodeRef, transform, transition, isDragging } = useSortable({
+    id: PLACEHOLDER(status),
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0 : 0,
+      }}
+      className="min-h-8 flex-1 py-1"
+    />
+  );
+}
+
 export default function KanbanBoard({
   tasks,
   patchTask,
+  canEditTax,
+  executors,
 }: {
   tasks: DashboardTask[];
   patchTask: (
     id: string,
     data: Record<string, unknown>
   ) => Promise<unknown>;
+  canEditTax: boolean;
+  executors: { id: string; name: string; specialization: string | null }[];
 }) {
   const [columns, setColumns] = useState<Record<string, DashboardTask[]>>(
     () => {
@@ -51,6 +93,16 @@ export default function KanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Запоминаем исходную колонку перетаскиваемой карточки (для сохранения в БД)
+  const dragSourceRef = useRef<{ id: string; fromStatus: string } | null>(null);
+
+  function handleDragStart(event: DragStartEvent) {
+    const task = findTask(event.active.id as string);
+    dragSourceRef.current = task
+      ? { id: task.id, fromStatus: task.status }
+      : null;
+  }
 
   // Синхронизация с приходящими задачами (новые появляются, изменённые обновляются)
   useEffect(() => {
@@ -76,6 +128,15 @@ export default function KanbanBoard({
           }
           (next[t.status] ??= []).push({ ...t });
           changed = true;
+        } else {
+          // та же колонка — обновляем поля карточки на месте (сохраняя порядок),
+          // чтобы отредактированные данные (название, налог и т.п.) отобразились сразу
+          const list = next[t.status] ?? [];
+          const idx = list.findIndex((x) => x.id === t.id);
+          if (idx !== -1 && !sameTask(list[idx], t)) {
+            list[idx] = t;
+            changed = true;
+          }
         }
       }
       return changed ? next : prev;
@@ -85,14 +146,29 @@ export default function KanbanBoard({
   const taskIdsByColumn = useMemo(() => {
     const map: Record<string, string[]> = {};
     for (const s of COLUMN_ORDER) {
-      map[s] = columns[s].map((t) => t.id);
+      // добавляем «зону сброса» в конец колонки, чтобы можно было бросать
+      // в пустую/нижнюю часть колонки
+      map[s] = [...columns[s].map((t) => t.id), PLACEHOLDER(s)];
     }
     return map;
   }, [columns]);
 
-  function findContainer(id: string): string | undefined {
+  function findContainer(id: string | number): string | undefined {
+    if (typeof id === "string") {
+      for (const s of COLUMN_ORDER) {
+        if (PLACEHOLDER(s) === id) return s;
+      }
+    }
     for (const s of COLUMN_ORDER) {
       if (columns[s].some((t) => t.id === id)) return s;
+    }
+    return undefined;
+  }
+
+  function findTask(id: string): DashboardTask | undefined {
+    for (const s of COLUMN_ORDER) {
+      const found = columns[s].find((t) => t.id === id);
+      if (found) return found;
     }
     return undefined;
   }
@@ -131,59 +207,52 @@ export default function KanbanBoard({
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    const source = dragSourceRef.current;
+    dragSourceRef.current = null;
     if (!over) return;
-    const activeContainer = findContainer(active.id as string);
+
+    // Куда карточка попала по факту (onDragOver уже переместил её между колонками)
+    const endContainer = findContainer(active.id as string);
     const overContainer = findContainer(over.id as string);
+    if (!endContainer || !overContainer) return;
 
-    if (!activeContainer || !overContainer) return;
-
-    const activeIndex = columns[activeContainer].findIndex(
+    const activeIndex = columns[endContainer].findIndex(
       (t) => t.id === active.id
     );
     const overIndex = columns[overContainer].findIndex(
       (t) => t.id === over.id
     );
 
-    if (activeContainer === overContainer) {
+    // Переупорядочивание внутри одной колонки
+    if (endContainer === overContainer && activeIndex !== -1 && overIndex !== -1) {
       if (activeIndex !== overIndex) {
-        const next = arrayMove(columns[activeContainer], activeIndex, overIndex);
-        setColumns((prev) => ({ ...prev, [activeContainer]: next }));
-      }
-      return;
-    }
-
-    if (overIndex === -1) return;
-
-    const activeTask = columns[activeContainer][activeIndex];
-
-    const newStatus = overContainer;
-    setColumns((prev) => ({
-      ...prev,
-      [activeContainer]: prev[activeContainer].filter(
-        (t) => t.id !== active.id
-      ),
-      [overContainer]: [
-        ...prev[overContainer].slice(0, overIndex),
-        { ...activeTask, status: newStatus },
-        ...prev[overContainer].slice(overIndex),
-      ],
-    }));
-
-    if (activeTask.status !== newStatus) {
-      try {
-        await patchTask(activeTask.id, { status: newStatus });
-      } catch (e) {
-        console.error(e);
-        // откат при ошибке
         setColumns((prev) => ({
           ...prev,
-          [activeContainer]: [
-            ...prev[activeContainer].slice(0, activeIndex),
-            activeTask,
-            ...prev[activeContainer].slice(activeIndex),
+          [endContainer]: arrayMove(prev[endContainer], activeIndex, overIndex),
+        }));
+      }
+    }
+
+    // Сохраняем смену статуса, если исходная колонка отличается от конечной.
+    // Это происходит и когда onDragOver уже визуально переместил карточку
+    // (тогда endContainer === overContainer), и при прямом пересечении колонок.
+    const fromStatus = source?.fromStatus;
+    if (fromStatus && fromStatus !== endContainer) {
+      const activeTask = columns[endContainer][activeIndex] ?? findTask(active.id as string);
+      if (!activeTask) return;
+      try {
+        await patchTask(activeTask.id, { status: endContainer });
+      } catch (e) {
+        console.error(e);
+        // откат — возвращаем карточку в исходную колонку
+        setColumns((prev) => ({
+          ...prev,
+          [fromStatus]: [
+            ...(prev[fromStatus] ?? []).filter((t) => t.id !== activeTask.id),
+            { ...activeTask, status: fromStatus },
           ],
-          [overContainer]: prev[overContainer].filter(
-            (t) => t.id !== active.id
+          [endContainer]: (prev[endContainer] ?? []).filter(
+            (t) => t.id !== activeTask.id
           ),
         }));
       }
@@ -193,6 +262,7 @@ export default function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
+      onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
@@ -216,8 +286,15 @@ export default function KanbanBoard({
             >
               <div className="flex flex-1 flex-col gap-2 px-2 pb-2">
                 {columns[status].map((task) => (
-                  <TaskCard key={task.id} task={task} patchTask={patchTask} />
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    patchTask={patchTask}
+                    canEditTax={canEditTax}
+                    executors={executors}
+                  />
                 ))}
+                <ColumnDropZone status={status} />
               </div>
             </SortableContext>
           </div>

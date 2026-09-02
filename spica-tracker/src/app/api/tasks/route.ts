@@ -15,17 +15,7 @@ export async function GET() {
         ? {}
         : session.role === "EXECUTOR"
           ? {
-              OR: [
-                { assignedToId: session.id },
-                {
-                  client: {
-                    OR: [
-                      { primaryExecutorId: session.id },
-                      { secondaryExecutorId: session.id },
-                    ],
-                  },
-                },
-              ],
+              assignedToId: session.id,
             }
           : {
               AND: [
@@ -111,6 +101,20 @@ export async function POST(request: NextRequest) {
     if (rule) assignedToId = rule.executorId;
   }
 
+  // Явно выбранный ответственный (только для сотрудников/руководителя)
+  if (
+    body.assignedToId &&
+    (session.role === "ADMIN" || session.role === "EXECUTOR")
+  ) {
+    const executor = await prisma.user.findUnique({
+      where: { id: body.assignedToId },
+      select: { id: true, role: true },
+    });
+    if (executor && executor.role === "EXECUTOR") {
+      assignedToId = executor.id;
+    }
+  }
+
   const data: Prisma.TaskUncheckedCreateInput = {
     title,
     clientId,
@@ -124,6 +128,13 @@ export async function POST(request: NextRequest) {
   if (typeof body.deadline === "string" && body.deadline) {
     const d = new Date(body.deadline);
     if (!isNaN(d.getTime())) data.deadline = d;
+  }
+
+  if (
+    typeof body.durationMinutes === "number" &&
+    !isNaN(body.durationMinutes)
+  ) {
+    data.durationMinutes = Math.max(0, Math.round(body.durationMinutes));
   }
 
   // Сумму налога и дату уплаты может вводить только сотрудник/руководитель

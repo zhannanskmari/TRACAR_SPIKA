@@ -25,17 +25,7 @@ export default async function DashboardPage() {
             ],
           }
         : {
-            OR: [
-              { assignedToId: user.id },
-              {
-                client: {
-                  OR: [
-                    { primaryExecutorId: user.id },
-                    { secondaryExecutorId: user.id },
-                  ],
-                },
-              },
-            ],
+            assignedToId: user.id,
           },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
@@ -65,9 +55,20 @@ export default async function DashboardPage() {
     orderBy: { name: "asc" },
   });
 
+  // Список исполнителей для выбора ответственного (только для сотрудников)
+  const executors =
+    user.role === "CLIENT"
+      ? []
+      : await prisma.user.findMany({
+          where: { role: "EXECUTOR" },
+          select: { id: true, name: true, specialization: true },
+          orderBy: { name: "asc" },
+        });
+
   const serialized = tasks.map((t) => ({
     ...t,
     deadline: t.deadline ? t.deadline.toISOString() : null,
+    taxPaymentDate: t.taxPaymentDate ? t.taxPaymentDate.toISOString() : null,
     createdAt: t.createdAt.toISOString(),
     comments: t.comments.map((c) => ({
       ...c,
@@ -76,6 +77,11 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <DashboardView user={user} tasks={serialized} clients={clients} />
+    <DashboardView
+      user={user}
+      tasks={serialized}
+      clients={clients}
+      executors={executors}
+    />
   );
 }

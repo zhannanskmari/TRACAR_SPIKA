@@ -24,11 +24,13 @@ export default function CreateTaskForm({
   clients,
   canEditTax,
   isClient,
+  executors,
   onCreated,
 }: {
   clients: DashboardClient[];
   canEditTax: boolean;
   isClient: boolean;
+  executors: { id: string; name: string; specialization: string | null }[];
   onCreated?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,6 +46,9 @@ export default function CreateTaskForm({
   const [urgent, setUrgent] = useState(false);
   const [taxAmount, setTaxAmount] = useState("");
   const [taxPaymentDate, setTaxPaymentDate] = useState("");
+  const [assignedToId, setAssignedToId] = useState(
+    executors[0]?.id ?? ""
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -72,6 +77,7 @@ export default function CreateTaskForm({
       urgent,
     };
     if (deadline) body.deadline = new Date(deadline).toISOString();
+    if (assignedToId) body.assignedToId = assignedToId;
     if (canEditTax && taxAmount) body.taxAmount = Number(taxAmount);
     if (canEditTax && taxPaymentDate)
       body.taxPaymentDate = new Date(taxPaymentDate).toISOString();
@@ -88,13 +94,15 @@ export default function CreateTaskForm({
         setSaving(false);
         return;
       }
-      // сброс и сообщение
+      // сброс состояния и закрытие формы
       setTitle("");
       setDeadline("");
       setTaxAmount("");
       setTaxPaymentDate("");
+      setUrgent(false);
       setDone(true);
       setSaving(false);
+      setOpen(false);
       // обновим данные на странице без полной перезагрузки
       onCreated?.();
     } catch {
@@ -181,6 +189,30 @@ export default function CreateTaskForm({
               />
             </div>
           </div>
+
+          {!isClient && executors.length > 0 && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Ответственный
+              </label>
+              <select
+                value={assignedToId}
+                onChange={(e) => setAssignedToId(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              >
+                {executors.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                    {u.specialization
+                      ? u.specialization === "SALARY"
+                        ? " • ЗП"
+                        : " • Налоги"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!isClient && (
             <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-50 px-2 py-1.5 text-xs font-medium text-zinc-700">
