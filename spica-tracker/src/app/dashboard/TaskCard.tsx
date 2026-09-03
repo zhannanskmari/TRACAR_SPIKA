@@ -270,7 +270,7 @@ export default function TaskCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`group cursor-grab rounded-lg border border-zinc-200 bg-white p-3 shadow-sm active:cursor-grabbing ${
+      className={`group cursor-grab rounded-lg border border-zinc-200 bg-white p-2 shadow-sm active:cursor-grabbing ${
         isDragging ? "opacity-50" : ""
       }`}
       onClick={(e) => {
@@ -278,7 +278,7 @@ export default function TaskCard({
         void e;
       }}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           {STATUS_SYMBOL[task.status] &&
             (() => {
@@ -330,7 +330,7 @@ export default function TaskCard({
         </div>
       </div>
 
-      <div className="mb-2 flex items-center justify-end border-b border-zinc-100 pb-1.5">
+      <div className="mb-1 flex items-center justify-end border-b border-zinc-100 pb-1">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -539,11 +539,11 @@ export default function TaskCard({
         </div>
       ) : (
         <>
-          <p className="mb-2 text-sm font-semibold leading-snug text-zinc-900">
+          <p className="mb-1 text-[13px] font-semibold leading-snug text-zinc-900">
             {task.title}
           </p>
 
-          <div className="mb-2 flex items-center gap-1 text-xs text-zinc-500">
+          <div className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
             <Building2 className="h-3.5 w-3.5 text-indigo-500" />
             <span className="font-semibold text-indigo-600">
               {task.client.name}
@@ -553,7 +553,7 @@ export default function TaskCard({
             </span>
           </div>
 
-          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-zinc-500">
+          <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
             {task.assignedTo && (
               <span className="flex min-w-0 items-center gap-1">
                 <Clock4 className="h-3.5 w-3.5 shrink-0" />
@@ -568,7 +568,7 @@ export default function TaskCard({
             )}
           </div>
 
-          <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
+          <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
             {task.durationMinutes != null || task.factDurationMinutes != null ? (
               <span className="flex items-center gap-1">
                 <Clock4 className="h-3.5 w-3.5 shrink-0" />
