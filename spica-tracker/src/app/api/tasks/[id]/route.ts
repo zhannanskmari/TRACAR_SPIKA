@@ -30,7 +30,9 @@ export async function PATCH(
 
   if (
     session.role !== "ADMIN" &&
-    task.assignedToId !== session.id
+    task.assignedToId !== session.id &&
+    // клиент может редактировать только те задачи, которые создал сам
+    !(session.role === "CLIENT" && task.createdById === session.id)
   ) {
     return NextResponse.json(
       { error: "Forbidden" },
