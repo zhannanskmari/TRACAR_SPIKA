@@ -123,6 +123,20 @@ export async function PATCH(
       const d = new Date(body.taxPaymentDate);
       if (!isNaN(d.getTime())) data.taxPaymentDate = d;
     }
+
+    if (body.salaryPaymentDate === null) {
+      data.salaryPaymentDate = null;
+    } else if (typeof body.salaryPaymentDate === "string" && body.salaryPaymentDate) {
+      const d = new Date(body.salaryPaymentDate);
+      if (!isNaN(d.getTime())) data.salaryPaymentDate = d;
+    }
+
+    if (body.salaryCalcDate === null) {
+      data.salaryCalcDate = null;
+    } else if (typeof body.salaryCalcDate === "string" && body.salaryCalcDate) {
+      const d = new Date(body.salaryCalcDate);
+      if (!isNaN(d.getTime())) data.salaryCalcDate = d;
+    }
   }
 
   const updated = await prisma.task.update({

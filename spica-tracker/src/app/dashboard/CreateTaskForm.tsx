@@ -58,6 +58,8 @@ export default function CreateTaskForm({
   const [assignedToId, setAssignedToId] = useState(
     executors[0]?.id ?? ""
   );
+  const [duration, setDuration] = useState("");
+  const [factDuration, setFactDuration] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -87,6 +89,10 @@ export default function CreateTaskForm({
     };
     if (deadline) body.deadline = new Date(deadline).toISOString();
     if (assignedToId) body.assignedToId = assignedToId;
+    if (duration !== "" && !isNaN(Number(duration)))
+      body.durationMinutes = Math.max(0, Math.round(Number(duration)));
+    if (factDuration !== "" && !isNaN(Number(factDuration)))
+      body.factDurationMinutes = Math.max(0, Math.round(Number(factDuration)));
     if (canEditTax && taxAmount) body.taxAmount = Number(taxAmount);
     if (canEditTax && taxPaymentDate)
       body.taxPaymentDate = new Date(taxPaymentDate).toISOString();
@@ -108,6 +114,8 @@ export default function CreateTaskForm({
       setDeadline("");
       setTaxAmount("");
       setTaxPaymentDate("");
+      setDuration("");
+      setFactDuration("");
       setUrgent(false);
       setDone(true);
       setSaving(false);
@@ -194,6 +202,35 @@ export default function CreateTaskForm({
                 type="date"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Время по плану, мин
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Фактическое время, мин
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={factDuration}
+                onChange={(e) => setFactDuration(e.target.value)}
+                placeholder="0"
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               />
             </div>

@@ -19,6 +19,8 @@ export type CalendarTask = {
   date: string | null;
   deadline: string | null;
   taxPaymentDate: string | null;
+  salaryCalcDate: string | null;
+  salaryPaymentDate: string | null;
   taxAmount: number | null;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
@@ -189,6 +191,25 @@ function EditModal({
     const sentDeadline = oldDeadline
       ? new Date(oldDeadline).toISOString()
       : null;
+    // Перенос карточки в колонку выбранной даты: "крайний срок" становится
+    // определяющей датой календаря. Если другие даты (уплата налога, зарплата,
+    // расчёт зарплаты) оказались раньше нового срока — подтягиваем их к нему,
+    // иначе карточка останется в старой колонке.
+    const dateFields: Array<"taxPaymentDate" | "salaryPaymentDate" | "salaryCalcDate"> = [
+      "taxPaymentDate",
+      "salaryPaymentDate",
+      "salaryCalcDate",
+    ];
+    const movedDate = new Date(`${deadline}T00:00:00`);
+    for (const f of dateFields) {
+      const raw = task[f];
+      if (!raw) continue;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) continue;
+      if (movedDate.getTime() > d.getTime()) {
+        patch[f] = new Date(`${deadline}T00:00:00`).toISOString();
+      }
+    }
     if (newDeadline !== sentDeadline) patch.deadline = newDeadline;
 
     if (canEditTax) {
