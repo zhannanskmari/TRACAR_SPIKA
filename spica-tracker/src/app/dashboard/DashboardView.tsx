@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, FilterX } from "lucide-react";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
@@ -333,6 +333,15 @@ export default function DashboardView({
             >
               <Building2 className="h-4 w-4" />
               Клиенты
+            </button>
+          )}
+          {user.role === "ADMIN" && (
+            <button
+              onClick={() => router.push("/employees")}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100"
+            >
+              <Users className="h-4 w-4" />
+              Сотрудники
             </button>
           )}
         </div>

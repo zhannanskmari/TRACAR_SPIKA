@@ -473,9 +473,11 @@ export default function TaskCard({
           </p>
 
           <div className="mb-2 flex items-center gap-1 text-xs text-zinc-500">
-            <Building2 className="h-3.5 w-3.5" />
-            {task.client.name}
-            <span className="rounded bg-zinc-100 px-1 py-px text-[10px] text-zinc-500">
+            <Building2 className="h-3.5 w-3.5 text-indigo-500" />
+            <span className="font-semibold text-indigo-600">
+              {task.client.name}
+            </span>
+            <span className="rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
               {task.client.taxSystem}
             </span>
           </div>

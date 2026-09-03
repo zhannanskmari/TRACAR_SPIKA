@@ -36,6 +36,10 @@ yarn-error.log*
 # local database + dev log
 /prisma/dev.db
 /dev-server.log
+/prod.log
+/prod-server.log
+/start-prod.bat
+/start-prod-*.bat
 
 # vercel
 .vercel
