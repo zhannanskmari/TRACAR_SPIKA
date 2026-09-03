@@ -272,18 +272,6 @@ export default function TaskCard({
               <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
-          {!editing && canDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete();
-              }}
-              title="Удалить"
-              className="rounded p-1 text-zinc-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -507,12 +495,29 @@ export default function TaskCard({
             )}
           </div>
 
-          {task.durationMinutes != null && (
-            <div className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
-              <Clock4 className="h-3.5 w-3.5 shrink-0" />
-              <span>Время: {task.durationMinutes} мин</span>
-            </div>
-          )}
+          <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
+            {task.durationMinutes != null ? (
+              <span className="flex items-center gap-1">
+                <Clock4 className="h-3.5 w-3.5 shrink-0" />
+                <span>Время: {task.durationMinutes} мин</span>
+              </span>
+            ) : (
+              <span />
+            )}
+            {!editing && canDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+                title="Удалить"
+                className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Удалить
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>

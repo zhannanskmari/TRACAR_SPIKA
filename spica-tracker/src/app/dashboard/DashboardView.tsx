@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2 } from "lucide-react";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, FilterX } from "lucide-react";
+import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
 import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
@@ -83,6 +84,14 @@ function serialize(raw: RawTask): DashboardTask {
   };
 }
 
+function toDateKey(d: Date | null | undefined): string {
+  if (!d || isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function DashboardView({
   user,
   tasks: initialTasks,
@@ -99,6 +108,10 @@ export default function DashboardView({
   const [tasks, setTasks] = useState<DashboardTask[]>(initialTasks);
   const [calendar, setCalendar] = useState<CalendarClient[] | null>(null);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
+
+  const [filterClientId, setFilterClientId] = useState("");
+  const [filterTaskType, setFilterTaskType] = useState("");
+  const [filterDate, setFilterDate] = useState("");
 
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
@@ -200,6 +213,60 @@ export default function DashboardView({
         ? "Клиент"
         : "Исполнитель";
 
+  const filterHasValue = filterClientId || filterTaskType || filterDate;
+
+  const filterClients = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of clients) {
+      if (c.id && c.name) map.set(c.id, c.name);
+    }
+    // гарантируем, что клиенты из календаря тоже доступны в фильтре
+    for (const c of calendar ?? []) {
+      if (!map.has(c.id)) map.set(c.id, c.name);
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [clients, calendar]);
+
+  function taskMatchesDate(t: DashboardTask): boolean {
+    if (!filterDate) return true;
+    const keys = [t.deadline, t.taxPaymentDate].filter(Boolean) as string[];
+    return keys.some((k) => toDateKey(new Date(k)) === filterDate);
+  }
+
+  const filteredTasks = useMemo(
+    () =>
+      tasks.filter((t) => {
+        if (filterClientId && t.client.id !== filterClientId) return false;
+        if (filterTaskType && t.taskType !== filterTaskType) return false;
+        if (!taskMatchesDate(t)) return false;
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tasks, filterClientId, filterTaskType, filterDate]
+  );
+
+  const filteredCalendar = useMemo(() => {
+    if (!calendar) return null;
+    return calendar
+      .map((c) => {
+        const ts = c.tasks.filter((t) => {
+          if (filterClientId && c.id !== filterClientId) return false;
+          if (filterTaskType && t.taskType !== filterTaskType) return false;
+          if (filterDate && (!t.date || toDateKey(new Date(t.date)) !== filterDate))
+            return false;
+          return true;
+        });
+        return { ...c, tasks: ts };
+      })
+      .filter((c) => (filterHasValue ? c.tasks.length > 0 : true));
+  }, [calendar, filterClientId, filterTaskType, filterDate, filterHasValue]);
+
+  function resetFilters() {
+    setFilterClientId("");
+    setFilterTaskType("");
+    setFilterDate("");
+  }
+
   return (
     <div className="flex h-screen flex-col bg-zinc-100">
       <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3">
@@ -280,10 +347,56 @@ export default function DashboardView({
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-6 py-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+          <LayoutGrid className="h-3.5 w-3.5" />
+          Фильтры
+        </div>
+        <select
+          value={filterClientId}
+          onChange={(e) => setFilterClientId(e.target.value)}
+          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
+        >
+          <option value="">Все клиенты</option>
+          {filterClients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterTaskType}
+          onChange={(e) => setFilterTaskType(e.target.value)}
+          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
+        >
+          <option value="">Все типы</option>
+          {Object.entries(TASK_TYPE_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
+        />
+        {filterHasValue && (
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
+          >
+            <FilterX className="h-4 w-4" />
+            Сбросить
+          </button>
+        )}
+      </div>
+
       <main className="flex-1 overflow-hidden p-6">
         {tab === "kanban" ? (
           <KanbanBoard
-            tasks={tasks}
+            tasks={filteredTasks}
             patchTask={patchTask}
             deleteTask={deleteTask}
             user={user}
@@ -295,7 +408,7 @@ export default function DashboardView({
             Загрузка календаря...
           </div>
         ) : (
-          <CalendarPlan clients={calendar ?? []} />
+          <CalendarPlan clients={filteredCalendar ?? []} />
         )}
       </main>
     </div>

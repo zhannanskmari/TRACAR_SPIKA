@@ -49,7 +49,10 @@ export async function GET() {
   const clientIds = clients.map((c) => c.id);
 
   const tasks = await prisma.task.findMany({
-    where: { clientId: { in: clientIds } },
+    where:
+      session.role === "EXECUTOR"
+        ? { assignedToId: session.id }
+        : { clientId: { in: clientIds } },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },

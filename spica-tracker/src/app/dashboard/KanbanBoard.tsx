@@ -108,18 +108,24 @@ export default function KanbanBoard({
       : null;
   }
 
-  // Синхронизация с приходящими задачами (новые появляются, изменённые обновляются)
+  // Синхронизация с приходящими задачами (новые появляются, изменённые обновляются, удалённые исчезают)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setColumns((prev) => {
+      const incomingIds = new Set(tasks.map((t) => t.id));
+      const prevCount = COLUMN_ORDER.reduce((n, s) => n + (prev[s]?.length ?? 0), 0);
       const next: Record<string, DashboardTask[]> = {};
       const remaining = new Map<string, DashboardTask>();
-      for (const s of COLUMN_ORDER) next[s] = prev[s] ?? [];
+      for (const s of COLUMN_ORDER) {
+        next[s] = (prev[s] ?? []).filter((t) => incomingIds.has(t.id));
+      }
       for (const s of COLUMN_ORDER) {
         for (const t of next[s]) remaining.set(t.id, t);
       }
 
       let changed = false;
+      const nextCount = COLUMN_ORDER.reduce((n, s) => n + (next[s]?.length ?? 0), 0);
+      if (nextCount !== prevCount) changed = true;
       for (const t of tasks) {
         const existing = remaining.get(t.id);
         if (!existing) {
