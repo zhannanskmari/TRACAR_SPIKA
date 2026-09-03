@@ -309,11 +309,24 @@ export default function TaskCard({
             {TASK_TYPE_LABELS[task.taskType] ?? task.taskType}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {task.taxAmount != null && (
             <span className="text-xs font-semibold text-zinc-700">
               {task.taxAmount.toLocaleString("ru-RU")} ₽
             </span>
+          )}
+          {!editing && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments((v) => !v);
+              }}
+              title={showComments ? "Скрыть комментарии" : "Показать комментарии"}
+              className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
+            >
+              <MessageSquare className="h-3 w-3" />
+              {comments.length}
+            </button>
           )}
           {!editing && (
             <button
@@ -328,20 +341,6 @@ export default function TaskCard({
             </button>
           )}
         </div>
-      </div>
-
-      <div className="mb-1 flex items-center justify-end border-b border-zinc-100 pb-1">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowComments((v) => !v);
-          }}
-          title={showComments ? "Скрыть комментарии" : "Показать комментарии"}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
-        >
-          <MessageSquare className="h-3 w-3" />
-          Комментарии {comments.length}
-        </button>
       </div>
 
       {showComments && (
@@ -543,29 +542,24 @@ export default function TaskCard({
             {task.title}
           </p>
 
-          <div className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
-            <Building2 className="h-3.5 w-3.5 text-indigo-500" />
-            <span className="font-semibold text-indigo-600">
-              {task.client.name}
-            </span>
-            <span className="rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
-              {task.client.taxSystem}
-            </span>
-          </div>
-
-          <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
-            {task.assignedTo && (
-              <span className="flex min-w-0 items-center gap-1">
-                <Clock4 className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Отв. — {initials(task.assignedTo.name)}</span>
+          <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
+            <span className="flex min-w-0 items-center gap-1">
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+              <span className="truncate font-semibold text-indigo-600">
+                {task.client.name}
               </span>
-            )}
-            {task.deadline && (
-              <span className="flex shrink-0 items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                до {formatDate(task.deadline)}
+              <span className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
+                {task.client.taxSystem}
               </span>
-            )}
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
+              {task.assignedTo && (
+                <span className="flex items-center gap-1">
+                  <Clock4 className="h-3.5 w-3.5" />
+                  <span>Отв. — {initials(task.assignedTo.name)}</span>
+                </span>
+              )}
+            </span>
           </div>
 
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
