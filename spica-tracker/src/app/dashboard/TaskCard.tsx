@@ -13,6 +13,12 @@ import {
   Check,
   X,
   Trash2,
+  CircleDot,
+  Loader,
+  RefreshCw,
+  CheckCircle2,
+  Send,
+  AlertTriangle,
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
@@ -27,8 +33,23 @@ const TASK_TYPES = [
   "PAYMENT_ORDER",
   "DIADOK",
   "ECP",
+  "NOTIFICATION",
+  "BANK_REGISTRY",
   "OTHER",
 ];
+
+// Символ статуса карточки соответствует колонке доски, в которой она находится
+const STATUS_SYMBOL: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; label: string; cls: string }
+> = {
+  NEW: { icon: CircleDot, label: "Новое", cls: "text-zinc-500" },
+  IN_PROGRESS: { icon: Loader, label: "В работе", cls: "text-blue-500" },
+  REWORK: { icon: RefreshCw, label: "На доработке", cls: "text-amber-500" },
+  DONE: { icon: CheckCircle2, label: "Выполнено", cls: "text-green-600" },
+  SENT_TO_CLIENT: { icon: Send, label: "Отправлено клиенту", cls: "text-violet-500" },
+  OVERDUE: { icon: AlertTriangle, label: "Просрочено", cls: "text-red-500" },
+};
 
 function formatDate(value: string | null): string {
   if (!value) return "";
@@ -107,6 +128,9 @@ export default function TaskCard({
   const [edDuration, setEdDuration] = useState(
     task.durationMinutes != null ? String(task.durationMinutes) : ""
   );
+  const [edFactDuration, setEdFactDuration] = useState(
+    task.factDurationMinutes != null ? String(task.factDurationMinutes) : ""
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -153,6 +177,7 @@ export default function TaskCard({
     setEdTaxPaymentDate(toDateInput(task.taxPaymentDate));
     setEdAssignedToId(task.assignedTo?.id ?? "");
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
+    setEdFactDuration(task.factDurationMinutes != null ? String(task.factDurationMinutes) : "");
     setSaveError("");
     setEditing(true);
   }
@@ -187,6 +212,19 @@ export default function TaskCard({
       patch.durationMinutes = Math.round(newDuration);
     } else if (edDuration === "" && oldDuration !== null) {
       patch.durationMinutes = null;
+    }
+
+    const newFact = edFactDuration === "" ? null : Math.max(0, Number(edFactDuration));
+    const oldFact = task.factDurationMinutes ?? null;
+    if (
+      edFactDuration !== "" &&
+      newFact !== null &&
+      !isNaN(newFact) &&
+      newFact !== oldFact
+    ) {
+      patch.factDurationMinutes = Math.round(newFact);
+    } else if (edFactDuration === "" && oldFact !== null) {
+      patch.factDurationMinutes = null;
     }
 
     const newDeadline = edDeadline
@@ -238,6 +276,19 @@ export default function TaskCard({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
+          {STATUS_SYMBOL[task.status] &&
+            (() => {
+              const s = STATUS_SYMBOL[task.status];
+              const IconCmp = s.icon;
+              return (
+                <span
+                  title={`Статус: ${s.label}`}
+                  className={`shrink-0 ${s.cls}`}
+                >
+                  <IconCmp className="h-3.5 w-3.5" />
+                </span>
+              );
+            })()}
           {(task.urgent || isOverdue(task)) && (
             <span
               title={task.urgent ? "Срочная задача" : "Просрочена"}
@@ -364,19 +415,35 @@ export default function TaskCard({
               />
             </div>
           </div>
-          <div>
-            <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-              Время, мин
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={edDuration}
-              onChange={(e) => setEdDuration(e.target.value)}
-              placeholder="0"
-              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                План, мин
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={edDuration}
+                onChange={(e) => setEdDuration(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                Факт, мин
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={edFactDuration}
+                onChange={(e) => setEdFactDuration(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
           <label className="flex items-center gap-2 text-xs font-medium text-zinc-700">
             <input
@@ -498,10 +565,10 @@ export default function TaskCard({
           </div>
 
           <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
-            {task.durationMinutes != null ? (
+            {task.durationMinutes != null || task.factDurationMinutes != null ? (
               <span className="flex items-center gap-1">
                 <Clock4 className="h-3.5 w-3.5 shrink-0" />
-                <span>Время: {task.durationMinutes} мин</span>
+                <span>План: {task.durationMinutes ?? "—"} мин · Факт: {task.factDurationMinutes ?? "—"} мин</span>
               </span>
             ) : (
               <span />

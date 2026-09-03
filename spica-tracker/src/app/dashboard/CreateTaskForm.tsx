@@ -20,6 +20,8 @@ const TASK_TYPES = [
   "PAYMENT_ORDER",
   "DIADOK",
   "ECP",
+  "NOTIFICATION",
+  "BANK_REGISTRY",
   "OTHER",
 ];
 

@@ -78,6 +78,15 @@ export async function PATCH(
     data.durationMinutes = Math.max(0, Math.round(body.durationMinutes));
   }
 
+  if (body.factDurationMinutes === null) {
+    data.factDurationMinutes = null;
+  } else if (
+    typeof body.factDurationMinutes === "number" &&
+    !isNaN(body.factDurationMinutes)
+  ) {
+    data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
+  }
+
   // Смену ответственного может выполнять только сотрудник/руководитель
   if (
     body.assignedToId &&

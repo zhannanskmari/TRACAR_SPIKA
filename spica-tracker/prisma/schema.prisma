@@ -82,7 +82,8 @@ model Task {
   taxPaymentDate     DateTime?
   isClientNotified   Boolean   @default(false)
   urgent             Boolean   @default(false)
-  durationMinutes    Int?
+  durationMinutes    Int?      // план (минуты)
+  factDurationMinutes Int?     // факт (минуты)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

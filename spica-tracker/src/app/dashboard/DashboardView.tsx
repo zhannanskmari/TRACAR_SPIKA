@@ -19,6 +19,7 @@ export type DashboardTask = {
   isClientNotified: boolean;
   urgent: boolean;
   durationMinutes: number | null;
+  factDurationMinutes: number | null;
   createdAt: string;
   client: { id: string; name: string; taxSystem: string };
   assignedTo: { id: string; name: string; specialization: string | null };
@@ -60,6 +61,7 @@ type RawTask = {
   isClientNotified: boolean;
   urgent: boolean;
   durationMinutes: number | null;
+  factDurationMinutes: number | null;
   createdAt: string | null;
   client: { id: string; name: string; taxSystem: string };
   assignedTo: { id: string; name: string; specialization: string | null };
@@ -67,7 +69,6 @@ type RawTask = {
   comments: RawComment[];
   _count: { documents: number };
 };
-
 function serialize(raw: RawTask): DashboardTask {
   return {
     ...raw,
@@ -417,7 +418,15 @@ export default function DashboardView({
             Загрузка календаря...
           </div>
         ) : (
-          <CalendarPlan clients={filteredCalendar ?? []} />
+          <CalendarPlan
+            clients={filteredCalendar ?? []}
+            canEditTax={canEditTax}
+            executors={executors}
+            onSave={async (id, data) => {
+              await patchTask(id, data);
+              await refreshCalendar();
+            }}
+          />
         )}
       </main>
     </div>

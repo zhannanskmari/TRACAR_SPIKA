@@ -137,6 +137,13 @@ export async function POST(request: NextRequest) {
     data.durationMinutes = Math.max(0, Math.round(body.durationMinutes));
   }
 
+  if (
+    typeof body.factDurationMinutes === "number" &&
+    !isNaN(body.factDurationMinutes)
+  ) {
+    data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
+  }
+
   // Сумму налога и дату уплаты может вводить только сотрудник/руководитель
   const canEditTax = session.role === "ADMIN" || session.role === "EXECUTOR";
   if (canEditTax) {

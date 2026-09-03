@@ -37,6 +37,8 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   PAYMENT_ORDER: "Платежка",
   DIADOK: "Диадок",
   ECP: "ЭЦП",
+  NOTIFICATION: "Уведомление",
+  BANK_REGISTRY: "Реестр в банк",
   OTHER: "Другое",
 };
 
@@ -50,5 +52,7 @@ export const TASK_TYPE_BADGES: Record<string, string> = {
   PAYMENT_ORDER: "bg-cyan-100 text-cyan-700",
   DIADOK: "bg-violet-100 text-violet-700",
   ECP: "bg-fuchsia-100 text-fuchsia-700",
+  NOTIFICATION: "bg-amber-100 text-amber-700",
+  BANK_REGISTRY: "bg-lime-100 text-lime-700",
   OTHER: "bg-zinc-100 text-zinc-600",
 };
