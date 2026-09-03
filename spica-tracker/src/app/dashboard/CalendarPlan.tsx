@@ -39,6 +39,10 @@ const TASK_TYPES = [
   "ECP",
   "NOTIFICATION",
   "BANK_REGISTRY",
+  "CURRENT_ACCOUNT",
+  "CASH_DESK",
+  "SUPPLIERS",
+  "CUSTOMERS",
   "OTHER",
 ];
 
@@ -445,21 +449,24 @@ export default function CalendarPlan({
     )
   );
 
-  // Итоговое время (мин) по всем клиентам для каждой даты
+  // Итоговое время (мин) по всем клиентам для каждой даты (план и факт)
   const totalByDate = dates.map((d) => {
     const k = dayKey(d);
-    let sum = 0;
+    let plan = 0;
+    let fact = 0;
     for (const c of clients) {
       for (const t of c.tasks) {
         if (t.date && dayKey(new Date(t.date)) === k) {
-          sum += t.durationMinutes ?? 0;
+          plan += t.durationMinutes ?? 0;
+          // факт — если не прописан, берём план
+          fact += t.factDurationMinutes ?? t.durationMinutes ?? 0;
         }
       }
     }
-    return sum;
+    return { plan, fact };
   });
 
-  const hasAnyTime = totalByDate.some((s) => s > 0);
+  const hasAnyTime = totalByDate.some((s) => s.plan > 0 || s.fact > 0);
 
   return (
     <>
@@ -484,12 +491,14 @@ export default function CalendarPlan({
                 <th className="sticky left-0 z-20 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-1 text-left text-[11px] font-medium text-zinc-500">
                   Общее время
                 </th>
-                {totalByDate.map((sum, i) => (
+                {totalByDate.map((s, i) => (
                   <td
                     key={i}
                     className="border-b border-zinc-200 bg-zinc-50 px-2 py-1 text-center text-[11px] font-semibold text-zinc-600"
                   >
-                    {sum > 0 ? `${sum} мин` : ""}
+                    {s.plan > 0 || s.fact > 0
+                      ? `План: ${s.plan} · Факт: ${s.fact}`
+                      : ""}
                   </td>
                 ))}
               </tr>

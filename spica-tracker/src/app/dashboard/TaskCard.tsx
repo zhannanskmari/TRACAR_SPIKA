@@ -35,6 +35,10 @@ const TASK_TYPES = [
   "ECP",
   "NOTIFICATION",
   "BANK_REGISTRY",
+  "CURRENT_ACCOUNT",
+  "CASH_DESK",
+  "SUPPLIERS",
+  "CUSTOMERS",
   "OTHER",
 ];
 

@@ -39,6 +39,10 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   ECP: "ЭЦП",
   NOTIFICATION: "Уведомление",
   BANK_REGISTRY: "Реестр в банк",
+  CURRENT_ACCOUNT: "Расч. счёт",
+  CASH_DESK: "Касса",
+  SUPPLIERS: "Поставщики",
+  CUSTOMERS: "Покупатели",
   OTHER: "Другое",
 };
 
@@ -54,5 +58,9 @@ export const TASK_TYPE_BADGES: Record<string, string> = {
   ECP: "bg-fuchsia-100 text-fuchsia-700",
   NOTIFICATION: "bg-amber-100 text-amber-700",
   BANK_REGISTRY: "bg-lime-100 text-lime-700",
+  CURRENT_ACCOUNT: "bg-blue-100 text-blue-700",
+  CASH_DESK: "bg-yellow-100 text-yellow-700",
+  SUPPLIERS: "bg-purple-100 text-purple-700",
+  CUSTOMERS: "bg-pink-100 text-pink-700",
   OTHER: "bg-zinc-100 text-zinc-600",
 };

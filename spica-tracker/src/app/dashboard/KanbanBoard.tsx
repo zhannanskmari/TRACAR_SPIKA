@@ -40,6 +40,8 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
     a.taxPaymentDate === b.taxPaymentDate &&
     a.urgent === b.urgent &&
     a.isClientNotified === b.isClientNotified &&
+    a.durationMinutes === b.durationMinutes &&
+    a.factDurationMinutes === b.factDurationMinutes &&
     a.assignedTo?.id === b.assignedTo?.id
   );
 }
