@@ -16,7 +16,9 @@ export async function createSession(user: SessionUser): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Приложение работает по HTTP (localhost / локальная сеть), поэтому
+    // флаг Secure не нужен — иначе браузер не отправляет cookie и все API запросы падают с 401.
+    secure: false,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
