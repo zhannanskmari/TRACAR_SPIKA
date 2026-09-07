@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX } from "lucide-react";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
 import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
+import ArchiveView from "./ArchiveView";
+import PaymentsView from "./PaymentsView";
 
 export type DashboardTask = {
   id: string;
@@ -16,6 +18,9 @@ export type DashboardTask = {
   deadline: string | null;
   taxAmount: number | null;
   taxPaymentDate: string | null;
+  amount: number | null;
+  salaryPaymentDate: string | null;
+  salaryCalcDate: string | null;
   isClientNotified: boolean;
   urgent: boolean;
   durationMinutes: number | null;
@@ -31,6 +36,7 @@ export type DashboardTask = {
     user: { id: string; name: string; role: string };
   }[];
   _count: { documents: number };
+  archivedAt: string | null;
 };
 
 export type DashboardUser = {
@@ -41,7 +47,7 @@ export type DashboardUser = {
   specialization: string | null;
 };
 
-type Tab = "kanban" | "calendar";
+type Tab = "kanban" | "calendar" | "archive" | "payments";
 
 type RawComment = {
   id: string;
@@ -58,6 +64,9 @@ type RawTask = {
   deadline: string | null;
   taxAmount: number | null;
   taxPaymentDate: string | null;
+  amount: number | null;
+  salaryPaymentDate: string | null;
+  salaryCalcDate: string | null;
   isClientNotified: boolean;
   urgent: boolean;
   durationMinutes: number | null;
@@ -68,6 +77,7 @@ type RawTask = {
   createdBy: { id: string; name: string };
   comments: RawComment[];
   _count: { documents: number };
+  archivedAt: string | null;
 };
 function serialize(raw: RawTask): DashboardTask {
   return {
@@ -107,8 +117,12 @@ export default function DashboardView({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("kanban");
   const [tasks, setTasks] = useState<DashboardTask[]>(initialTasks);
+  const [archived, setArchived] = useState<DashboardTask[] | null>(null);
   const [calendar, setCalendar] = useState<CalendarClient[] | null>(null);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
+  const [archiveBusy, setArchiveBusy] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [archiveMsg, setArchiveMsg] = useState("");
 
   const [filterClientId, setFilterClientId] = useState("");
   const [filterTaskType, setFilterTaskType] = useState("");
@@ -149,6 +163,72 @@ export default function DashboardView({
     }
   }, []);
 
+  const refreshArchived = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks/archive", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.tasks)) {
+          setArchived(data.tasks.map(serialize));
+        }
+      }
+    } catch {
+      // игнорируем
+    }
+  }, []);
+
+  async function handleArchive() {
+    if (archiveBusy) return;
+    if (
+      !window.confirm(
+        "Перенести в архив все активные карточки со сроком до сегодняшнего дня?"
+      )
+    ) {
+      return;
+    }
+    setArchiveBusy(true);
+    setArchiveMsg("");
+    try {
+      const res = await fetch("/api/tasks/archive", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Ошибка архивации");
+      }
+      const data = await res.json();
+      const count = typeof data.count === "number" ? data.count : 0;
+      setArchiveMsg(
+        count > 0
+          ? `В архив перенесено: ${count}`
+          : "Карточек со сроком до сегодня нет"
+      );
+      await refreshTasks();
+      await refreshCalendar();
+      await refreshArchived();
+      setTab("archive");
+    } catch (e) {
+      setArchiveMsg(e instanceof Error ? e.message : "Ошибка архивации");
+    } finally {
+      setArchiveBusy(false);
+    }
+    window.setTimeout(() => setArchiveMsg(""), 6000);
+  }
+
+  async function handleRestore(id: string) {
+    setRestoringId(id);
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archivedAt: null }),
+      });
+      if (!res.ok) throw new Error("Ошибка восстановления");
+      await refreshArchived();
+      await refreshTasks();
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   async function handleTaskCreated() {
     await refreshTasks();
     if (tab !== "kanban") setTab("kanban");
@@ -158,11 +238,12 @@ export default function DashboardView({
   useEffect(() => {
     const id = setInterval(() => {
       if (tab === "kanban") refreshTasks();
-      else refreshCalendar();
+      else if (tab === "calendar") refreshCalendar();
+      else refreshArchived();
     }, 10000);
 
     return () => clearInterval(id);
-  }, [tab, refreshTasks, refreshCalendar]);
+  }, [tab, refreshTasks, refreshCalendar, refreshArchived]);
 
   const patchTask = useCallback(
     async (id: string, data: Record<string, unknown>) => {
@@ -246,6 +327,18 @@ export default function DashboardView({
     [tasks, filterClientId, filterTaskType, filterDate]
   );
 
+  const filteredArchived = useMemo(
+    () =>
+      (archived ?? []).filter((t) => {
+        if (filterClientId && t.client.id !== filterClientId) return false;
+        if (filterTaskType && t.taskType !== filterTaskType) return false;
+        if (!taskMatchesDate(t)) return false;
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [archived, filterClientId, filterTaskType, filterDate]
+  );
+
   const filteredCalendar = useMemo(() => {
     if (!calendar) return null;
     return calendar
@@ -325,8 +418,29 @@ export default function DashboardView({
             }`}
           >
             <CalendarDays className="h-4 w-4" />
-            Календарный план
+            Календарь
           </button>
+          {user.role !== "CLIENT" && (
+            <button
+              onClick={() => {
+                setTab("archive");
+                if (archived === null) refreshArchived();
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                tab === "archive"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+            >
+              <Archive className="h-4 w-4" />
+              Архив
+              {archived && archived.length > 0 && (
+                <span className="rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-xs font-medium text-zinc-600">
+                  {archived.length}
+                </span>
+              )}
+            </button>
+          )}
           {user.role === "ADMIN" && (
             <button
               onClick={() => router.push("/clients")}
@@ -334,6 +448,21 @@ export default function DashboardView({
             >
               <Building2 className="h-4 w-4" />
               Клиенты
+            </button>
+          )}
+          {user.role !== "CLIENT" && (
+            <button
+              onClick={() => {
+                setTab("payments");
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                tab === "payments"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+            >
+              <Banknote className="h-4 w-4" />
+              Оплаты
             </button>
           )}
           {user.role === "ADMIN" && (
@@ -346,15 +475,35 @@ export default function DashboardView({
             </button>
           )}
         </div>
-        {clients.length > 0 && (
-          <CreateTaskForm
-            clients={clients}
-            canEditTax={canEditTax}
-            isClient={isClient}
-            executors={executors}
-            onCreated={handleTaskCreated}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {user.role !== "CLIENT" && (
+            <>
+              <button
+                onClick={handleArchive}
+                disabled={archiveBusy}
+                title="Перенести в архив карточки со сроком до сегодняшнего дня"
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60"
+              >
+                <ArchiveRestore className="h-4 w-4" />
+                Архивация
+              </button>
+              {archiveMsg && (
+                <span className="max-w-[240px] truncate text-xs text-zinc-500">
+                  {archiveMsg}
+                </span>
+              )}
+            </>
+          )}
+          {clients.length > 0 && (
+            <CreateTaskForm
+              clients={clients}
+              canEditTax={canEditTax}
+              isClient={isClient}
+              executors={executors}
+              onCreated={handleTaskCreated}
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-6 py-2">
@@ -413,6 +562,14 @@ export default function DashboardView({
             canEditTax={canEditTax}
             executors={executors}
           />
+        ) : tab === "archive" ? (
+          <ArchiveView
+            tasks={filteredArchived}
+            onRestore={handleRestore}
+            restoringId={restoringId}
+          />
+        ) : tab === "payments" ? (
+          <PaymentsView />
         ) : loadingCalendar ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-400">
             Загрузка календаря...

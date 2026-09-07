@@ -35,6 +35,8 @@ const TASK_TYPES = [
   "ECP",
   "NOTIFICATION",
   "BANK_REGISTRY",
+  "INVOICE",
+  "INVOICE_PAYMENT",
   "CURRENT_ACCOUNT",
   "CASH_DESK",
   "SUPPLIERS",
@@ -123,6 +125,9 @@ export default function TaskCard({
   const [edTaxAmount, setEdTaxAmount] = useState(
     task.taxAmount != null ? String(task.taxAmount) : ""
   );
+  const [edInvoiceAmount, setEdInvoiceAmount] = useState(
+    task.amount != null ? String(task.amount) : ""
+  );
   const [edTaxPaymentDate, setEdTaxPaymentDate] = useState(
     toDateInput(task.taxPaymentDate)
   );
@@ -178,6 +183,7 @@ export default function TaskCard({
     setEdDeadline(toDateInput(task.deadline));
     setEdUrgent(task.urgent);
     setEdTaxAmount(task.taxAmount != null ? String(task.taxAmount) : "");
+    setEdInvoiceAmount(task.amount != null ? String(task.amount) : "");
     setEdTaxPaymentDate(toDateInput(task.taxPaymentDate));
     setEdAssignedToId(task.assignedTo?.id ?? "");
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
@@ -253,6 +259,21 @@ export default function TaskCard({
       if (newTaxDate !== oldTaxDate) patch.taxPaymentDate = newTaxDate;
     }
 
+    const isInv = edTaskType === "INVOICE" || edTaskType === "INVOICE_PAYMENT";
+    const newAmount = edInvoiceAmount === "" ? null : Number(edInvoiceAmount);
+    const oldAmount = task.amount ?? null;
+    if (
+      isInv &&
+      edInvoiceAmount !== "" &&
+      newAmount !== null &&
+      !isNaN(newAmount) &&
+      newAmount !== oldAmount
+    ) {
+      patch.amount = Math.round(newAmount * 100) / 100;
+    } else if ((!isInv || edInvoiceAmount === "") && oldAmount !== null) {
+      patch.amount = null;
+    }
+
     try {
       await patchTask(task.id, patch);
       setEditing(false);
@@ -308,11 +329,22 @@ export default function TaskCard({
           >
             {TASK_TYPE_LABELS[task.taskType] ?? task.taskType}
           </span>
+          {task.deadline && (
+            <span className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
+              <Calendar className="h-3 w-3" />
+              {formatDate(task.deadline)}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {task.taxAmount != null && (
             <span className="text-xs font-semibold text-zinc-700">
               {task.taxAmount.toLocaleString("ru-RU")} ₽
+            </span>
+          )}
+          {task.amount != null && (
+            <span className="rounded bg-blue-50 px-1 py-0.5 text-xs font-semibold text-blue-700">
+              {task.amount.toLocaleString("ru-RU")} ₽
             </span>
           )}
           {!editing && (
@@ -482,7 +514,7 @@ export default function TaskCard({
               </select>
             </div>
           )}
-          {canEditTax && (
+          {canEditTax && edTaskType === "TAX_PAYMENT" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
@@ -509,6 +541,22 @@ export default function TaskCard({
                   className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
                 />
               </div>
+            </div>
+          )}
+          {(edTaskType === "INVOICE" || edTaskType === "INVOICE_PAYMENT") && (
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                Сумма к оплате, ₽
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={edInvoiceAmount}
+                onChange={(e) => setEdInvoiceAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
             </div>
           )}
           {saveError && (

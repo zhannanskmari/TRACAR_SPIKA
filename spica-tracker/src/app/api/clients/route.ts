@@ -26,6 +26,11 @@ function toDay(value: unknown): number | null {
   return n;
 }
 
+function toAmount(value: unknown): number | null {
+  if (typeof value !== "number" || isNaN(value)) return null;
+  return Math.max(0, value);
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -59,6 +64,7 @@ export async function POST(request: NextRequest) {
     salaryPaymentDay: toDay(body.salaryPaymentDay),
     advanceDay: toDay(body.advanceDay),
     invoiceDay: toDay(body.invoiceDay),
+    invoiceAmount: toAmount(body.invoiceAmount),
     employeeCount:
       typeof body.employeeCount === "number" && !isNaN(body.employeeCount)
         ? Math.max(0, Math.round(body.employeeCount))

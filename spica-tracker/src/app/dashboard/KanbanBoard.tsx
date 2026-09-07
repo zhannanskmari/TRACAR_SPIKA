@@ -14,7 +14,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TaskCard from "./TaskCard";
@@ -38,6 +37,7 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
     a.deadline === b.deadline &&
     a.taxAmount === b.taxAmount &&
     a.taxPaymentDate === b.taxPaymentDate &&
+    a.amount === b.amount &&
     a.urgent === b.urgent &&
     a.isClientNotified === b.isClientNotified &&
     a.durationMinutes === b.durationMinutes &&
@@ -49,6 +49,27 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
 // Идентификатор невидимой «зоны сброса» в конце каждой колонки,
 // чтобы карточку можно было бросить в пустой конец колонки
 const PLACEHOLDER = (status: string) => `${status}-drop-zone`;
+
+function earliestDate(t: DashboardTask): Date {
+  const dates = [t.deadline, t.taxPaymentDate, t.salaryPaymentDate, t.salaryCalcDate]
+    .filter(Boolean)
+    .map((d) => new Date(d as string));
+  if (dates.length === 0) return new Date("9999-12-31");
+  return dates.reduce((a, b) => (a < b ? a : b));
+}
+
+function sortByDate(
+  tasks: DashboardTask[],
+  prevIndex: Map<string, number>
+): DashboardTask[] {
+  return [...tasks].sort((a, b) => {
+    const d = earliestDate(a).getTime() - earliestDate(b).getTime();
+    if (d !== 0) return d;
+    // Стабильность: карточки с одинаковой датой сохраняют прежний порядок,
+    // чтобы при обновлении данных карточка не «слетала» с места
+    return (prevIndex.get(a.id) ?? 0) - (prevIndex.get(b.id) ?? 0);
+  });
+}
 
 function ColumnDropZone({ status }: { status: string }) {
   const { setNodeRef, transform, transition, isDragging } = useSortable({
@@ -91,6 +112,10 @@ export default function KanbanBoard({
       for (const s of COLUMN_ORDER) init[s] = [];
       for (const t of tasks) {
         (init[t.status] ??= []).push(t);
+      }
+      for (const s of COLUMN_ORDER) {
+        const idx = new Map(init[s].map((t, i) => [t.id, i]));
+        init[s] = sortByDate(init[s], idx);
       }
       return init;
     }
@@ -151,6 +176,10 @@ export default function KanbanBoard({
           }
         }
       }
+      for (const s of COLUMN_ORDER) {
+        const idx = new Map(next[s].map((t, i) => [t.id, i]));
+        next[s] = sortByDate(next[s], idx);
+      }
       return changed ? next : prev;
     });
   }, [tasks]);
@@ -203,16 +232,25 @@ export default function KanbanBoard({
       const activeTask = activeItems[activeIndex];
       if (!activeTask) return prev;
 
+      // Новая позиция карточки в целевой колонке.
+      // Если over — «зона сброса» (overIndex === -1), карточку кладём в конец,
+      // а НЕ используем slice(0, overIndex), который отбрасывал последнюю карточку.
+      const movedOver = { ...activeTask, status: overContainer };
+      const nextOverItems =
+        overIndex === -1
+          ? [...overItems, movedOver]
+          : [
+              ...overItems.slice(0, overIndex),
+              movedOver,
+              ...overItems.slice(overIndex),
+            ];
+
       return {
         ...prev,
         [activeContainer]: prev[activeContainer].filter(
           (t) => t.id !== active.id
         ),
-        [overContainer]: [
-          ...overItems.slice(0, overIndex),
-          overIndex === -1 ? activeTask : { ...activeTask, status: overContainer },
-          ...(overIndex === -1 ? [] : overItems.slice(overIndex)),
-        ],
+        [overContainer]: nextOverItems,
       };
     });
   }
@@ -235,20 +273,26 @@ export default function KanbanBoard({
       (t) => t.id === over.id
     );
 
-    // Переупорядочивание внутри одной колонки
-    if (endContainer === overContainer && activeIndex !== -1 && overIndex !== -1) {
-      if (activeIndex !== overIndex) {
-        setColumns((prev) => ({
-          ...prev,
-          [endContainer]: arrayMove(prev[endContainer], activeIndex, overIndex),
-        }));
-      }
+    // Перетаскивание внутри одной колонки: сохраняем новый порядок локально,
+    // чтобы карточка не «откатывалась» на прежнее место после отпускания.
+    // (Поле порядка в БД нет — порядок живёт в state и при равных датах
+    // сохраняется стабильной сортировкой.)
+    const fromStatus = source?.fromStatus;
+    if (fromStatus && fromStatus === endContainer) {
+      if (activeIndex === -1) return;
+      let target = overIndex;
+      if (target === -1) target = columns[endContainer].length - 1;
+      const list = columns[endContainer];
+      const moved = list[activeIndex];
+      const nextList = list.filter((t) => t.id !== active.id);
+      nextList.splice(target, 0, moved);
+      setColumns((prev) => ({ ...prev, [endContainer]: nextList }));
+      return;
     }
 
     // Сохраняем смену статуса, если исходная колонка отличается от конечной.
     // Это происходит и когда onDragOver уже визуально переместил карточку
     // (тогда endContainer === overContainer), и при прямом пересечении колонок.
-    const fromStatus = source?.fromStatus;
     if (fromStatus && fromStatus !== endContainer) {
       const activeTask = columns[endContainer][activeIndex] ?? findTask(active.id as string);
       if (!activeTask) return;
@@ -284,7 +328,7 @@ export default function KanbanBoard({
             key={status}
             className={`flex w-72 min-w-72 flex-col rounded-xl border ${STATUS_COLORS[status]}`}
           >
-            <div className="flex items-center justify-between px-3 py-2.5">
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-xl border-b border-zinc-200 bg-zinc-50 px-3 py-2.5">
               <h2 className="text-sm font-semibold text-zinc-800">
                 {STATUS_LABELS[status]}
               </h2>
@@ -296,7 +340,7 @@ export default function KanbanBoard({
               items={taskIdsByColumn[status]}
               strategy={verticalListSortingStrategy}
             >
-              <div className="flex flex-1 flex-col gap-2 px-2 pb-2">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
                 {columns[status].map((task) => (
                   <TaskCard
                     key={task.id}

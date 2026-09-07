@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle } from "lucide-react";
+import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
 
 export type CalendarClient = {
@@ -82,6 +82,18 @@ function dayKey(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+// Понедельник текущей недели (без времени)
+function startOfWeek(d: Date): Date {
+  const res = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (res.getDay() + 6) % 7; // 0 — понедельник
+  res.setDate(res.getDate() - dow);
+  return res;
+}
+
+function addDays(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
 function toDateInput(value: string | null): string {
@@ -437,41 +449,34 @@ export default function CalendarPlan({
     clientName: string;
   } | null>(null);
 
-  const dates = useMemo(() => {
-    const set = new Set<string>();
-    const all: Date[] = [];
-    for (const c of clients) {
-      for (const t of c.tasks) {
-        if (!t.date) continue;
-        const d = new Date(t.date);
-        const k = dayKey(d);
-        if (!set.has(k)) {
-          set.add(k);
-          all.push(d);
-        }
-      }
-    }
-    all.sort((a, b) => a.getTime() - b.getTime());
-    return all;
-  }, [clients]);
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
 
-  if (dates.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-        Пока нет задач с датами для календарного плана
-      </div>
-    );
-  }
-
-  const dateHeaders = dates.map((d) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).toLocaleDateString(
-      "ru-RU",
-      { day: "2-digit", month: "2-digit" }
-    )
+  // Все 7 дней текущей недели: рабочие + выходные
+  const days = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart]
   );
 
-  // Итоговое время (мин) по всем клиентам для каждой даты (план и факт)
-  const totalByDate = dates.map((d) => {
+  function isWeekend(d: Date): boolean {
+    return d.getDay() === 0 || d.getDay() === 6;
+  }
+
+  const todayKey = dayKey(new Date());
+
+  const weekLabel = (() => {
+    const short = (d: Date) =>
+      d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+    const full = (d: Date) =>
+      d.toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    return `${short(days[0])} – ${full(days[6])}`;
+  })();
+
+  // Итоговое время (мин) по всем клиентам для каждой даты недели (план и факт)
+  const totalByDate = days.map((d) => {
     const k = dayKey(d);
     let plan = 0;
     let fact = 0;
@@ -491,21 +496,76 @@ export default function CalendarPlan({
 
   return (
     <>
+      <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setWeekStart(addDays(weekStart, -7))}
+            title="Предыдущая неделя"
+            className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setWeekStart(startOfWeek(new Date()))}
+            className="rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            Сегодня
+          </button>
+          <button
+            onClick={() => setWeekStart(addDays(weekStart, 7))}
+            title="Следующая неделя"
+            className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <span className="ml-2 text-sm font-semibold text-zinc-700">
+            {weekLabel}
+          </span>
+        </div>
+      </div>
+
       <div className="h-full overflow-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full border-collapse">
+          <colgroup>
+            <col className="min-w-[180px]" />
+            {days.map((d, i) => (
+              <col
+                key={i}
+                className={isWeekend(d) ? "w-[44px] min-w-[44px]" : "min-w-[132px]"}
+              />
+            ))}
+          </colgroup>
           <thead className="sticky top-0 z-10 bg-white">
             <tr>
               <th className="sticky left-0 z-20 min-w-[180px] border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs font-semibold text-zinc-600">
                 Клиент
               </th>
-              {dateHeaders.map((h, i) => (
-                <th
-                  key={i}
-                  className="min-w-[90px] border-b border-zinc-200 bg-zinc-50 px-2 py-2 text-center text-xs font-medium text-zinc-600"
-                >
-                  {h}
-                </th>
-              ))}
+              {days.map((d, i) => {
+                const current = dayKey(d) === todayKey;
+                const we = isWeekend(d);
+                return (
+                  <th
+                    key={i}
+                    className={`border-b border-zinc-200 px-1 py-2 text-center ${
+                      we ? "bg-zinc-100/70" : "bg-zinc-50"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold ${
+                        current ? "text-blue-700" : "text-zinc-600"
+                      }`}
+                    >
+                      {d.toLocaleDateString("ru-RU", { weekday: "short" })}
+                    </div>
+                    <div className="text-[11px] font-normal text-zinc-500">
+                      {d.toLocaleDateString("ru-RU", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      })}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
             {hasAnyTime && (
               <tr>
@@ -515,7 +575,7 @@ export default function CalendarPlan({
                 {totalByDate.map((s, i) => (
                   <td
                     key={i}
-                    className="border-b border-zinc-200 bg-zinc-50 px-2 py-1 text-center text-[11px] font-semibold text-zinc-600"
+                    className="border-b border-zinc-200 bg-zinc-50 px-1 py-1 text-center text-[11px] font-semibold text-zinc-600"
                   >
                     {s.plan > 0 || s.fact > 0
                       ? `План: ${s.plan} · Факт: ${s.fact}`
@@ -536,15 +596,18 @@ export default function CalendarPlan({
                     {client.taxSystem}
                   </div>
                 </td>
-                {dates.map((d, i) => {
+                {days.map((d, i) => {
                   const k = dayKey(d);
+                  const we = isWeekend(d);
                   const dayTasks = client.tasks.filter(
                     (t) => t.date && dayKey(new Date(t.date)) === k
                   );
                   return (
                     <td
                       key={i}
-                      className="border-b border-zinc-100 px-1.5 py-1.5 align-top"
+                      className={`border-b px-1 py-1.5 align-top ${
+                        we ? "bg-zinc-50/50" : "border-zinc-100"
+                      }`}
                     >
                       {dayTasks.map((t) => {
                         const col = cardColor(t);
@@ -556,7 +619,7 @@ export default function CalendarPlan({
                               setEditing({ task: t, clientName: client.name })
                             }
                             title={`${t.title}\nНажмите, чтобы редактировать`}
-                            className={`mb-1 block w-full rounded text-left ${col.bg} px-1.5 py-1 text-[11px] leading-tight transition ${col.text} hover:ring-2 hover:ring-blue-300`}
+                            className={`mb-1 block w-full rounded text-left ${col.bg} px-1 py-1 text-[11px] leading-tight transition ${col.text} hover:ring-2 hover:ring-blue-300`}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="flex min-w-0 items-center gap-1">

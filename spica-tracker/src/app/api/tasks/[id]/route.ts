@@ -87,6 +87,13 @@ export async function PATCH(
     data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
   }
 
+  // Сумма для задач «Счёт» / «Оплата счёта»
+  if (body.amount === null) {
+    data.amount = null;
+  } else if (typeof body.amount === "number" && !isNaN(body.amount)) {
+    data.amount = Math.max(0, body.amount);
+  }
+
   // Смену ответственного может выполнять только сотрудник/руководитель
   if (
     body.assignedToId &&
@@ -137,6 +144,19 @@ export async function PATCH(
       const d = new Date(body.salaryCalcDate);
       if (!isNaN(d.getTime())) data.salaryCalcDate = d;
     }
+  }
+
+  // Восстановление из архива (только сотрудник/руководитель)
+  if (
+    body.archivedAt === null &&
+    (session.role === "ADMIN" || session.role === "EXECUTOR")
+  ) {
+    data.archivedAt = null;
+  } else if (body.archivedAt !== undefined) {
+    return NextResponse.json(
+      { error: "Недопустимое поле archivedAt" },
+      { status: 400 }
+    );
   }
 
   const updated = await prisma.task.update({

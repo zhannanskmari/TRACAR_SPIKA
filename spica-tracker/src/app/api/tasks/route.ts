@@ -10,8 +10,9 @@ export async function GET() {
   }
 
   const tasks = await prisma.task.findMany({
-    where:
-      session.role === "ADMIN"
+    where: {
+      archivedAt: null,
+      ...(session.role === "ADMIN"
         ? {}
         : session.role === "EXECUTOR"
           ? {
@@ -27,7 +28,8 @@ export async function GET() {
                   ],
                 },
               ],
-            },
+            }),
+    },
     include: {
       client: {
         select: { id: true, name: true, taxSystem: true },
@@ -142,6 +144,11 @@ export async function POST(request: NextRequest) {
     !isNaN(body.factDurationMinutes)
   ) {
     data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
+  }
+
+  // Сумма для задач «Счёт» / «Оплата счёта»
+  if (typeof body.amount === "number" && !isNaN(body.amount)) {
+    data.amount = Math.max(0, body.amount);
   }
 
   // Сумму налога и дату уплаты может вводить только сотрудник/руководитель

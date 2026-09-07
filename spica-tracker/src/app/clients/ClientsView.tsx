@@ -45,6 +45,7 @@ type Client = {
   advanceDay: number | null;
   employeeCount: number | null;
   invoiceDay: number | null;
+  invoiceAmount: number | null;
   accountNote: string | null;
   hasCashRegister: boolean;
   salaryViaCash: boolean;
@@ -77,6 +78,7 @@ export default function ClientsView({
   const [advanceDay, setAdvanceDay] = useState("");
   const [employeeCount, setEmployeeCount] = useState("");
   const [invoiceDay, setInvoiceDay] = useState("");
+  const [invoiceAmount, setInvoiceAmount] = useState("");
   const [accountNote, setAccountNote] = useState("");
   const [hasCashRegister, setHasCashRegister] = useState(false);
   const [salaryViaCash, setSalaryViaCash] = useState(false);
@@ -104,6 +106,7 @@ export default function ClientsView({
     setAdvanceDay(c.advanceDay != null ? String(c.advanceDay) : "");
     setEmployeeCount(c.employeeCount != null ? String(c.employeeCount) : "");
     setInvoiceDay(c.invoiceDay != null ? String(c.invoiceDay) : "");
+    setInvoiceAmount(c.invoiceAmount != null ? String(c.invoiceAmount) : "");
     setAccountNote(c.accountNote ?? "");
     setHasCashRegister(c.hasCashRegister);
     setSalaryViaCash(c.salaryViaCash);
@@ -120,6 +123,7 @@ export default function ClientsView({
     setAdvanceDay("");
     setEmployeeCount("");
     setInvoiceDay("");
+    setInvoiceAmount("");
     setAccountNote("");
     setHasCashRegister(false);
     setSalaryViaCash(false);
@@ -156,6 +160,7 @@ export default function ClientsView({
     if (salaryPaymentDay) body.salaryPaymentDay = Number(salaryPaymentDay);
     if (advanceDay) body.advanceDay = Number(advanceDay);
     if (invoiceDay) body.invoiceDay = Number(invoiceDay);
+    if (invoiceAmount) body.invoiceAmount = Number(invoiceAmount);
     if (employeeCount) body.employeeCount = Number(employeeCount);
     if (secondaryExecutorId) body.secondaryExecutorId = secondaryExecutorId;
 
@@ -374,6 +379,18 @@ export default function ClientsView({
                 className={input}
               />
             </div>
+            <div>
+              <label className={label}>Сумма счёта в месяц, ₽</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="0.00"
+                className={input}
+              />
+            </div>
             <div className="sm:col-span-2">
               <label className={label}>Расч. счёт (присылает или авто)</label>
               <input
@@ -515,6 +532,11 @@ export default function ClientsView({
                   </td>
                   <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
                     <div>Счёт: {c.invoiceDay ? `${c.invoiceDay}-го` : "—"}</div>
+                    {c.invoiceAmount != null && (
+                      <div className="font-medium text-zinc-700">
+                        {c.invoiceAmount.toLocaleString("ru-RU")} ₽
+                      </div>
+                    )}
                     {c.accountNote && (
                       <div className="text-zinc-500">{c.accountNote}</div>
                     )}

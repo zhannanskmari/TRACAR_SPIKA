@@ -38,6 +38,7 @@ model Client {
   advanceDay          Int?     // день месяца выплаты аванса
   employeeCount       Int?     // кол-во сотрудников
   invoiceDay          Int?     // день выписки счёта
+  invoiceAmount       Float?   // сумма счёта за месяц (в карточке клиента)
   accountNote         String?  // расч. счёт (присылает или авто) — текст
   hasCashRegister     Boolean  @default(false) // касса есть
   salaryViaCash       Boolean  @default(false) // зарплата выдаётся через кассу
@@ -51,6 +52,7 @@ model Client {
   clientUser        User?   @relation(fields: [clientUserId], references: [id])
   tasks             Task[]
   assignmentRules   AssignmentRule[]
+  monthBalances     MonthBalance[]
 }
 
 // Правила авто-распределения задач
@@ -80,18 +82,33 @@ model Task {
   salaryPaymentDate  DateTime?
   taxAmount          Float?
   taxPaymentDate     DateTime?
+  amount             Float?   // сумма для задач «Счёт» / «Оплата счёта»
   isClientNotified   Boolean   @default(false)
   urgent             Boolean   @default(false)
   durationMinutes    Int?      // план (минуты)
   factDurationMinutes Int?     // факт (минуты)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  archivedAt         DateTime? // null — активная; не null — в архиве
 
   client     Client     @relation(fields: [clientId], references: [id])
   assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy  User       @relation("TaskCreator", fields: [createdById], references: [id])
   comments   Comment[]
   documents  Document[]
+}
+
+// Начальные остатки и оплаты на месяц (вносятся вручную на вкладке «Оплаты»)
+model MonthBalance {
+  id            String  @id @default(cuid())
+  clientId      String
+  month         String  // "YYYY-MM"
+  startBalance  Float   @default(0)
+  paymentAmount Float   @default(0)
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, month])
 }
 
 // Комментарии к задачам

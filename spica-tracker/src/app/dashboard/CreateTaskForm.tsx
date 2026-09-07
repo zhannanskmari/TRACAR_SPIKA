@@ -22,6 +22,8 @@ const TASK_TYPES = [
   "ECP",
   "NOTIFICATION",
   "BANK_REGISTRY",
+  "INVOICE",
+  "INVOICE_PAYMENT",
   "CURRENT_ACCOUNT",
   "CASH_DESK",
   "SUPPLIERS",
@@ -55,6 +57,7 @@ export default function CreateTaskForm({
   const [urgent, setUrgent] = useState(false);
   const [taxAmount, setTaxAmount] = useState("");
   const [taxPaymentDate, setTaxPaymentDate] = useState("");
+  const [invoiceAmount, setInvoiceAmount] = useState("");
   const [assignedToId, setAssignedToId] = useState(
     executors[0]?.id ?? ""
   );
@@ -63,6 +66,8 @@ export default function CreateTaskForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  const isInvoiceType = taskType === "INVOICE" || taskType === "INVOICE_PAYMENT";
 
   if (!open) {
     return (
@@ -96,6 +101,7 @@ export default function CreateTaskForm({
     if (canEditTax && taxAmount) body.taxAmount = Number(taxAmount);
     if (canEditTax && taxPaymentDate)
       body.taxPaymentDate = new Date(taxPaymentDate).toISOString();
+    if (isInvoiceType && invoiceAmount) body.amount = Number(invoiceAmount);
 
     try {
       const res = await fetch("/api/tasks", {
@@ -114,6 +120,7 @@ export default function CreateTaskForm({
       setDeadline("");
       setTaxAmount("");
       setTaxPaymentDate("");
+      setInvoiceAmount("");
       setDuration("");
       setFactDuration("");
       setUrgent(false);
@@ -271,6 +278,23 @@ export default function CreateTaskForm({
               <Flame className="h-3.5 w-3.5 text-red-500" />
               Срочно
             </label>
+          )}
+
+          {isInvoiceType && (
+            <div className="rounded-lg bg-zinc-50 p-2">
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Сумма, ₽
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
           )}
 
           {canEditTax && (

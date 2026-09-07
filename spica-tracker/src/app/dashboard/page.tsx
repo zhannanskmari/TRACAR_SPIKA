@@ -13,20 +13,23 @@ export default async function DashboardPage() {
   const isAdmin = user.role === "ADMIN";
 
   const tasks = await prisma.task.findMany({
-    where: isAdmin
-      ? {}
-      : user.role === "CLIENT"
-        ? {
-            AND: [
-              { client: { clientUserId: user.id } },
-              {
-                OR: [{ createdById: user.id }, { status: "SENT_TO_CLIENT" }],
-              },
-            ],
-          }
-        : {
-            assignedToId: user.id,
-          },
+    where: {
+      archivedAt: null,
+      ...(isAdmin
+        ? {}
+        : user.role === "CLIENT"
+          ? {
+              AND: [
+                { client: { clientUserId: user.id } },
+                {
+                  OR: [{ createdById: user.id }, { status: "SENT_TO_CLIENT" }],
+                },
+              ],
+            }
+          : {
+              assignedToId: user.id,
+            }),
+    },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },
@@ -74,6 +77,9 @@ export default async function DashboardPage() {
     ...t,
     deadline: t.deadline ? t.deadline.toISOString() : null,
     taxPaymentDate: t.taxPaymentDate ? t.taxPaymentDate.toISOString() : null,
+    salaryPaymentDate: t.salaryPaymentDate ? t.salaryPaymentDate.toISOString() : null,
+    salaryCalcDate: t.salaryCalcDate ? t.salaryCalcDate.toISOString() : null,
+    archivedAt: t.archivedAt ? t.archivedAt.toISOString() : null,
     createdAt: t.createdAt.toISOString(),
     comments: t.comments.map((c) => ({
       ...c,
