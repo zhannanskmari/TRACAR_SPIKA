@@ -406,7 +406,11 @@ export default function DashboardView({
     () =>
       tasks.filter((t) => {
         if (filterClientId && t.client.id !== filterClientId) return false;
-        if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+        if (
+          filterExecutorId &&
+          t.assignedTo?.id !== filterExecutorId &&
+          t.executor?.id !== filterExecutorId
+        )
           return false;
         if (filterTaskType && t.taskType !== filterTaskType) return false;
         if (!taskMatchesDate(t)) return false;
@@ -420,7 +424,11 @@ export default function DashboardView({
     () =>
       (archived ?? []).filter((t) => {
         if (filterClientId && t.client.id !== filterClientId) return false;
-        if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+        if (
+          filterExecutorId &&
+          t.assignedTo?.id !== filterExecutorId &&
+          t.executor?.id !== filterExecutorId
+        )
           return false;
         if (filterTaskType && t.taskType !== filterTaskType) return false;
         if (!taskMatchesDate(t)) return false;
@@ -436,7 +444,11 @@ export default function DashboardView({
       .map((c) => {
         const ts = c.tasks.filter((t) => {
           if (filterClientId && c.id !== filterClientId) return false;
-          if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+          if (
+            filterExecutorId &&
+            t.assignedTo?.id !== filterExecutorId &&
+            t.executor?.id !== filterExecutorId
+          )
             return false;
           if (filterTaskType && t.taskType !== filterTaskType) return false;
           if (filterDate && (!t.date || toDateKey(new Date(t.date)) !== filterDate))

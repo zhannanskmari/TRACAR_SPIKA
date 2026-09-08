@@ -27,6 +27,7 @@ export type CalendarTask = {
   urgent: boolean;
   createdBy: { id: string; name: string } | null;
   assignedTo: { id: string; name: string; specialization: string | null } | null;
+  executor: { id: string; name: string; specialization: string | null } | null;
 };
 
 const TASK_TYPES = [
