@@ -669,7 +669,7 @@ export default function DashboardView({
                 {items.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.shortName || c.name}
-                    {c.taxSystem ? `(${taxLabel(c.taxSystem)})` : ""}
+                    {c.taxSystem ? ` (${taxLabel(c.taxSystem)})` : ""}
                   </option>
                 ))}
               </optgroup>
