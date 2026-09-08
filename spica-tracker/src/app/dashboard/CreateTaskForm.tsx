@@ -7,6 +7,7 @@ import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 export type DashboardClient = {
   id: string;
   name: string;
+  shortName: string | null;
   taxSystem: string;
 };
 
@@ -298,7 +299,7 @@ export default function CreateTaskForm({
             </div>
           )}
 
-          {canEditTax && (
+          {canEditTax && taskType === "TAX_PAYMENT" && (
             <div className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-600">
@@ -339,13 +340,22 @@ export default function CreateTaskForm({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? "Создание..." : "Создать задачу"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="flex flex-1 items-center justify-center rounded-lg bg-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
+            >
+              Отмена ввода
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex flex-1 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Создание..." : "Создать задачу"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

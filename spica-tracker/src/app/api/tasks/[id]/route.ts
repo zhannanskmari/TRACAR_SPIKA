@@ -168,6 +168,31 @@ export async function PATCH(
     },
   });
 
+  // «Оплата счёта»: при выполнении сумма уходит во вкладку «Оплаты»
+  // за текущий месяц, при возврате из «Выполнено» — вычитается обратно.
+  if (
+    task.taskType === "INVOICE_PAYMENT" &&
+    task.amount != null &&
+    task.amount > 0
+  ) {
+    const wasDone = task.status === "DONE";
+    const isDone = updated.status === "DONE";
+    if (wasDone !== isDone) {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const delta = (isDone ? 1 : -1) * task.amount;
+      await prisma.monthBalance.upsert({
+        where: { clientId_month: { clientId: task.clientId, month } },
+        update: { paymentAmount: { increment: delta } },
+        create: {
+          clientId: task.clientId,
+          month,
+          paymentAmount: Math.max(0, delta),
+        },
+      });
+    }
+  }
+
   return NextResponse.json({ task: updated });
 }
 

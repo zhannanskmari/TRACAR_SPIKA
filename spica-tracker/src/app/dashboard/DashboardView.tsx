@@ -103,6 +103,22 @@ function toDateKey(d: Date | null | undefined): string {
   return `${y}-${m}-${day}`;
 }
 
+const TAX_SYSTEMS = [
+  { value: "OSNO", label: "ОСНО" },
+  { value: "USN", label: "УСН 6%" },
+  { value: "USN15", label: "УСН 15%" },
+  { value: "AUSN8", label: "АУСН 8%" },
+  { value: "AUSN20", label: "АУСН 20%" },
+  { value: "PSN", label: "ПСН" },
+  { value: "ESHN", label: "ЕСХН" },
+  { value: "PATENT", label: "Патент" },
+];
+
+function taxLabel(value: string): string {
+  const found = TAX_SYSTEMS.find((t) => t.value === value);
+  return found ? found.label : value;
+}
+
 export default function DashboardView({
   user,
   tasks: initialTasks,
@@ -336,15 +352,28 @@ export default function DashboardView({
     filterClientId || filterTaskType || filterDate || filterExecutorId;
 
   const filterClients = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<
+      string,
+      { name: string; shortName: string | null; taxSystem: string }
+    >();
     for (const c of clients) {
-      if (c.id && c.name) map.set(c.id, c.name);
+      if (c.id && c.name)
+        map.set(c.id, {
+          name: c.name,
+          shortName: c.shortName ?? null,
+          taxSystem: c.taxSystem,
+        });
     }
     // гарантируем, что клиенты из календаря тоже доступны в фильтре
     for (const c of calendar ?? []) {
-      if (!map.has(c.id)) map.set(c.id, c.name);
+      if (!map.has(c.id))
+        map.set(c.id, {
+          name: c.name,
+          shortName: null,
+          taxSystem: c.taxSystem,
+        });
     }
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
   }, [clients, calendar]);
 
   function taskMatchesDate(t: DashboardTask): boolean {
@@ -598,7 +627,7 @@ export default function DashboardView({
           <option value="">Все клиенты</option>
           {filterClients.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.shortName || c.name} {c.taxSystem ? `(${taxLabel(c.taxSystem)})` : ""}
             </option>
           ))}
         </select>
