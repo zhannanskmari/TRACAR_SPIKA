@@ -30,6 +30,7 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
 export const TASK_TYPE_LABELS: Record<string, string> = {
   SALARY_CALC: "Расчёт ЗП",
   SALARY_PAYMENT: "Выплата ЗП",
+  SALARY_ADVANCE: "Аванс",
   TAX_PAYMENT: "Уплата налога",
   REPORT: "Отчётность",
   IFNS_DEMAND: "Требование ИФНС",
@@ -51,6 +52,7 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
 export const TASK_TYPE_BADGES: Record<string, string> = {
   SALARY_CALC: "bg-emerald-100 text-emerald-700",
   SALARY_PAYMENT: "bg-teal-100 text-teal-700",
+  SALARY_ADVANCE: "bg-lime-100 text-lime-700",
   TAX_PAYMENT: "bg-orange-100 text-orange-700",
   REPORT: "bg-indigo-100 text-indigo-700",
   IFNS_DEMAND: "bg-rose-100 text-rose-700",

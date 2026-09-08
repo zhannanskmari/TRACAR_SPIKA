@@ -123,13 +123,19 @@ export default function DashboardView({
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [archiveMsg, setArchiveMsg] = useState("");
+  const [accrueBusy, setAccrueBusy] = useState(false);
+  const [accrueMsg, setAccrueMsg] = useState("");
 
   const [filterClientId, setFilterClientId] = useState("");
   const [filterTaskType, setFilterTaskType] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [filterExecutorId, setFilterExecutorId] = useState("");
 
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
+  const canAccrueSalary =
+    user.role === "ADMIN" ||
+    (user.role === "EXECUTOR" && user.specialization === "SALARY");
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -234,6 +240,37 @@ export default function DashboardView({
     if (tab !== "kanban") setTab("kanban");
   }
 
+  async function accrueSalary(action: "salary" | "advance") {
+    if (accrueBusy) return;
+    setAccrueBusy(true);
+    setAccrueMsg("");
+    try {
+      const res = await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Ошибка начисления");
+      }
+      const data = await res.json();
+      const count = typeof data.count === "number" ? data.count : 0;
+      setAccrueMsg(
+        count > 0
+          ? `Создано задач: ${count}`
+          : data.message || "Задачи уже созданы"
+      );
+      await refreshTasks();
+      if (tab !== "kanban") setTab("kanban");
+    } catch (e) {
+      setAccrueMsg(e instanceof Error ? e.message : "Ошибка начисления");
+    } finally {
+      setAccrueBusy(false);
+    }
+    window.setTimeout(() => setAccrueMsg(""), 6000);
+  }
+
   // Авто-обновление каждые 10 секунд
   useEffect(() => {
     const id = setInterval(() => {
@@ -295,7 +332,8 @@ export default function DashboardView({
         ? "Клиент"
         : "Исполнитель";
 
-  const filterHasValue = filterClientId || filterTaskType || filterDate;
+  const filterHasValue =
+    filterClientId || filterTaskType || filterDate || filterExecutorId;
 
   const filterClients = useMemo(() => {
     const map = new Map<string, string>();
@@ -319,24 +357,28 @@ export default function DashboardView({
     () =>
       tasks.filter((t) => {
         if (filterClientId && t.client.id !== filterClientId) return false;
+        if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+          return false;
         if (filterTaskType && t.taskType !== filterTaskType) return false;
         if (!taskMatchesDate(t)) return false;
         return true;
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tasks, filterClientId, filterTaskType, filterDate]
+    [tasks, filterClientId, filterExecutorId, filterTaskType, filterDate]
   );
 
   const filteredArchived = useMemo(
     () =>
       (archived ?? []).filter((t) => {
         if (filterClientId && t.client.id !== filterClientId) return false;
+        if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+          return false;
         if (filterTaskType && t.taskType !== filterTaskType) return false;
         if (!taskMatchesDate(t)) return false;
         return true;
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [archived, filterClientId, filterTaskType, filterDate]
+    [archived, filterClientId, filterExecutorId, filterTaskType, filterDate]
   );
 
   const filteredCalendar = useMemo(() => {
@@ -345,6 +387,8 @@ export default function DashboardView({
       .map((c) => {
         const ts = c.tasks.filter((t) => {
           if (filterClientId && c.id !== filterClientId) return false;
+          if (filterExecutorId && t.assignedTo?.id !== filterExecutorId)
+            return false;
           if (filterTaskType && t.taskType !== filterTaskType) return false;
           if (filterDate && (!t.date || toDateKey(new Date(t.date)) !== filterDate))
             return false;
@@ -353,12 +397,20 @@ export default function DashboardView({
         return { ...c, tasks: ts };
       })
       .filter((c) => (filterHasValue ? c.tasks.length > 0 : true));
-  }, [calendar, filterClientId, filterTaskType, filterDate, filterHasValue]);
+  }, [
+    calendar,
+    filterClientId,
+    filterExecutorId,
+    filterTaskType,
+    filterDate,
+    filterHasValue,
+  ]);
 
   function resetFilters() {
     setFilterClientId("");
     setFilterTaskType("");
     setFilterDate("");
+    setFilterExecutorId("");
   }
 
   return (
@@ -492,6 +544,33 @@ export default function DashboardView({
                   {archiveMsg}
                 </span>
               )}
+              {accrueMsg && (
+                <span className="max-w-[240px] truncate text-xs text-zinc-500">
+                  {accrueMsg}
+                </span>
+              )}
+            </>
+          )}
+          {canAccrueSalary && user.role !== "CLIENT" && (
+            <>
+              <button
+                onClick={() => accrueSalary("salary")}
+                disabled={accrueBusy}
+                title="Создать задачи «Расчёт ЗП» для клиентов с датой выплаты зарплаты"
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+              >
+                <Banknote className="h-4 w-4" />
+                Начислить зарплату
+              </button>
+              <button
+                onClick={() => accrueSalary("advance")}
+                disabled={accrueBusy}
+                title="Создать задачи «Аванс» для клиентов с датой аванса"
+                className="flex items-center gap-1.5 rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100 disabled:opacity-60"
+              >
+                <Banknote className="h-4 w-4" />
+                Начислить аванс
+              </button>
             </>
           )}
           {clients.length > 0 && (
@@ -520,6 +599,23 @@ export default function DashboardView({
           {filterClients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterExecutorId}
+          onChange={(e) => setFilterExecutorId(e.target.value)}
+          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
+        >
+          <option value="">Все сотрудники</option>
+          {executors.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+              {u.specialization
+                ? u.specialization === "SALARY"
+                  ? " • ЗП"
+                  : " • Налоги"
+                : ""}
             </option>
           ))}
         </select>

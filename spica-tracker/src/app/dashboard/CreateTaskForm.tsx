@@ -13,6 +13,7 @@ export type DashboardClient = {
 const TASK_TYPES = [
   "SALARY_CALC",
   "SALARY_PAYMENT",
+  "SALARY_ADVANCE",
   "TAX_PAYMENT",
   "REPORT",
   "IFNS_DEMAND",

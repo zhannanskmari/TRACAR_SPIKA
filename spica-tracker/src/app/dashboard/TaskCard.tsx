@@ -26,6 +26,7 @@ import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
 const TASK_TYPES = [
   "SALARY_CALC",
   "SALARY_PAYMENT",
+  "SALARY_ADVANCE",
   "TAX_PAYMENT",
   "REPORT",
   "IFNS_DEMAND",
@@ -134,6 +135,7 @@ export default function TaskCard({
   const [edAssignedToId, setEdAssignedToId] = useState(
     task.assignedTo?.id ?? ""
   );
+  const [edStatus, setEdStatus] = useState(task.status);
   const [edDuration, setEdDuration] = useState(
     task.durationMinutes != null ? String(task.durationMinutes) : ""
   );
@@ -186,6 +188,7 @@ export default function TaskCard({
     setEdInvoiceAmount(task.amount != null ? String(task.amount) : "");
     setEdTaxPaymentDate(toDateInput(task.taxPaymentDate));
     setEdAssignedToId(task.assignedTo?.id ?? "");
+    setEdStatus(task.status);
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
     setEdFactDuration(task.factDurationMinutes != null ? String(task.factDurationMinutes) : "");
     setSaveError("");
@@ -204,6 +207,7 @@ export default function TaskCard({
     if (edTitle.trim() !== task.title) patch.title = edTitle.trim();
     if (edTaskType !== task.taskType) patch.taskType = edTaskType;
     if (edUrgent !== task.urgent) patch.urgent = edUrgent;
+    if (edStatus !== task.status) patch.status = edStatus;
 
     const oldAssigned = task.assignedTo?.id ?? "";
     if (edAssignedToId && edAssignedToId !== oldAssigned) {
@@ -421,6 +425,34 @@ export default function TaskCard({
             placeholder="Название задачи"
             className="w-full rounded-lg border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
           />
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+            <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+              Клиент
+            </label>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600">
+              <Building2 className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{task.client.name}</span>
+              <span className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
+                {task.client.taxSystem}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+              Статус
+            </label>
+            <select
+              value={edStatus}
+              onChange={(e) => setEdStatus(e.target.value)}
+              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+            >
+              {Object.entries(STATUS_SYMBOL).map(([value, s]) => (
+                <option key={value} value={value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">

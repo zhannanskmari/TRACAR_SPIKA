@@ -4,19 +4,6 @@ import { prisma } from "@/lib/prisma";
 
 const MONTH_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
-function parseMonth(month: string): { year: number; mon: number; start: Date; end: Date } | null {
-  const m = MONTH_RE.exec(month);
-  if (!m) return null;
-  const year = Number(m[1]);
-  const mon = Number(m[2]);
-  return {
-    year,
-    mon,
-    start: new Date(year, mon - 1, 1),
-    end: new Date(year, mon, 1),
-  };
-}
-
 function toNum(value: unknown): number | null {
   return typeof value === "number" && !isNaN(value) ? value : null;
 }

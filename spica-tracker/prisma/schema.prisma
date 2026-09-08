@@ -73,7 +73,7 @@ model Task {
   id                 String    @id @default(cuid())
   title              String
   clientId           String
-  taskType           String    // SALARY_CALC | SALARY_PAYMENT | TAX_PAYMENT | REPORT | IFNS_DEMAND | CLIENT_REQUEST | OTHER
+  taskType           String    // SALARY_CALC | SALARY_PAYMENT | SALARY_ADVANCE | TAX_PAYMENT | REPORT | IFNS_DEMAND | CLIENT_REQUEST | OTHER
   status             String    @default("NEW") // NEW | IN_PROGRESS | DONE | SENT_TO_CLIENT | REWORK | OVERDUE
   assignedToId       String
   createdById        String

@@ -59,11 +59,14 @@ function CellInput({
 }) {
   const [draft, setDraft] = useState(String(value ?? ""));
   const [dirty, setDirty] = useState(false);
+  const [prevValue, setPrevValue] = useState(value);
 
-  useEffect(() => {
+  // Синхронизируем "черновик" с новым value без эффекта (паттерн React)
+  if (prevValue !== value) {
+    setPrevValue(value);
     setDraft(String(value ?? ""));
     setDirty(false);
-  }, [value]);
+  }
 
   return (
     <input
@@ -99,7 +102,6 @@ export default function PaymentsView() {
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async (m: string) => {
-    setLoading(true);
     try {
       const res = await fetch(`/api/payments?month=${encodeURIComponent(m)}`, {
         cache: "no-store",
@@ -191,14 +193,20 @@ export default function PaymentsView() {
           <input
             type="month"
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
+            onChange={(e) => {
+              setMonth(e.target.value);
+              setLoading(true);
+            }}
             className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
           />
         </div>
         <div className="flex items-center gap-3">
           {msg && <span className="text-xs text-zinc-500">{msg}</span>}
           <button
-            onClick={() => load(month)}
+            onClick={() => {
+              setLoading(true);
+              load(month);
+            }}
             disabled={loading || busy}
             className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100 disabled:opacity-40"
           >
