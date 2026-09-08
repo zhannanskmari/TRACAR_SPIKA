@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Send,
   AlertTriangle,
+  User2,
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
@@ -74,6 +75,12 @@ function toDateInput(value: string | null): string {
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
 }
 
+function todayDateInput(): string {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
 function initials(name: string): string {
   return (
     name
@@ -117,6 +124,8 @@ export default function TaskCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState(task.comments);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
 
   const [editing, setEditing] = useState(false);
   const [edTitle, setEdTitle] = useState(task.title);
@@ -134,6 +143,9 @@ export default function TaskCard({
   );
   const [edAssignedToId, setEdAssignedToId] = useState(
     task.assignedTo?.id ?? ""
+  );
+  const [edExecutorId, setEdExecutorId] = useState(
+    task.executor?.id ?? ""
   );
   const [edStatus, setEdStatus] = useState(task.status);
   const [edDuration, setEdDuration] = useState(
@@ -179,15 +191,47 @@ export default function TaskCard({
     }
   }
 
+  async function saveCommentEdit(commentId: string) {
+    if (!editingCommentText.trim()) return;
+    const res = await fetch(`/api/tasks/${task.id}/comments/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editingCommentText }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? data.comment : c))
+      );
+      setEditingCommentId(null);
+      setEditingCommentText("");
+    }
+  }
+
+  async function deleteComment(commentId: string) {
+    if (!window.confirm("Удалить комментарий?")) return;
+    const res = await fetch(`/api/tasks/${task.id}/comments/${commentId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+        setEditingCommentText("");
+      }
+    }
+  }
+
   function startEdit() {
     setEdTitle(task.title);
     setEdTaskType(task.taskType);
-    setEdDeadline(toDateInput(task.deadline));
+    setEdDeadline(toDateInput(task.deadline) || todayDateInput());
     setEdUrgent(task.urgent);
     setEdTaxAmount(task.taxAmount != null ? String(task.taxAmount) : "");
     setEdInvoiceAmount(task.amount != null ? String(task.amount) : "");
     setEdTaxPaymentDate(toDateInput(task.taxPaymentDate));
     setEdAssignedToId(task.assignedTo?.id ?? "");
+    setEdExecutorId(task.executor?.id ?? "");
     setEdStatus(task.status);
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
     setEdFactDuration(task.factDurationMinutes != null ? String(task.factDurationMinutes) : "");
@@ -212,6 +256,11 @@ export default function TaskCard({
     const oldAssigned = task.assignedTo?.id ?? "";
     if (edAssignedToId && edAssignedToId !== oldAssigned) {
       patch.assignedToId = edAssignedToId;
+    }
+
+    const oldExecutor = task.executor?.id ?? "";
+    if (edExecutorId !== oldExecutor) {
+      patch.executorId = edExecutorId || null;
     }
 
     const newDuration = edDuration === "" ? null : Math.max(0, Number(edDuration));
@@ -341,16 +390,6 @@ export default function TaskCard({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {task.taxAmount != null && (
-            <span className="text-xs font-semibold text-zinc-700">
-              {task.taxAmount.toLocaleString("ru-RU")} ₽
-            </span>
-          )}
-          {task.amount != null && (
-            <span className="rounded bg-blue-50 px-1 py-0.5 text-xs font-semibold text-blue-700">
-              {task.amount.toLocaleString("ru-RU")} ₽
-            </span>
-          )}
           {!editing && (
             <button
               onClick={(e) => {
@@ -546,6 +585,30 @@ export default function TaskCard({
               </select>
             </div>
           )}
+          {executors.length > 0 && (
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                Исполнитель
+              </label>
+              <select
+                value={edExecutorId}
+                onChange={(e) => setEdExecutorId(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              >
+                <option value="">Не выбран</option>
+                {executors.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                    {u.specialization
+                      ? u.specialization === "SALARY"
+                        ? " • ЗП"
+                        : " • Налоги"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {canEditTax && edTaskType === "TAX_PAYMENT" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -596,6 +659,85 @@ export default function TaskCard({
               {saveError}
             </p>
           )}
+          <div className="rounded-lg border border-zinc-200 p-2">
+            <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-zinc-500">
+              <MessageSquare className="h-3 w-3" />
+              Комментарии ({comments.length})
+            </div>
+            <div className="mb-2 space-y-2">
+              {comments.length === 0 && (
+                <p className="text-[11px] text-zinc-400">Комментариев пока нет</p>
+              )}
+              {comments.map((c) => (
+                <div key={c.id} className="text-[11px] leading-snug">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-zinc-700">{c.user.name}</span>
+                    {(c.user.id === user.id || user.role === "ADMIN") && (
+                      <span className="flex shrink-0 items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingCommentId(c.id);
+                            setEditingCommentText(c.text);
+                          }}
+                          title="Редактировать"
+                          className="rounded px-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => deleteComment(c.id)}
+                          title="Удалить"
+                          className="rounded px-1 text-zinc-400 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  {editingCommentId === c.id ? (
+                    <div className="mt-1 flex gap-1">
+                      <input
+                        value={editingCommentText}
+                        onChange={(e) => setEditingCommentText(e.target.value)}
+                        className="min-w-0 flex-1 rounded border border-zinc-200 px-1.5 py-1 text-[11px] outline-none focus:border-blue-400"
+                      />
+                      <button
+                        onClick={() => saveCommentEdit(c.id)}
+                        className="rounded bg-blue-600 px-1.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700"
+                      >
+                        ОК
+                      </button>
+                      <button
+                        onClick={() => setEditingCommentId(null)}
+                        className="rounded bg-zinc-200 px-1.5 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-300"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-zinc-500">{c.text}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void addComment();
+                }}
+                placeholder="Добавить комментарий..."
+                className="min-w-0 flex-1 rounded border border-zinc-200 px-2 py-1 text-[11px] outline-none focus:border-blue-400"
+              />
+              <button
+                onClick={addComment}
+                className="rounded bg-blue-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-blue-700"
+              >
+                Отпр.
+              </button>
+            </div>
+          </div>
           <div className="flex gap-1.5">
             <button
               onClick={saveEdit}
@@ -637,6 +779,12 @@ export default function TaskCard({
                 <span className="flex items-center gap-1">
                   <Clock4 className="h-3.5 w-3.5" />
                   <span>Отв. — {initials(task.assignedTo.name)}</span>
+                </span>
+              )}
+              {task.executor && (
+                <span className="flex items-center gap-1">
+                  <User2 className="h-3.5 w-3.5" />
+                  <span>Исп. — {initials(task.executor.name)}</span>
                 </span>
               )}
             </span>

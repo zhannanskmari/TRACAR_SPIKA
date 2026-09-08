@@ -16,7 +16,7 @@ export async function GET() {
         ? {}
         : session.role === "EXECUTOR"
           ? {
-              assignedToId: session.id,
+              OR: [{ assignedToId: session.id }, { executorId: session.id }],
             }
           : {
               AND: [
@@ -35,6 +35,9 @@ export async function GET() {
         select: { id: true, name: true, taxSystem: true },
       },
       assignedTo: {
+        select: { id: true, name: true, specialization: true },
+      },
+      executor: {
         select: { id: true, name: true, specialization: true },
       },
       createdBy: {
@@ -126,6 +129,19 @@ export async function POST(request: NextRequest) {
     createdById: session.id,
     urgent: body.urgent === true,
   };
+
+  if (
+    body.executorId &&
+    (session.role === "ADMIN" || session.role === "EXECUTOR")
+  ) {
+    const executor = await prisma.user.findUnique({
+      where: { id: body.executorId },
+      select: { id: true, role: true },
+    });
+    if (executor && executor.role === "EXECUTOR") {
+      data.executorId = executor.id;
+    }
+  }
 
   if (typeof body.deadline === "string" && body.deadline) {
     const d = new Date(body.deadline);

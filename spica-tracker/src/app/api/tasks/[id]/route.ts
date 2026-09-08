@@ -108,6 +108,23 @@ export async function PATCH(
     }
   }
 
+  if (
+    body.executorId !== undefined &&
+    (session.role === "ADMIN" || session.role === "EXECUTOR")
+  ) {
+    if (body.executorId === null || body.executorId === "") {
+      data.executorId = null;
+    } else if (typeof body.executorId === "string") {
+      const executor = await prisma.user.findUnique({
+        where: { id: body.executorId },
+        select: { id: true, role: true },
+      });
+      if (executor && executor.role === "EXECUTOR") {
+        data.executorId = executor.id;
+      }
+    }
+  }
+
   if (body.deadline === null) {
     data.deadline = null;
   } else if (typeof body.deadline === "string" && body.deadline) {

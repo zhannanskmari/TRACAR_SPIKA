@@ -63,6 +63,7 @@ export default function CreateTaskForm({
   const [assignedToId, setAssignedToId] = useState(
     executors[0]?.id ?? ""
   );
+  const [executorId, setExecutorId] = useState("");
   const [duration, setDuration] = useState("");
   const [factDuration, setFactDuration] = useState("");
   const [saving, setSaving] = useState(false);
@@ -96,6 +97,7 @@ export default function CreateTaskForm({
     };
     if (deadline) body.deadline = new Date(deadline).toISOString();
     if (assignedToId) body.assignedToId = assignedToId;
+    if (executorId) body.executorId = executorId;
     if (duration !== "" && !isNaN(Number(duration)))
       body.durationMinutes = Math.max(0, Math.round(Number(duration)));
     if (factDuration !== "" && !isNaN(Number(factDuration)))
@@ -255,6 +257,31 @@ export default function CreateTaskForm({
                 onChange={(e) => setAssignedToId(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               >
+                {executors.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                    {u.specialization
+                      ? u.specialization === "SALARY"
+                        ? " • ЗП"
+                        : " • Налоги"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {!isClient && executors.length > 0 && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Исполнитель
+              </label>
+              <select
+                value={executorId}
+                onChange={(e) => setExecutorId(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              >
+                <option value="">Не выбран</option>
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}

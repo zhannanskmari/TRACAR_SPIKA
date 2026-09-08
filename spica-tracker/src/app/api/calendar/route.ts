@@ -38,7 +38,12 @@ export async function GET() {
                 { secondaryExecutorId: session.id },
                 {
                   tasks: {
-                    some: { assignedToId: session.id },
+                    some: {
+                      OR: [
+                        { assignedToId: session.id },
+                        { executorId: session.id },
+                      ],
+                    },
                   },
                 },
               ],
@@ -51,11 +56,15 @@ export async function GET() {
   const tasks = await prisma.task.findMany({
     where:
       session.role === "EXECUTOR"
-        ? { archivedAt: null, assignedToId: session.id }
+        ? {
+            archivedAt: null,
+            OR: [{ assignedToId: session.id }, { executorId: session.id }],
+          }
         : { archivedAt: null, clientId: { in: clientIds } },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },
+      executor: { select: { id: true, name: true, specialization: true } },
       createdBy: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "asc" },

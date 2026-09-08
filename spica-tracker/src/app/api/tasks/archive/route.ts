@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 const TASK_INCLUDE = {
   client: { select: { id: true, name: true, taxSystem: true } },
   assignedTo: { select: { id: true, name: true, specialization: true } },
+  executor: { select: { id: true, name: true, specialization: true } },
   createdBy: { select: { id: true, name: true } },
   comments: {
     include: { user: { select: { id: true, name: true, role: true } } },
@@ -15,7 +16,7 @@ const TASK_INCLUDE = {
 
 function archiveScope(session: { id: string; role: string }) {
   if (session.role === "EXECUTOR") {
-    return { assignedToId: session.id };
+    return { OR: [{ assignedToId: session.id }, { executorId: session.id }] };
   }
   return {};
 }
@@ -32,7 +33,7 @@ export async function GET() {
       ...(session.role === "ADMIN"
         ? {}
         : session.role === "EXECUTOR"
-          ? { assignedToId: session.id }
+          ? { OR: [{ assignedToId: session.id }, { executorId: session.id }] }
           : {
               AND: [
                 { client: { clientUserId: session.id } },

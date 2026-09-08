@@ -26,8 +26,13 @@ export type DashboardTask = {
   durationMinutes: number | null;
   factDurationMinutes: number | null;
   createdAt: string;
-  client: { id: string; name: string; taxSystem: string };
+  client: {
+    id: string;
+    name: string;
+    taxSystem: string;
+  };
   assignedTo: { id: string; name: string; specialization: string | null };
+  executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
   comments: {
     id: string;
@@ -72,8 +77,13 @@ type RawTask = {
   durationMinutes: number | null;
   factDurationMinutes: number | null;
   createdAt: string | null;
-  client: { id: string; name: string; taxSystem: string };
+  client: {
+    id: string;
+    name: string;
+    taxSystem: string;
+  };
   assignedTo: { id: string; name: string; specialization: string | null };
+  executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
   comments: RawComment[];
   _count: { documents: number };
@@ -113,6 +123,16 @@ const TAX_SYSTEMS = [
   { value: "ESHN", label: "ЕСХН" },
   { value: "PATENT", label: "Патент" },
 ];
+
+const TAX_GROUPS = ["АУСН", "УСН", "Патент", "ОСНО", "Другие"];
+
+function taxGroupLabel(value: string): string {
+  if (value === "AUSN8" || value === "AUSN20") return "АУСН";
+  if (value === "USN" || value === "USN15") return "УСН";
+  if (value === "PATENT" || value === "PSN") return "Патент";
+  if (value === "OSNO" || value === "ESHN") return "ОСНО";
+  return "Другие";
+}
 
 function taxLabel(value: string): string {
   const found = TAX_SYSTEMS.find((t) => t.value === value);
@@ -625,11 +645,22 @@ export default function DashboardView({
           className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
         >
           <option value="">Все клиенты</option>
-          {filterClients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.shortName || c.name} {c.taxSystem ? `(${taxLabel(c.taxSystem)})` : ""}
-            </option>
-          ))}
+          {TAX_GROUPS.map((label) => {
+            const items = filterClients.filter(
+              (c) => taxGroupLabel(c.taxSystem) === label
+            );
+            if (items.length === 0) return null;
+            return (
+              <optgroup key={label} label={label}>
+                {items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.shortName || c.name}
+                    {c.taxSystem ? `(${taxLabel(c.taxSystem)})` : ""}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
         </select>
         {user.role === "ADMIN" && (
           <select

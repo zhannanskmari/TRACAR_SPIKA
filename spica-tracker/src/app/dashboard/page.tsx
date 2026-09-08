@@ -27,12 +27,19 @@ export default async function DashboardPage() {
               ],
             }
           : {
-              assignedToId: user.id,
+              OR: [{ assignedToId: user.id }, { executorId: user.id }],
             }),
     },
     include: {
-      client: { select: { id: true, name: true, taxSystem: true } },
+      client: {
+        select: {
+          id: true,
+          name: true,
+          taxSystem: true,
+        },
+      },
       assignedTo: { select: { id: true, name: true, specialization: true } },
+      executor: { select: { id: true, name: true, specialization: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
         include: { user: { select: { id: true, name: true, role: true } } },
@@ -59,7 +66,12 @@ export default async function DashboardPage() {
               },
             ],
           },
-    select: { id: true, name: true, shortName: true, taxSystem: true },
+    select: {
+      id: true,
+      name: true,
+      shortName: true,
+      taxSystem: true,
+    },
     orderBy: { name: "asc" },
   });
 
