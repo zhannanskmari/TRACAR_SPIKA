@@ -654,12 +654,12 @@ export default function CalendarPlan({
                               </span>
                               <Pencil className="h-3 w-3 shrink-0 opacity-40" />
                             </div>
-                            <div className="line-clamp-2">{t.title}</div>
                             {t.executor && (
                               <div className="mt-0.5 truncate text-[10px] text-zinc-600">
                                 Исп — {initials(t.executor.name)}
                               </div>
                             )}
+                            <div className="line-clamp-2">{t.title}</div>
                             {(t.taxAmount != null || t.durationMinutes != null || t.factDurationMinutes != null) && (
                               <div className={`font-semibold ${col.amount}`}>
                                 {t.taxAmount != null && (

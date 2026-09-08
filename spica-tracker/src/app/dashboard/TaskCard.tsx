@@ -82,14 +82,12 @@ function todayDateInput(): string {
 }
 
 function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .map((w) => w[0])
-      .join(".")
-      .toUpperCase() + "."
-  );
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 }
 
 function isOverdue(task: DashboardTask): boolean {
@@ -470,7 +468,7 @@ export default function TaskCard({
             </label>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600">
               <Building2 className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{task.client.name}</span>
+              <span className="truncate">{task.client.shortName || task.client.name}</span>
               <span className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
                 {task.client.taxSystem}
               </span>
@@ -775,13 +773,13 @@ export default function TaskCard({
               {task.assignedTo && (
                 <span className="flex items-center gap-1">
                   <Clock4 className="h-3.5 w-3.5" />
-                  <span>Отв. — {initials(task.assignedTo.name)}</span>
+                  <span>Отв. {initials(task.assignedTo.name)}</span>
                 </span>
               )}
               {task.executor && (
                 <span className="flex items-center gap-1">
                   <User2 className="h-3.5 w-3.5" />
-                  <span>Исп. — {initials(task.executor.name)}</span>
+                  <span>Исп.{initials(task.executor.name)}</span>
                 </span>
               )}
             </span>
