@@ -602,23 +602,25 @@ export default function DashboardView({
             </option>
           ))}
         </select>
-        <select
-          value={filterExecutorId}
-          onChange={(e) => setFilterExecutorId(e.target.value)}
-          className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
-        >
-          <option value="">Все сотрудники</option>
-          {executors.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-              {u.specialization
-                ? u.specialization === "SALARY"
-                  ? " • ЗП"
-                  : " • Налоги"
-                : ""}
-            </option>
-          ))}
-        </select>
+        {user.role === "ADMIN" && (
+          <select
+            value={filterExecutorId}
+            onChange={(e) => setFilterExecutorId(e.target.value)}
+            className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-700 outline-none focus:border-blue-500"
+          >
+            <option value="">Все сотрудники</option>
+            {executors.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+                {u.specialization
+                  ? u.specialization === "SALARY"
+                    ? " • ЗП"
+                    : " • Налоги"
+                  : ""}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={filterTaskType}
           onChange={(e) => setFilterTaskType(e.target.value)}
