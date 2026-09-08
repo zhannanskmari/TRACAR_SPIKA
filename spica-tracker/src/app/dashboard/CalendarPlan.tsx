@@ -68,6 +68,17 @@ const STATUS_SYMBOL: Record<
   OVERDUE: { icon: AlertTriangle, label: "Просрочено", cls: "text-red-500" },
 };
 
+function initials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join(".")
+      .toUpperCase() + "."
+  );
+}
+
 function cardColor(task: {
   assignedTo: { id: string; name: string } | null;
   taskType: string;
@@ -644,6 +655,11 @@ export default function CalendarPlan({
                               <Pencil className="h-3 w-3 shrink-0 opacity-40" />
                             </div>
                             <div className="line-clamp-2">{t.title}</div>
+                            {t.executor && (
+                              <div className="mt-0.5 truncate text-[10px] text-zinc-600">
+                                Исп — {initials(t.executor.name)}
+                              </div>
+                            )}
                             {(t.taxAmount != null || t.durationMinutes != null || t.factDurationMinutes != null) && (
                               <div className={`font-semibold ${col.amount}`}>
                                 {t.taxAmount != null && (

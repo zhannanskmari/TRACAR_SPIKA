@@ -8,8 +8,8 @@ function taskDate(task: {
   salaryPaymentDate: Date | null;
   taxPaymentDate: Date | null;
 }): string | null {
+  if (task.deadline) return task.deadline.toISOString();
   const candidates = [
-    task.deadline,
     task.taxPaymentDate,
     task.salaryPaymentDate,
     task.salaryCalcDate,
