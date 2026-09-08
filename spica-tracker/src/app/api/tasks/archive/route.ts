@@ -3,7 +3,9 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const TASK_INCLUDE = {
-  client: { select: { id: true, name: true, taxSystem: true } },
+  client: {
+    select: { id: true, name: true, shortName: true, taxSystem: true },
+  },
   assignedTo: { select: { id: true, name: true, specialization: true } },
   executor: { select: { id: true, name: true, specialization: true } },
   createdBy: { select: { id: true, name: true } },

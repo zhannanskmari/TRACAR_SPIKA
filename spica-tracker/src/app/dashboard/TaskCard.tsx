@@ -768,10 +768,7 @@ export default function TaskCard({
             <span className="flex min-w-0 items-center gap-1">
               <Building2 className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
               <span className="truncate font-semibold text-indigo-600">
-                {task.client.name}
-              </span>
-              <span className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-medium text-indigo-600">
-                {task.client.taxSystem}
+                {task.client.shortName || task.client.name}
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -27,6 +27,18 @@ const LEGAL_FORMS = ["ООО", "ИП", "АО", "ОАО", "ЗАО", "НКО"];
 function taxLabel(value: string): string {
   const found = TAX_SYSTEMS.find((t) => t.value === value);
   return found ? found.label : value;
+}
+
+const TAX_CATEGORIES: { label: string; values: string[] }[] = [
+  { label: "АУСН", values: ["AUSN8", "AUSN20"] },
+  { label: "УСН", values: ["USN", "USN15"] },
+  { label: "ОСНО", values: ["OSNO", "ESHN"] },
+  { label: "Патент", values: ["PSN", "PATENT"] },
+];
+
+function taxCategory(value: string): string {
+  const cat = TAX_CATEGORIES.find((c) => c.values.includes(value));
+  return cat ? cat.label : "Другие";
 }
 
 type Executor = {
@@ -212,6 +224,63 @@ export default function ClientsView({
   const label = "mb-1 block text-xs font-medium text-zinc-600";
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500";
+
+  const categories = TAX_CATEGORIES.map((cat) => ({
+    ...cat,
+    clients: clients.filter((c) => taxCategory(c.taxSystem) === cat.label),
+  })).filter((cat) => cat.clients.length > 0);
+  const otherClients = clients.filter((c) => taxCategory(c.taxSystem) === "Другие");
+
+  const renderClientRow = (c: Client) => (
+    <tr key={c.id} className="align-top hover:bg-zinc-50">
+      <td className="border-b border-r border-zinc-100 px-3 py-2">
+        <div className="font-medium text-zinc-900">{c.name}</div>
+        {c.shortName && (
+          <div className="text-xs text-zinc-500">{c.shortName}</div>
+        )}
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2">
+        {taxLabel(c.taxSystem)}
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
+        <div>ЗП: {c.salaryPaymentDay ?? "—"}-го</div>
+        <div>Аванс: {c.advanceDay ?? "—"}-го</div>
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2">
+        {c.employeeCount ?? "—"}
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
+        <div>Счёт: {c.invoiceDay ? `${c.invoiceDay}-го` : "—"}</div>
+        {c.invoiceAmount != null && (
+          <div className="font-medium text-zinc-700">
+            {c.invoiceAmount.toLocaleString("ru-RU")} ₽
+          </div>
+        )}
+        {c.accountNote && (
+          <div className="text-zinc-500">{c.accountNote}</div>
+        )}
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
+        <div>{c.hasCashRegister ? "Есть" : "Нет"}</div>
+        {c.salaryViaCash && <div>ЗП через кассу</div>}
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
+        <div>{c.primaryExecutor.name}</div>
+        {c.secondaryExecutor && (
+          <div className="text-zinc-500">{c.secondaryExecutor.name}</div>
+        )}
+      </td>
+      <td className="border-b px-3 py-2 text-right">
+        <button
+          onClick={() => startEdit(c)}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Изменить
+        </button>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="flex min-h-full flex-col bg-zinc-100">
@@ -512,56 +581,32 @@ export default function ClientsView({
                   </td>
                 </tr>
               )}
-              {clients.map((c) => (
-                <tr key={c.id} className="align-top hover:bg-zinc-50">
-                  <td className="border-b border-r border-zinc-100 px-3 py-2">
-                    <div className="font-medium text-zinc-900">{c.name}</div>
-                    {c.shortName && (
-                      <div className="text-xs text-zinc-500">{c.shortName}</div>
-                    )}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2">
-                    {taxLabel(c.taxSystem)}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
-                    <div>ЗП: {c.salaryPaymentDay ?? "—"}-го</div>
-                    <div>Аванс: {c.advanceDay ?? "—"}-го</div>
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2">
-                    {c.employeeCount ?? "—"}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
-                    <div>Счёт: {c.invoiceDay ? `${c.invoiceDay}-го` : "—"}</div>
-                    {c.invoiceAmount != null && (
-                      <div className="font-medium text-zinc-700">
-                        {c.invoiceAmount.toLocaleString("ru-RU")} ₽
-                      </div>
-                    )}
-                    {c.accountNote && (
-                      <div className="text-zinc-500">{c.accountNote}</div>
-                    )}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
-                    <div>{c.hasCashRegister ? "Есть" : "Нет"}</div>
-                    {c.salaryViaCash && <div>ЗП через кассу</div>}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs">
-                    <div>{c.primaryExecutor.name}</div>
-                    {c.secondaryExecutor && (
-                      <div className="text-zinc-500">{c.secondaryExecutor.name}</div>
-                    )}
-                  </td>
-                  <td className="border-b px-3 py-2 text-right">
-                    <button
-                      onClick={() => startEdit(c)}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
+              {categories.map((cat) => (
+                <Fragment key={cat.label}>
+                  <tr className="bg-blue-50">
+                    <td
+                      colSpan={8}
+                      className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Изменить
-                    </button>
-                  </td>
-                </tr>
+                      {cat.label} ({cat.clients.length})
+                    </td>
+                  </tr>
+                  {cat.clients.map(renderClientRow)}
+                </Fragment>
               ))}
+              {otherClients.length > 0 && (
+                <Fragment>
+                  <tr className="bg-blue-50">
+                    <td
+                      colSpan={8}
+                      className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
+                    >
+                      Другие ({otherClients.length})
+                    </td>
+                  </tr>
+                  {otherClients.map(renderClientRow)}
+                </Fragment>
+              )}
             </tbody>
           </table>
         </div>

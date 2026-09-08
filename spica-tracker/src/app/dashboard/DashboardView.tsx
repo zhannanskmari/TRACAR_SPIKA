@@ -29,6 +29,7 @@ export type DashboardTask = {
   client: {
     id: string;
     name: string;
+    shortName: string | null;
     taxSystem: string;
   };
   assignedTo: { id: string; name: string; specialization: string | null };
@@ -80,6 +81,7 @@ type RawTask = {
   client: {
     id: string;
     name: string;
+    shortName: string | null;
     taxSystem: string;
   };
   assignedTo: { id: string; name: string; specialization: string | null };
