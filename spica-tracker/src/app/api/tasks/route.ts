@@ -149,6 +149,11 @@ export async function POST(request: NextRequest) {
     if (!isNaN(d.getTime())) data.deadline = d;
   }
 
+  // Все типы, кроме «Требования»: если срок не указан — ставим дату создания
+  if (!data.deadline && taskType !== "IFNS_DEMAND") {
+    data.deadline = new Date();
+  }
+
   // «Требование» (ИФНС): срок по умолчанию +5 рабочих дней, срок требования +10 рабочих дней
   if (taskType === "IFNS_DEMAND") {
     if (!data.deadline) data.deadline = addBusinessDays(new Date(), 5);

@@ -124,17 +124,7 @@ export default function CreateTaskForm({
         return;
       }
       // сброс состояния и закрытие формы
-      setTitle("");
-      setDeadline("");
-      setTaxAmount("");
-      setTaxPaymentDate("");
-      setInvoiceAmount("");
-      setDuration("");
-      setFactDuration("");
-      setUrgent(false);
-      setDone(true);
-      setSaving(false);
-      setOpen(false);
+      resetForm();
       // обновим данные на странице без полной перезагрузки
       onCreated?.();
     } catch {
@@ -143,10 +133,35 @@ export default function CreateTaskForm({
     }
   }
 
+  function resetForm() {
+    setTitle("");
+    setClientId(clients[0]?.id ?? "");
+    setTaskType("CLIENT_REQUEST");
+    setDeadline(() => {
+      const d = new Date();
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - offset * 60000);
+      return local.toISOString().slice(0, 10);
+    });
+    setReceiptDeadline("");
+    setUrgent(false);
+    setTaxAmount("");
+    setTaxPaymentDate("");
+    setInvoiceAmount("");
+    setAssignedToId(executors[0]?.id ?? "");
+    setExecutorId("");
+    setDuration("");
+    setFactDuration("");
+    setError("");
+    setDone(false);
+    setSaving(false);
+    setOpen(false);
+  }
+
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(false)}
+        onClick={resetForm}
         className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
       >
         <X className="h-4 w-4" />
@@ -401,8 +416,8 @@ export default function CreateTaskForm({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="flex flex-1 items-center justify-center rounded-lg bg-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
+onClick={resetForm}
+              className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
             >
               Отмена ввода
             </button>
