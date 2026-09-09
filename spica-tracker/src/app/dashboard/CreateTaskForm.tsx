@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
+import { addBusinessDays } from "@/lib/dates";
 
 export type DashboardClient = {
   id: string;
@@ -56,6 +57,7 @@ export default function CreateTaskForm({
     const local = new Date(d.getTime() - offset * 60000);
     return local.toISOString().slice(0, 10);
   });
+  const [receiptDeadline, setReceiptDeadline] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [taxAmount, setTaxAmount] = useState("");
   const [taxPaymentDate, setTaxPaymentDate] = useState("");
@@ -96,6 +98,8 @@ export default function CreateTaskForm({
       urgent,
     };
     if (deadline) body.deadline = new Date(deadline).toISOString();
+    if (receiptDeadline)
+      body.receiptDeadline = new Date(receiptDeadline).toISOString();
     if (assignedToId) body.assignedToId = assignedToId;
     if (executorId) body.executorId = executorId;
     if (duration !== "" && !isNaN(Number(duration)))
@@ -195,7 +199,20 @@ export default function CreateTaskForm({
               </label>
               <select
                 value={taskType}
-                onChange={(e) => setTaskType(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setTaskType(next);
+                  if (next === "IFNS_DEMAND") {
+                    const toInput = (d: Date) =>
+                      new Date(
+                        d.getTime() - d.getTimezoneOffset() * 60000
+                      )
+                        .toISOString()
+                        .slice(0, 10);
+                    setDeadline(toInput(addBusinessDays(new Date(), 5)));
+                    setReceiptDeadline(toInput(addBusinessDays(new Date(), 10)));
+                  }
+                }}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               >
                 {TASK_TYPES.map((t) => (
@@ -217,6 +234,20 @@ export default function CreateTaskForm({
               />
             </div>
           </div>
+
+          {taskType === "IFNS_DEMAND" && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                Срок требования
+              </label>
+              <input
+                type="date"
+                value={receiptDeadline}
+                onChange={(e) => setReceiptDeadline(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>

@@ -82,6 +82,7 @@ export async function POST() {
     where: {
       archivedAt: null,
       deadline: { lte: endOfToday },
+      status: { notIn: ["NEW", "IN_PROGRESS", "REWORK"] },
       ...archiveScope(session),
     },
     data: { archivedAt: now },

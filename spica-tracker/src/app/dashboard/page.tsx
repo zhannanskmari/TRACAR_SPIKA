@@ -89,6 +89,7 @@ export default async function DashboardPage() {
   const serialized = tasks.map((t) => ({
     ...t,
     deadline: t.deadline ? t.deadline.toISOString() : null,
+    receiptDeadline: t.receiptDeadline ? t.receiptDeadline.toISOString() : null,
     taxPaymentDate: t.taxPaymentDate ? t.taxPaymentDate.toISOString() : null,
     salaryPaymentDate: t.salaryPaymentDate ? t.salaryPaymentDate.toISOString() : null,
     salaryCalcDate: t.salaryCalcDate ? t.salaryCalcDate.toISOString() : null,

@@ -132,6 +132,13 @@ export async function PATCH(
     if (!isNaN(d.getTime())) data.deadline = d;
   }
 
+  if (body.receiptDeadline === null) {
+    data.receiptDeadline = null;
+  } else if (typeof body.receiptDeadline === "string" && body.receiptDeadline) {
+    const d = new Date(body.receiptDeadline);
+    if (!isNaN(d.getTime())) data.receiptDeadline = d;
+  }
+
   // Сумму налога / дату уплаты может менять только сотрудник/руководитель
   const canEditTax = session.role === "ADMIN" || session.role === "EXECUTOR";
   if (canEditTax) {

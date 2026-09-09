@@ -57,10 +57,9 @@ export async function GET() {
     where:
       session.role === "EXECUTOR"
         ? {
-            archivedAt: null,
             OR: [{ assignedToId: session.id }, { executorId: session.id }],
           }
-        : { archivedAt: null, clientId: { in: clientIds } },
+        : { clientId: { in: clientIds } },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },

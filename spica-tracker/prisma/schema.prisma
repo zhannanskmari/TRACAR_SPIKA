@@ -80,6 +80,7 @@ model Task {
   executorId         String?
   createdById        String
   deadline           DateTime?
+  receiptDeadline    DateTime?
   salaryCalcDate     DateTime?
   salaryPaymentDate  DateTime?
   taxAmount          Float?

@@ -20,6 +20,7 @@ import {
   Send,
   AlertTriangle,
   User2,
+  Receipt,
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
@@ -129,6 +130,9 @@ export default function TaskCard({
   const [edTitle, setEdTitle] = useState(task.title);
   const [edTaskType, setEdTaskType] = useState(task.taskType);
   const [edDeadline, setEdDeadline] = useState(toDateInput(task.deadline));
+  const [edReceiptDeadline, setEdReceiptDeadline] = useState(
+    toDateInput(task.receiptDeadline)
+  );
   const [edUrgent, setEdUrgent] = useState(task.urgent);
   const [edTaxAmount, setEdTaxAmount] = useState(
     task.taxAmount != null ? String(task.taxAmount) : ""
@@ -224,6 +228,7 @@ export default function TaskCard({
     setEdTitle(task.title);
     setEdTaskType(task.taskType);
     setEdDeadline(toDateInput(task.deadline) || todayDateInput());
+    setEdReceiptDeadline(toDateInput(task.receiptDeadline));
     setEdUrgent(task.urgent);
     setEdTaxAmount(task.taxAmount != null ? String(task.taxAmount) : "");
     setEdInvoiceAmount(task.amount != null ? String(task.amount) : "");
@@ -296,6 +301,14 @@ export default function TaskCard({
       : "";
     if (newDeadline !== (oldDeadline ? new Date(oldDeadline).toISOString() : null)) {
       patch.deadline = newDeadline;
+    }
+
+    const newReceiptDeadline = edReceiptDeadline
+      ? new Date(edReceiptDeadline).toISOString()
+      : null;
+    const oldReceiptDeadline = task.receiptDeadline ?? null;
+    if (newReceiptDeadline !== oldReceiptDeadline) {
+      patch.receiptDeadline = newReceiptDeadline;
     }
 
     if (canEditTax) {
@@ -384,6 +397,15 @@ export default function TaskCard({
             <span className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
               <Calendar className="h-3 w-3" />
               {formatDate(task.deadline)}
+            </span>
+          )}
+          {task.receiptDeadline && (
+            <span
+              title="Срок требования"
+              className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-600"
+            >
+              <Receipt className="h-3 w-3" />
+              {formatDate(task.receiptDeadline)}
             </span>
           )}
         </div>
@@ -519,6 +541,19 @@ export default function TaskCard({
               />
             </div>
           </div>
+          {edTaskType === "IFNS_DEMAND" && (
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                Срок требования
+              </label>
+              <input
+                type="date"
+                value={edReceiptDeadline}
+                onChange={(e) => setEdReceiptDeadline(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">

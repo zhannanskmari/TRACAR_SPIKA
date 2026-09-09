@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { addBusinessDays } from "@/lib/dates";
 
 export async function GET() {
   const session = await getSession();
@@ -146,6 +147,20 @@ export async function POST(request: NextRequest) {
   if (typeof body.deadline === "string" && body.deadline) {
     const d = new Date(body.deadline);
     if (!isNaN(d.getTime())) data.deadline = d;
+  }
+
+  // «Требование» (ИФНС): срок по умолчанию +5 рабочих дней, срок требования +10 рабочих дней
+  if (taskType === "IFNS_DEMAND") {
+    if (!data.deadline) data.deadline = addBusinessDays(new Date(), 5);
+    if (typeof body.receiptDeadline === "string" && body.receiptDeadline) {
+      const d = new Date(body.receiptDeadline);
+      if (!isNaN(d.getTime())) data.receiptDeadline = d;
+    } else if (!data.receiptDeadline) {
+      data.receiptDeadline = addBusinessDays(new Date(), 10);
+    }
+  } else if (typeof body.receiptDeadline === "string" && body.receiptDeadline) {
+    const d = new Date(body.receiptDeadline);
+    if (!isNaN(d.getTime())) data.receiptDeadline = d;
   }
 
   if (
