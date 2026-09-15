@@ -42,8 +42,6 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
     a.isClientNotified === b.isClientNotified &&
     a.durationMinutes === b.durationMinutes &&
     a.factDurationMinutes === b.factDurationMinutes &&
-    a.startTime === b.startTime &&
-    a.endTime === b.endTime &&
     a.assignedTo?.id === b.assignedTo?.id
   );
 }
@@ -51,18 +49,6 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
 // Идентификатор невидимой «зоны сброса» в конце каждой колонки,
 // чтобы карточку можно было бросить в пустой конец колонки
 const PLACEHOLDER = (status: string) => `${status}-drop-zone`;
-
-function nowTime(): string {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes()
-  ).padStart(2, "0")}`;
-}
-
-function toMinutes(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
 
 function earliestDate(t: DashboardTask): Date {
   const dates = [t.deadline, t.taxPaymentDate, t.salaryPaymentDate, t.salaryCalcDate]
@@ -311,20 +297,7 @@ export default function KanbanBoard({
       const activeTask = columns[endContainer][activeIndex] ?? findTask(active.id as string);
       if (!activeTask) return;
       try {
-        const patchData: Record<string, unknown> = { status: endContainer };
-        const now = nowTime();
-        if (endContainer === "IN_PROGRESS") {
-          // «Начало» — время переноса в «Ежедневник у сотрудников»
-          patchData.startTime = now;
-        } else if (endContainer === "DONE") {
-          // «Окончание» — время переноса на «Выполнено»; факт = разница
-          patchData.endTime = now;
-          if (activeTask.startTime) {
-            const diff = toMinutes(now) - toMinutes(activeTask.startTime);
-            if (diff >= 0) patchData.factDurationMinutes = diff;
-          }
-        }
-        await patchTask(activeTask.id, patchData);
+        await patchTask(activeTask.id, { status: endContainer });
       } catch (e) {
         console.error(e);
         // откат — возвращаем карточку в исходную колонку

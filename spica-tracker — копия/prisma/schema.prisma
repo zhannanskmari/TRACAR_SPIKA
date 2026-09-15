@@ -90,8 +90,6 @@ model Task {
   urgent             Boolean   @default(false)
   durationMinutes    Int?      // план (минуты)
   factDurationMinutes Int?     // факт (минуты)
-  startTime          String?   // время переноса в «Ежедневник у сотрудников» (ЧЧ:ММ)
-  endTime            String?   // время переноса на «Выполнено» (ЧЧ:ММ)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   archivedAt         DateTime? // null — активная; не null — в архиве

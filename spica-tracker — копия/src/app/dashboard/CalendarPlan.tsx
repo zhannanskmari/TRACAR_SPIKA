@@ -24,8 +24,6 @@ export type CalendarTask = {
   taxAmount: number | null;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
-  startTime: string | null;
-  endTime: string | null;
   urgent: boolean;
   createdBy: { id: string; name: string } | null;
   assignedTo: { id: string; name: string; specialization: string | null } | null;
@@ -63,7 +61,7 @@ const STATUS_SYMBOL: Record<
   { icon: React.ComponentType<{ className?: string }>; label: string; cls: string }
 > = {
   NEW: { icon: CircleDot, label: "Новое", cls: "text-zinc-500" },
-  IN_PROGRESS: { icon: Loader, label: "Ежедневник", cls: "text-blue-500" },
+  IN_PROGRESS: { icon: Loader, label: "В работе", cls: "text-blue-500" },
   REWORK: { icon: RefreshCw, label: "На доработке", cls: "text-amber-500" },
   DONE: { icon: CheckCircle2, label: "Выполнено", cls: "text-green-600" },
   SENT_TO_CLIENT: { icon: Send, label: "Отправлено клиенту", cls: "text-violet-500" },
@@ -153,8 +151,6 @@ function EditModal({
   const [factDuration, setFactDuration] = useState(
     task.factDurationMinutes != null ? String(task.factDurationMinutes) : ""
   );
-  const [startTime, setStartTime] = useState(task.startTime ?? "");
-  const [endTime, setEndTime] = useState(task.endTime ?? "");
   const [assignedToId, setAssignedToId] = useState(task.assignedTo?.id ?? "");
   const [taxAmount, setTaxAmount] = useState(
     task.taxAmount != null ? String(task.taxAmount) : ""
@@ -212,13 +208,6 @@ function EditModal({
       patch.factDurationMinutes = Math.round(newFact);
     } else if (factDuration === "" && oldFact !== null) {
       patch.factDurationMinutes = null;
-    }
-
-    if (startTime.trim() !== (task.startTime ?? "")) {
-      patch.startTime = startTime.trim() || null;
-    }
-    if (endTime.trim() !== (task.endTime ?? "")) {
-      patch.endTime = endTime.trim() || null;
     }
 
     const newDeadline = deadline ? new Date(deadline).toISOString() : null;
@@ -363,26 +352,6 @@ function EditModal({
                   min="0"
                   value={factDuration}
                   onChange={(e) => setFactDuration(e.target.value)}
-                  className={input}
-                />
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <label className={label}>Начало</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className={input}
-                />
-              </div>
-              <div>
-                <label className={label}>Окончание</label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
                   className={input}
                 />
               </div>
@@ -706,11 +675,6 @@ export default function CalendarPlan({
                                 {t.factDurationMinutes != null && (
                                   <span>Факт: {t.factDurationMinutes} мин</span>
                                 )}
-                              </div>
-                            )}
-                            {(t.startTime || t.endTime) && (
-                              <div className="text-[10px] text-zinc-500">
-                                Начало: {t.startTime ?? "—"} · Окончание: {t.endTime ?? "—"}
                               </div>
                             )}
                           </button>

@@ -11,7 +11,7 @@ export type TaskStatus = (typeof STATUSES)[number];
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   NEW: "Новые",
-  IN_PROGRESS: "Ежедневник у сотрудников",
+  IN_PROGRESS: "В работе",
   DONE: "Выполнено",
   SENT_TO_CLIENT: "Отправлено клиенту",
   REWORK: "На доработке",

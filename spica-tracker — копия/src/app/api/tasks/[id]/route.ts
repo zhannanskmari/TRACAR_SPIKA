@@ -87,36 +87,6 @@ export async function PATCH(
     data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
   }
 
-  // «Начало»/«Окончание» — время переноса в формате ЧЧ:ММ
-  const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  if (body.startTime === null || body.startTime === "") {
-    data.startTime = null;
-  } else if (typeof body.startTime === "string" && TIME_RE.test(body.startTime)) {
-    data.startTime = body.startTime;
-  }
-
-  if (body.endTime === null || body.endTime === "") {
-    data.endTime = null;
-  } else if (typeof body.endTime === "string" && TIME_RE.test(body.endTime)) {
-    data.endTime = body.endTime;
-  }
-
-  // Факт = разница «Окончание» − «Начало» (в минутах), если оба времени заданы
-  const startRaw = data.startTime !== undefined ? data.startTime : task.startTime;
-  const endRaw = data.endTime !== undefined ? data.endTime : task.endTime;
-  const start = typeof startRaw === "string" && TIME_RE.test(startRaw) ? startRaw : null;
-  const end = typeof endRaw === "string" && TIME_RE.test(endRaw) ? endRaw : null;
-  if (start && end) {
-    const toMin = (t: string) => {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
-    const diff = toMin(end) - toMin(start);
-    if (diff >= 0) {
-      data.factDurationMinutes = diff;
-    }
-  }
-
   // Сумма для задач «Счёт» / «Оплата счёта»
   if (body.amount === null) {
     data.amount = null;

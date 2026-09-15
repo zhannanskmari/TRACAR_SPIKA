@@ -26,8 +26,6 @@ export type DashboardTask = {
   urgent: boolean;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
-  startTime: string | null;
-  endTime: string | null;
   createdAt: string;
   client: {
     id: string;
@@ -81,8 +79,6 @@ type RawTask = {
   urgent: boolean;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
-  startTime: string | null;
-  endTime: string | null;
   createdAt: string | null;
   client: {
     id: string;

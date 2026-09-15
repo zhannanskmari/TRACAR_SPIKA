@@ -53,7 +53,7 @@ const STATUS_SYMBOL: Record<
   { icon: React.ComponentType<{ className?: string }>; label: string; cls: string }
 > = {
   NEW: { icon: CircleDot, label: "Новое", cls: "text-zinc-500" },
-  IN_PROGRESS: { icon: Loader, label: "Ежедневник", cls: "text-blue-500" },
+  IN_PROGRESS: { icon: Loader, label: "В работе", cls: "text-blue-500" },
   REWORK: { icon: RefreshCw, label: "На доработке", cls: "text-amber-500" },
   DONE: { icon: CheckCircle2, label: "Выполнено", cls: "text-green-600" },
   SENT_TO_CLIENT: { icon: Send, label: "Отправлено клиенту", cls: "text-violet-500" },
@@ -155,8 +155,6 @@ export default function TaskCard({
   const [edFactDuration, setEdFactDuration] = useState(
     task.factDurationMinutes != null ? String(task.factDurationMinutes) : ""
   );
-  const [edStartTime, setEdStartTime] = useState(task.startTime ?? "");
-  const [edEndTime, setEdEndTime] = useState(task.endTime ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -239,8 +237,6 @@ export default function TaskCard({
     setEdStatus(task.status);
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
     setEdFactDuration(task.factDurationMinutes != null ? String(task.factDurationMinutes) : "");
-    setEdStartTime(task.startTime ?? "");
-    setEdEndTime(task.endTime ?? "");
     setSaveError("");
     setEditing(true);
   }
@@ -294,13 +290,6 @@ export default function TaskCard({
       patch.factDurationMinutes = Math.round(newFact);
     } else if (edFactDuration === "" && oldFact !== null) {
       patch.factDurationMinutes = null;
-    }
-
-    if (edStartTime.trim() !== (task.startTime ?? "")) {
-      patch.startTime = edStartTime.trim() || null;
-    }
-    if (edEndTime.trim() !== (task.endTime ?? "")) {
-      patch.endTime = edEndTime.trim() || null;
     }
 
     const newDeadline = edDeadline
@@ -369,12 +358,8 @@ export default function TaskCard({
         isDragging ? "opacity-50" : ""
       }`}
       onClick={(e) => {
-        // в колонке «Ежедневник у сотрудников» клик по карточке открывает редактирование
-        if (task.status === "IN_PROGRESS") {
-          const t = e.target as HTMLElement;
-          if (t.closest("button, a, input, select, textarea, label")) return;
-          startEdit();
-        }
+        // клик по пустому месту карточки не редактирует случайно
+        void e;
       }}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -594,30 +579,6 @@ export default function TaskCard({
                 value={edFactDuration}
                 onChange={(e) => setEdFactDuration(e.target.value)}
                 placeholder="0"
-                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                Начало
-              </label>
-              <input
-                type="time"
-                value={edStartTime}
-                onChange={(e) => setEdStartTime(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                Окончание
-              </label>
-              <input
-                type="time"
-                value={edEndTime}
-                onChange={(e) => setEdEndTime(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
               />
             </div>
@@ -881,15 +842,6 @@ export default function TaskCard({
               </button>
             )}
           </div>
-
-          {(task.startTime || task.endTime) && (
-            <div className="mb-0.5 flex items-center gap-1 text-[10px] text-zinc-500">
-              <Clock4 className="h-3 w-3 shrink-0" />
-              <span>
-                Начало: {task.startTime ?? "—"} · Окончание: {task.endTime ?? "—"}
-              </span>
-            </div>
-          )}
         </>
       )}
     </div>
