@@ -99,14 +99,27 @@ function sortByTime(
   });
 }
 
+// Сортировка колонки «Новые»: сначала срочные, далее по дате
+function sortByUrgent(
+  tasks: DashboardTask[],
+  prevIndex: Map<string, number>
+): DashboardTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;
+    const d = earliestDate(a).getTime() - earliestDate(b).getTime();
+    if (d !== 0) return d;
+    return (prevIndex.get(a.id) ?? 0) - (prevIndex.get(b.id) ?? 0);
+  });
+}
+
 function sortColumn(
   tasks: DashboardTask[],
   prevIndex: Map<string, number>,
   status: string
 ): DashboardTask[] {
-  return status === "IN_PROGRESS"
-    ? sortByTime(tasks, prevIndex)
-    : sortByDate(tasks, prevIndex);
+  if (status === "IN_PROGRESS") return sortByTime(tasks, prevIndex);
+  if (status === "NEW") return sortByUrgent(tasks, prevIndex);
+  return sortByDate(tasks, prevIndex);
 }
 
 function ColumnDropZone({ status }: { status: string }) {

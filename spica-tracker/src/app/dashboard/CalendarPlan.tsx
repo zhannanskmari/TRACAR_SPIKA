@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
 
 export type CalendarClient = {
@@ -766,6 +766,15 @@ export default function CalendarPlan({
                                 <span className="truncate font-medium">
                                   {TASK_TYPE_LABELS[t.taskType] ?? t.taskType}
                                 </span>
+                                {t.urgent && (
+                                  // срочная задача — значок огонька рядом с типом
+                                  <span
+                                    title="Срочная задача"
+                                    className="shrink-0"
+                                  >
+                                    <Flame className="h-3 w-3 text-red-600" />
+                                  </span>
+                                )}
                               </span>
                               <Pencil className="h-3 w-3 shrink-0 opacity-40" />
                             </div>
