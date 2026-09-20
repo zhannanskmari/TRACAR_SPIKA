@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { addBusinessDays } from "@/lib/dates";
@@ -51,12 +51,17 @@ export default function CreateTaskForm({
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [taskType, setTaskType] = useState("CLIENT_REQUEST");
-  const [deadline, setDeadline] = useState(() => {
+  const [deadline, setDeadline] = useState("");
+
+  useEffect(() => {
+    // Сегодняшняя дата вычисляется на клиенте, чтобы SSR и гидрация не расходились
     const d = new Date();
     const offset = d.getTimezoneOffset();
-    const local = new Date(d.getTime() - offset * 60000);
-    return local.toISOString().slice(0, 10);
-  });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDeadline(
+      (prev) => prev || new Date(d.getTime() - offset * 60000).toISOString().slice(0, 10)
+    );
+  }, []);
   const [receiptDeadline, setReceiptDeadline] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [taxAmount, setTaxAmount] = useState("");

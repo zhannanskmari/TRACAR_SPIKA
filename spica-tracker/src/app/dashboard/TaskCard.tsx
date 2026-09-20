@@ -62,10 +62,11 @@ const STATUS_SYMBOL: Record<
 
 function formatDate(value: string | null): string {
   if (!value) return "";
-  return new Date(value).toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-  });
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  return `${String(d.getDate()).padStart(2, "0")}.${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}`;
 }
 
 function toDateInput(value: string | null): string {
@@ -364,6 +365,10 @@ export default function TaskCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
+      // aria-describedby от dnd-kit содержит нестабильный счётчик
+      // (разный на сервере и клиенте) — отключаем, чтобы не было
+      // расхождений гидрации; screen-reader'у это не мешает
+      aria-describedby={undefined}
       {...listeners}
       className={`group cursor-grab rounded-lg border border-zinc-200 bg-white p-2 shadow-sm active:cursor-grabbing ${
         isDragging ? "opacity-50" : ""

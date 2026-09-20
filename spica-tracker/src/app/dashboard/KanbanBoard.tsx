@@ -85,6 +85,30 @@ function sortByDate(
   });
 }
 
+// Сортировка колонки «Ежедневник»: по возрастанию времени начала,
+// задачи без времени — в конец списка
+function sortByTime(
+  tasks: DashboardTask[],
+  prevIndex: Map<string, number>
+): DashboardTask[] {
+  return [...tasks].sort((a, b) => {
+    const at = a.startTime ? toMinutes(a.startTime) : Infinity;
+    const bt = b.startTime ? toMinutes(b.startTime) : Infinity;
+    if (at !== bt) return at - bt;
+    return (prevIndex.get(a.id) ?? 0) - (prevIndex.get(b.id) ?? 0);
+  });
+}
+
+function sortColumn(
+  tasks: DashboardTask[],
+  prevIndex: Map<string, number>,
+  status: string
+): DashboardTask[] {
+  return status === "IN_PROGRESS"
+    ? sortByTime(tasks, prevIndex)
+    : sortByDate(tasks, prevIndex);
+}
+
 function ColumnDropZone({ status }: { status: string }) {
   const { setNodeRef, transform, transition, isDragging } = useSortable({
     id: PLACEHOLDER(status),
@@ -129,7 +153,7 @@ export default function KanbanBoard({
       }
       for (const s of COLUMN_ORDER) {
         const idx = new Map(init[s].map((t, i) => [t.id, i]));
-        init[s] = sortByDate(init[s], idx);
+        init[s] = sortColumn(init[s], idx, s);
       }
       return init;
     }
@@ -192,7 +216,7 @@ export default function KanbanBoard({
       }
       for (const s of COLUMN_ORDER) {
         const idx = new Map(next[s].map((t, i) => [t.id, i]));
-        next[s] = sortByDate(next[s], idx);
+        next[s] = sortColumn(next[s], idx, s);
       }
       return changed ? next : prev;
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
 
@@ -50,6 +50,23 @@ const TASK_TYPES = [
   "CUSTOMERS",
   "OTHER",
 ];
+
+// Слоты времени с шагом 30 мин с 10:00 до 20:00
+const TIME_SLOTS = Array.from({ length: 20 }, (_, i) => {
+  const h = String(10 + Math.floor(i / 2)).padStart(2, "0");
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${h}:${m}`;
+});
+
+// Индекс временного слота для времени "ЧЧ:ММ" (вне диапазона — к краю)
+function toSlotIndex(time: string | null): number {
+  if (!time) return 0;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time);
+  if (!m) return 0;
+  const minutes = Number(m[1]) * 60 + Number(m[2]);
+  const idx = Math.floor((minutes - 10 * 60) / 30);
+  return Math.min(TIME_SLOTS.length - 1, Math.max(0, idx));
+}
 
 const CAL_COLORS: Record<string, { bg: string; text: string; amount: string }> = {
   blue:   { bg: "bg-sky-100",   text: "text-sky-900",   amount: "text-sky-700" },
@@ -122,7 +139,24 @@ function formatShortDate(value: string | null): string {
   if (!value) return "";
   const d = new Date(value);
   if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}`;
+}
+
+// Форматирование суммы с пробелами-разделителями групп, без локали
+function formatAmount(n: number): string {
+  return n
+    .toFixed(0)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+const WEEKDAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+function formatDdMm(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}`;
 }
 
 type EditModalProps = {
@@ -492,11 +526,23 @@ export default function CalendarPlan({
     clientName: string;
   } | null>(null);
 
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [weekStart, setWeekStart] = useState<Date | null>(null);
+  const [todayKey, setTodayKey] = useState("");
+
+  // Неделя и «сегодня» считаются на клиенте после монтирования,
+  // чтобы сервер и клиент не расходились при гидрации
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTodayKey(dayKey(new Date()));
+    setWeekStart((prev) => prev ?? startOfWeek(new Date()));
+  }, []);
 
   // Все 7 дней текущей недели: рабочие + выходные
   const days = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    () =>
+      weekStart
+        ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+        : [],
     [weekStart]
   );
 
@@ -504,18 +550,12 @@ export default function CalendarPlan({
     return d.getDay() === 0 || d.getDay() === 6;
   }
 
-  const todayKey = dayKey(new Date());
-
   const weekLabel = (() => {
-    const short = (d: Date) =>
-      d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
-    const full = (d: Date) =>
-      d.toLocaleDateString("ru-RU", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-    return `${short(days[0])} – ${full(days[6])}`;
+    const two = (d: Date) =>
+      `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return days.length === 7
+      ? `${two(days[0])} – ${two(days[6])}.${days[6].getFullYear()}`
+      : "";
   })();
 
   // Итоговое время (мин) по всем клиентам для каждой даты недели (план и факт)
@@ -536,6 +576,54 @@ export default function CalendarPlan({
   });
 
   const hasAnyTime = totalByDate.some((s) => s.plan > 0 || s.fact > 0);
+
+  // Размещение задач по слотам дня: с указанным временем — в свой слот,
+  // без времени — в ближайший свободный слот начиная с 10:00
+  const buildDaySlots = useCallback(
+    (key: string) => {
+      const slots: { task: CalendarTask; clientName: string }[][] = Array.from(
+        { length: TIME_SLOTS.length },
+        () => []
+      );
+      const all: { task: CalendarTask; clientName: string }[] = [];
+      for (const c of clients) {
+        for (const t of c.tasks) {
+          if (t.date && dayKey(new Date(t.date)) === key) {
+            all.push({ task: t, clientName: c.name });
+          }
+        }
+      }
+      const withTime = all
+        .filter((x) => x.task.startTime)
+        .sort((a, b) =>
+          (a.task.startTime ?? "").localeCompare(b.task.startTime ?? "")
+        );
+      const withoutTime = all.filter((x) => !x.task.startTime);
+      for (const item of withTime) {
+        slots[toSlotIndex(item.task.startTime)].push(item);
+      }
+      for (const item of withoutTime) {
+        const free = slots.findIndex((s) => s.length === 0);
+        if (free === -1) slots[slots.length - 1].push(item);
+        else slots[free].push(item);
+      }
+      return slots;
+    },
+    [clients]
+  );
+
+  // Предвычисленные слоты для каждого дня недели
+  const slotsByDay = useMemo(() => {
+    const map: Record<
+      string,
+      { task: CalendarTask; clientName: string }[][]
+    > = {};
+    for (const d of days) {
+      const k = dayKey(d);
+      map[k] = buildDaySlots(k);
+    }
+    return map;
+  }, [days, buildDaySlots]);
 
   return (
     <>
@@ -581,7 +669,7 @@ export default function CalendarPlan({
           <thead className="sticky top-0 z-10 bg-white">
             <tr>
               <th className="sticky left-0 z-20 min-w-[180px] border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs font-semibold text-zinc-600">
-                Клиент
+                Время
               </th>
               {days.map((d, i) => {
                 const current = dayKey(d) === todayKey;
@@ -598,13 +686,10 @@ export default function CalendarPlan({
                         current ? "text-blue-700" : "text-zinc-600"
                       }`}
                     >
-                      {d.toLocaleDateString("ru-RU", { weekday: "short" })}
+                      {WEEKDAYS_SHORT[i % 7]}
                     </div>
                     <div className="text-[11px] font-normal text-zinc-500">
-                      {d.toLocaleDateString("ru-RU", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
+                      {formatDdMm(d)}
                     </div>
                   </th>
                 );
@@ -629,22 +714,15 @@ export default function CalendarPlan({
             )}
           </thead>
           <tbody>
-            {clients.map((client) => (
-              <tr key={client.id} className="align-top">
-                <td className="sticky left-0 z-10 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2">
-                  <div className="text-sm font-medium text-zinc-800">
-                    {client.name}
-                  </div>
-                  <div className="text-[11px] text-zinc-500">
-                    {client.taxSystem}
-                  </div>
+            {TIME_SLOTS.map((time, si) => (
+              <tr key={time} className="align-top">
+                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600">
+                  {time}
                 </td>
                 {days.map((d, i) => {
                   const k = dayKey(d);
                   const we = isWeekend(d);
-                  const dayTasks = client.tasks.filter(
-                    (t) => t.date && dayKey(new Date(t.date)) === k
-                  );
+                  const items = slotsByDay[k][si];
                   return (
                     <td
                       key={i}
@@ -652,14 +730,14 @@ export default function CalendarPlan({
                         we ? "bg-zinc-50/50" : "border-zinc-100"
                       }`}
                     >
-                      {dayTasks.map((t) => {
+                      {items.map(({ task: t, clientName }) => {
                         const col = cardColor(t);
                         return (
                           <button
                             type="button"
                             key={t.id}
                             onClick={() =>
-                              setEditing({ task: t, clientName: client.name })
+                              setEditing({ task: t, clientName })
                             }
                             title={`${t.title}\nНажмите, чтобы редактировать`}
                             className={`mb-1 block w-full rounded text-left ${col.bg} px-1 py-1 text-[11px] leading-tight transition ${col.text} hover:ring-2 hover:ring-blue-300`}
@@ -685,17 +763,20 @@ export default function CalendarPlan({
                               </span>
                               <Pencil className="h-3 w-3 shrink-0 opacity-40" />
                             </div>
+                            <div className="truncate text-[10px] font-semibold text-zinc-800">
+                              {clientName}
+                            </div>
+                            <div className="line-clamp-2">{t.title}</div>
                             {t.executor && (
                               <div className="mt-0.5 truncate text-[10px] text-zinc-600">
                                 Исп — {initials(t.executor.name)}
                               </div>
                             )}
-                            <div className="line-clamp-2">{t.title}</div>
                             {(t.taxAmount != null || t.durationMinutes != null || t.factDurationMinutes != null) && (
                               <div className={`font-semibold ${col.amount}`}>
                                 {t.taxAmount != null && (
                                   <span>
-                                    {t.taxAmount.toLocaleString("ru-RU")} ₽
+                                    {formatAmount(t.taxAmount)} ₽
                                   </span>
                                 )}
                                 {(t.taxAmount != null && (t.durationMinutes != null || t.factDurationMinutes != null)) && <span> · </span>}
