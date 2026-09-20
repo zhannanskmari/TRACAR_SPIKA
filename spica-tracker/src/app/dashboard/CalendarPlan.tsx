@@ -630,7 +630,11 @@ export default function CalendarPlan({
       <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2">
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setWeekStart(addDays(weekStart, -7))}
+            onClick={() =>
+              setWeekStart(
+                addDays(weekStart ?? startOfWeek(new Date()), -7)
+              )
+            }
             title="Предыдущая неделя"
             className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
           >
@@ -643,7 +647,9 @@ export default function CalendarPlan({
             Сегодня
           </button>
           <button
-            onClick={() => setWeekStart(addDays(weekStart, 7))}
+            onClick={() =>
+              setWeekStart(addDays(weekStart ?? startOfWeek(new Date()), 7))
+            }
             title="Следующая неделя"
             className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
           >
