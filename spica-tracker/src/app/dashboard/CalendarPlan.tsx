@@ -664,7 +664,7 @@ export default function CalendarPlan({
       <div className="h-full overflow-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full border-collapse">
           <colgroup>
-            <col className="min-w-[180px]" />
+            <col className="w-[44px] min-w-[44px]" />
             {days.map((d, i) => (
               <col
                 key={i}
@@ -674,7 +674,7 @@ export default function CalendarPlan({
           </colgroup>
           <thead className="sticky top-0 z-10 bg-white">
             <tr>
-              <th className="sticky left-0 z-20 min-w-[180px] border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs font-semibold text-zinc-600">
+              <th className="sticky left-0 z-20 w-[44px] min-w-[44px] border-b border-r border-zinc-200 bg-zinc-50 px-1 py-2 text-left text-xs font-semibold text-zinc-600">
                 Время
               </th>
               {days.map((d, i) => {
@@ -722,7 +722,7 @@ export default function CalendarPlan({
           <tbody>
             {TIME_SLOTS.map((time, si) => (
               <tr key={time} className="align-top">
-                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600">
+                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-zinc-200 bg-zinc-50 px-1 py-2 text-xs font-medium text-zinc-600">
                   {time}
                 </td>
                 {days.map((d, i) => {
