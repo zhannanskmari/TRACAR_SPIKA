@@ -91,14 +91,6 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function isOverdue(task: DashboardTask): boolean {
-  if (task.status === "DONE" || task.status === "SENT_TO_CLIENT") return false;
-  if (task.deadline && new Date(task.deadline).getTime() < Date.now()) {
-    return true;
-  }
-  return false;
-}
-
 export default function TaskCard({
   task,
   patchTask,
@@ -397,14 +389,13 @@ export default function TaskCard({
                 </span>
               );
             })()}
-          {(task.urgent || isOverdue(task)) && (
+          {task.urgent && (
+            // метка «Срочно» показывается только если срочность отмечена в карточке
             <span
-              title={task.urgent ? "Срочная задача" : "Просрочена"}
-              className={`shrink-0 rounded px-1 py-0.5 ${task.urgent ? "bg-red-100" : "bg-amber-100"}`}
+              title="Срочная задача"
+              className="shrink-0 rounded bg-red-100 px-1 py-0.5"
             >
-              <Flame
-                className={`h-3 w-3 ${task.urgent ? "text-red-600" : "text-amber-600"}`}
-              />
+              <Flame className="h-3 w-3 text-red-600" />
             </span>
           )}
           <span
