@@ -351,8 +351,10 @@ export default function KanbanBoard({
         const patchData: Record<string, unknown> = { status: endContainer };
         const now = nowTime();
         if (endContainer === "IN_PROGRESS") {
-          // «Начало» — время переноса в «Ежедневник у сотрудников»
+          // «Начало» — время переноса в «Ежедневник у сотрудников»;
+          // «Крайний срок» — сегодняшняя дата, чтобы карточка встала на сегодня
           patchData.startTime = now;
+          patchData.deadline = new Date().toISOString();
         } else if (endContainer === "DONE") {
           // «Окончание» — время переноса на «Выполнено»; факт = разница
           patchData.endTime = now;
