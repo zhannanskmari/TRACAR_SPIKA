@@ -1,8 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
+import { deadlineForDayIso } from "@/lib/dates";
 
 export type CalendarClient = {
   id: string;
@@ -158,6 +170,131 @@ function formatDdMm(d: Date): string {
     d.getMonth() + 1
   ).padStart(2, "0")}`;
 }
+
+// Карточка календаря с drag-and-drop: бросок в другой день меняет дедлайн.
+// memo — чтобы подсветка цели и движение курсора не перерисовывали все карточки.
+const DraggableCard = memo(function DraggableCard({
+  task,
+  clientName,
+  dimmed,
+  onOpen,
+}: {
+  task: CalendarTask;
+  clientName: string;
+  dimmed: boolean;
+  onOpen: () => void;
+}) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: task.id,
+    data: { task, clientName },
+  });
+  const col = cardColor(task);
+  return (
+    <button
+      type="button"
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onOpen}
+      title={`${task.title}\nТяните в другой день, чтобы перенести. Нажмите, чтобы редактировать`}
+      className={`mb-1 block w-full cursor-grab rounded text-left ${col.bg} px-1 py-1 text-[11px] leading-tight transition active:cursor-grabbing ${col.text} hover:ring-2 hover:ring-blue-300 ${
+        dimmed ? "opacity-40" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="flex min-w-0 items-center gap-1">
+          {STATUS_SYMBOL[task.status] &&
+            (() => {
+              const s = STATUS_SYMBOL[task.status];
+              const IconCmp = s.icon;
+              return (
+                <span
+                  title={`Статус: ${s.label}`}
+                  className={`shrink-0 ${s.cls}`}
+                >
+                  <IconCmp className="h-3 w-3" />
+                </span>
+              );
+            })()}
+          <span className="truncate font-medium">
+            {TASK_TYPE_LABELS[task.taskType] ?? task.taskType}
+          </span>
+          {task.urgent && (
+            // срочная задача — значок огонька рядом с типом
+            <span title="Срочная задача" className="shrink-0">
+              <Flame className="h-3 w-3 text-red-600" />
+            </span>
+          )}
+        </span>
+        <Pencil className="h-3 w-3 shrink-0 opacity-40" />
+      </div>
+      <div className="truncate text-[10px] font-semibold text-zinc-800">
+        {clientName}
+      </div>
+      <div className="line-clamp-2">{task.title}</div>
+      {task.executor && (
+        <div className="mt-0.5 truncate text-[10px] text-zinc-600">
+          Исп — {initials(task.executor.name)}
+        </div>
+      )}
+      {(task.taxAmount != null ||
+        task.durationMinutes != null ||
+        task.factDurationMinutes != null) && (
+        <div className={`font-semibold ${col.amount}`}>
+          {task.taxAmount != null && (
+            <span>{formatAmount(task.taxAmount)} ₽</span>
+          )}
+          {task.taxAmount != null &&
+            (task.durationMinutes != null ||
+              task.factDurationMinutes != null) && <span> · </span>}
+          {task.durationMinutes != null && (
+            <span>План: {task.durationMinutes} мин</span>
+          )}
+          {task.durationMinutes != null &&
+            task.factDurationMinutes != null && <span> · </span>}
+          {task.factDurationMinutes != null && (
+            <span>Факт: {task.factDurationMinutes} мин</span>
+          )}
+        </div>
+      )}
+      {(task.startTime || task.endTime) && (
+        <div className="text-[10px] text-zinc-500">
+          Начало: {task.startTime ?? "—"} · Окончание: {task.endTime ?? "—"}
+        </div>
+      )}
+    </button>
+  );
+});
+
+// Ячейка дня — зона сброса для карточек (id несёт ключ дня).
+// Подсветка — из собственного isOver, чтобы не перерисовывать всю таблицу.
+const DaySlot = memo(function DaySlot({
+  id,
+  dayKey,
+  weekend,
+  children,
+}: {
+  id: string;
+  dayKey: string;
+  weekend: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id, data: { dayKey } });
+  return (
+    <td
+      ref={setNodeRef}
+      className={`border-b px-1 py-1.5 align-top ${
+        isOver
+          ? "bg-blue-100 ring-2 ring-inset ring-blue-400"
+          : weekend
+            ? "bg-zinc-50/50"
+            : "border-zinc-100"
+      }`}
+    >
+      {children}
+    </td>
+  );
+});
 
 type EditModalProps = {
   task: CalendarTask;
@@ -625,6 +762,77 @@ export default function CalendarPlan({
     return map;
   }, [days, buildDaySlots]);
 
+  // --- Drag-and-drop карточек между днями ---
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+  const [activeDrag, setActiveDrag] = useState<{
+    task: CalendarTask;
+    clientName: string;
+  } | null>(null);
+  const [moveError, setMoveError] = useState("");
+  // Клик после реального перетаскивания гасим, чтобы не открывалась модалка
+  const dragActiveRef = useRef(false);
+  const moveErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (moveErrorTimer.current) clearTimeout(moveErrorTimer.current);
+    },
+    []
+  );
+
+  function showMoveError(text: string) {
+    setMoveError(text);
+    if (moveErrorTimer.current) clearTimeout(moveErrorTimer.current);
+    moveErrorTimer.current = setTimeout(() => setMoveError(""), 4000);
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    dragActiveRef.current = true;
+    const data = event.active.data.current as
+      | { task: CalendarTask; clientName: string }
+      | undefined;
+    if (data) setActiveDrag({ task: data.task, clientName: data.clientName });
+  }
+
+  function clearDrag() {
+    setActiveDrag(null);
+    window.setTimeout(() => {
+      dragActiveRef.current = false;
+    }, 100);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    const targetKey = over?.data.current?.dayKey as string | undefined;
+    const src = active.data.current as
+      | { task: CalendarTask; clientName: string }
+      | undefined;
+    clearDrag();
+    if (!targetKey || !src) return;
+    const curKey = src.task.date ? dayKey(new Date(src.task.date)) : "";
+    if (curKey === targetKey) return; // бросили в тот же день
+    const targetDay = days.find((d) => dayKey(d) === targetKey);
+    if (!targetDay) return;
+    try {
+      await onSave(src.task.id, {
+        deadline: deadlineForDayIso(src.task.date, targetDay),
+      });
+    } catch {
+      showMoveError("Не удалось перенести карточку");
+    }
+  }
+
+  function handleDragCancel() {
+    clearDrag();
+  }
+
+  function handleCardOpen(task: CalendarTask, clientName: string) {
+    if (dragActiveRef.current) return;
+    setEditing({ task, clientName });
+  }
+
   return (
     <>
       <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2">
@@ -661,6 +869,17 @@ export default function CalendarPlan({
         </div>
       </div>
 
+      {moveError && (
+        <div className="mb-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {moveError}
+        </div>
+      )}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
       <div className="h-full overflow-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full border-collapse">
           <colgroup>
@@ -730,89 +949,22 @@ export default function CalendarPlan({
                   const we = isWeekend(d);
                   const items = slotsByDay[k][si];
                   return (
-                    <td
+                    <DaySlot
                       key={i}
-                      className={`border-b px-1 py-1.5 align-top ${
-                        we ? "bg-zinc-50/50" : "border-zinc-100"
-                      }`}
+                      id={`cell:${k}:${si}`}
+                      dayKey={k}
+                      weekend={we}
                     >
-                      {items.map(({ task: t, clientName }) => {
-                        const col = cardColor(t);
-                        return (
-                          <button
-                            type="button"
-                            key={t.id}
-                            onClick={() =>
-                              setEditing({ task: t, clientName })
-                            }
-                            title={`${t.title}\nНажмите, чтобы редактировать`}
-                            className={`mb-1 block w-full rounded text-left ${col.bg} px-1 py-1 text-[11px] leading-tight transition ${col.text} hover:ring-2 hover:ring-blue-300`}
-                          >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="flex min-w-0 items-center gap-1">
-                                {STATUS_SYMBOL[t.status] &&
-                                  (() => {
-                                    const s = STATUS_SYMBOL[t.status];
-                                    const IconCmp = s.icon;
-                                    return (
-                                      <span
-                                        title={`Статус: ${s.label}`}
-                                        className={`shrink-0 ${s.cls}`}
-                                      >
-                                        <IconCmp className="h-3 w-3" />
-                                      </span>
-                                    );
-                                  })()}
-                                <span className="truncate font-medium">
-                                  {TASK_TYPE_LABELS[t.taskType] ?? t.taskType}
-                                </span>
-                                {t.urgent && (
-                                  // срочная задача — значок огонька рядом с типом
-                                  <span
-                                    title="Срочная задача"
-                                    className="shrink-0"
-                                  >
-                                    <Flame className="h-3 w-3 text-red-600" />
-                                  </span>
-                                )}
-                              </span>
-                              <Pencil className="h-3 w-3 shrink-0 opacity-40" />
-                            </div>
-                            <div className="truncate text-[10px] font-semibold text-zinc-800">
-                              {clientName}
-                            </div>
-                            <div className="line-clamp-2">{t.title}</div>
-                            {t.executor && (
-                              <div className="mt-0.5 truncate text-[10px] text-zinc-600">
-                                Исп — {initials(t.executor.name)}
-                              </div>
-                            )}
-                            {(t.taxAmount != null || t.durationMinutes != null || t.factDurationMinutes != null) && (
-                              <div className={`font-semibold ${col.amount}`}>
-                                {t.taxAmount != null && (
-                                  <span>
-                                    {formatAmount(t.taxAmount)} ₽
-                                  </span>
-                                )}
-                                {(t.taxAmount != null && (t.durationMinutes != null || t.factDurationMinutes != null)) && <span> · </span>}
-                                {t.durationMinutes != null && (
-                                  <span>План: {t.durationMinutes} мин</span>
-                                )}
-                                {t.durationMinutes != null && t.factDurationMinutes != null && <span> · </span>}
-                                {t.factDurationMinutes != null && (
-                                  <span>Факт: {t.factDurationMinutes} мин</span>
-                                )}
-                              </div>
-                            )}
-                            {(t.startTime || t.endTime) && (
-                              <div className="text-[10px] text-zinc-500">
-                                Начало: {t.startTime ?? "—"} · Окончание: {t.endTime ?? "—"}
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </td>
+                      {items.map(({ task: t, clientName }) => (
+                        <DraggableCard
+                          key={t.id}
+                          task={t}
+                          clientName={clientName}
+                          dimmed={activeDrag?.task.id === t.id}
+                          onOpen={() => handleCardOpen(t, clientName)}
+                        />
+                      ))}
+                    </DaySlot>
                   );
                 })}
               </tr>
@@ -820,6 +972,23 @@ export default function CalendarPlan({
           </tbody>
         </table>
       </div>
+      <DragOverlay>
+        {activeDrag ? (
+          <div className="w-40 rounded bg-white px-2 py-1 text-[11px] shadow-xl ring-2 ring-blue-400">
+            <div className="truncate font-medium">
+              {TASK_TYPE_LABELS[activeDrag.task.taskType] ??
+                activeDrag.task.taskType}
+            </div>
+            <div className="truncate text-zinc-600">
+              {activeDrag.clientName}
+            </div>
+            <div className="line-clamp-2 text-zinc-800">
+              {activeDrag.task.title}
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
+      </DndContext>
 
       {editing && (
         <EditModal
