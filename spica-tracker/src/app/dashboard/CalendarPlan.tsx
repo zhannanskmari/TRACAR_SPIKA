@@ -4,7 +4,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDraggable,
@@ -763,8 +764,13 @@ export default function CalendarPlan({
   }, [days, buildDaySlots]);
 
   // --- Drag-and-drop карточек между днями ---
+  // Мышь — сразу (дистанция 6px), тач — с задержкой 250мс, чтобы вертикальный
+  // скролл таблицы не превращался в перетаскивание карточки.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
   );
   const [activeDrag, setActiveDrag] = useState<{
     task: CalendarTask;
