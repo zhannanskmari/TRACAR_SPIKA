@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { clientsVisibilityWhere } from "@/lib/task-scope";
 
 const MONTH_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
@@ -20,18 +21,6 @@ function daysInMonth(year: number, mon: number): number {
   return new Date(year, mon, 0).getDate();
 }
 
-function clientsWhere(session: { id: string; role: string }) {
-  if (session.role === "ADMIN") return {};
-  if (session.role === "CLIENT") return { clientUserId: session.id };
-  return {
-    OR: [
-      { primaryExecutorId: session.id },
-      { secondaryExecutorId: session.id },
-      { tasks: { some: { assignedToId: session.id } } },
-    ],
-  };
-}
-
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -44,7 +33,7 @@ export async function GET(request: NextRequest) {
   }
 
   const clients = await prisma.client.findMany({
-    where: clientsWhere(session),
+    where: clientsVisibilityWhere(session),
     select: {
       id: true,
       name: true,
@@ -139,7 +128,7 @@ export async function POST(request: NextRequest) {
         : 1;
 
     const clients = await prisma.client.findMany({
-      where: { ...clientsWhere(session), invoiceAmount: { not: null } },
+      where: { ...clientsVisibilityWhere(session), invoiceAmount: { not: null } },
       select: {
         id: true,
         invoiceAmount: true,

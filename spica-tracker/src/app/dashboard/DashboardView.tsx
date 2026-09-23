@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
+import { toIso } from "@/lib/dates";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
 import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
@@ -100,15 +101,11 @@ type RawTask = {
 function serialize(raw: RawTask): DashboardTask {
   return {
     ...raw,
-    deadline: raw.deadline ? new Date(raw.deadline).toISOString() : null,
-    createdAt: raw.createdAt
-      ? new Date(raw.createdAt).toISOString()
-      : new Date().toISOString(),
+    deadline: toIso(raw.deadline),
+    createdAt: toIso(raw.createdAt) ?? new Date().toISOString(),
     comments: raw.comments.map((c) => ({
       ...c,
-      createdAt: c.createdAt
-        ? new Date(c.createdAt).toISOString()
-        : new Date().toISOString(),
+      createdAt: toIso(c.createdAt) ?? new Date().toISOString(),
     })),
   };
 }

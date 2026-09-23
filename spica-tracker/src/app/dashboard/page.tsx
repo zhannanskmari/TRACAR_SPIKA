@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { clientsVisibilityWhere } from "@/lib/task-scope";
+import {
+  getVisibleTasks,
+  listExecutors,
+  serializeTask,
+} from "@/lib/tasks-service";
 import DashboardView from "./DashboardView";
 
 export default async function DashboardPage() {
@@ -12,61 +18,10 @@ export default async function DashboardPage() {
 
   const isAdmin = user.role === "ADMIN";
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      archivedAt: null,
-      ...(isAdmin
-        ? {}
-        : user.role === "CLIENT"
-          ? {
-              AND: [
-                { client: { clientUserId: user.id } },
-                {
-                  OR: [{ createdById: user.id }, { status: "SENT_TO_CLIENT" }],
-                },
-              ],
-            }
-          : {
-              OR: [{ assignedToId: user.id }, { executorId: user.id }],
-            }),
-    },
-    include: {
-      client: {
-        select: {
-          id: true,
-          name: true,
-          shortName: true,
-          taxSystem: true,
-        },
-      },
-      assignedTo: { select: { id: true, name: true, specialization: true } },
-      executor: { select: { id: true, name: true, specialization: true } },
-      createdBy: { select: { id: true, name: true } },
-      comments: {
-        include: { user: { select: { id: true, name: true, role: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      _count: { select: { documents: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const tasks = await getVisibleTasks(user);
 
   const clients = await prisma.client.findMany({
-    where: isAdmin
-      ? {}
-      : user.role === "CLIENT"
-        ? { clientUserId: user.id }
-        : {
-            OR: [
-              { primaryExecutorId: user.id },
-              { secondaryExecutorId: user.id },
-              {
-                tasks: {
-                  some: { assignedToId: user.id },
-                },
-              },
-            ],
-          },
+    where: isAdmin ? {} : clientsVisibilityWhere(user),
     select: {
       id: true,
       name: true,
@@ -77,29 +32,9 @@ export default async function DashboardPage() {
   });
 
   // Список исполнителей для выбора ответственного (только для сотрудников)
-  const executors =
-    user.role === "CLIENT"
-      ? []
-      : await prisma.user.findMany({
-          where: { role: "EXECUTOR" },
-          select: { id: true, name: true, specialization: true },
-          orderBy: { name: "asc" },
-        });
+  const executors = await listExecutors(user);
 
-  const serialized = tasks.map((t) => ({
-    ...t,
-    deadline: t.deadline ? t.deadline.toISOString() : null,
-    receiptDeadline: t.receiptDeadline ? t.receiptDeadline.toISOString() : null,
-    taxPaymentDate: t.taxPaymentDate ? t.taxPaymentDate.toISOString() : null,
-    salaryPaymentDate: t.salaryPaymentDate ? t.salaryPaymentDate.toISOString() : null,
-    salaryCalcDate: t.salaryCalcDate ? t.salaryCalcDate.toISOString() : null,
-    archivedAt: t.archivedAt ? t.archivedAt.toISOString() : null,
-    createdAt: t.createdAt.toISOString(),
-    comments: t.comments.map((c) => ({
-      ...c,
-      createdAt: c.createdAt.toISOString(),
-    })),
-  }));
+  const serialized = tasks.map(serializeTask);
 
   return (
     <DashboardView

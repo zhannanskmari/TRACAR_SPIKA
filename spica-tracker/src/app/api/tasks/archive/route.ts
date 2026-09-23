@@ -1,27 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const TASK_INCLUDE = {
-  client: {
-    select: { id: true, name: true, shortName: true, taxSystem: true },
-  },
-  assignedTo: { select: { id: true, name: true, specialization: true } },
-  executor: { select: { id: true, name: true, specialization: true } },
-  createdBy: { select: { id: true, name: true } },
-  comments: {
-    include: { user: { select: { id: true, name: true, role: true } } },
-    orderBy: { createdAt: "asc" } as const,
-  },
-  _count: { select: { documents: true } },
-};
-
-function archiveScope(session: { id: string; role: string }) {
-  if (session.role === "EXECUTOR") {
-    return { OR: [{ assignedToId: session.id }, { executorId: session.id }] };
-  }
-  return {};
-}
+import { getVisibleTasks } from "@/lib/tasks-service";
+import { tasksVisibilityWhere } from "@/lib/task-scope";
 
 export async function GET() {
   const session = await getSession();
@@ -29,28 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      archivedAt: { not: null },
-      ...(session.role === "ADMIN"
-        ? {}
-        : session.role === "EXECUTOR"
-          ? { OR: [{ assignedToId: session.id }, { executorId: session.id }] }
-          : {
-              AND: [
-                { client: { clientUserId: session.id } },
-                {
-                  OR: [
-                    { createdById: session.id },
-                    { status: "SENT_TO_CLIENT" },
-                  ],
-                },
-              ],
-            }),
-    },
-    include: TASK_INCLUDE,
-    orderBy: { archivedAt: "desc" },
-  });
+  const tasks = await getVisibleTasks(session, { archived: true });
 
   return NextResponse.json({ tasks });
 }
@@ -83,7 +43,7 @@ export async function POST() {
       archivedAt: null,
       deadline: { lte: endOfToday },
       status: { notIn: ["NEW", "IN_PROGRESS", "REWORK"] },
-      ...archiveScope(session),
+      ...tasksVisibilityWhere(session),
     },
     data: { archivedAt: now },
   });

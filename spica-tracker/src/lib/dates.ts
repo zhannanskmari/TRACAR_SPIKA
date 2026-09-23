@@ -9,3 +9,11 @@ export function addBusinessDays(from: Date, days: number): Date {
   }
   return result;
 }
+
+// Нормализация даты (Prisma Date | ISO-строка) в ISO-строку для передачи
+// в клиентские компоненты. Единый примитив вместо инлайн-конверсий.
+export function toIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}

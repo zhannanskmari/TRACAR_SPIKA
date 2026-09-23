@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { listExecutors } from "@/lib/tasks-service";
 import ClientsView from "./ClientsView";
 
 export default async function ClientsPage() {
@@ -21,11 +22,7 @@ export default async function ClientsPage() {
         secondaryExecutor: { select: { id: true, name: true } },
       },
     }),
-    prisma.user.findMany({
-      where: { role: "EXECUTOR" },
-      select: { id: true, name: true, specialization: true },
-      orderBy: { name: "asc" },
-    }),
+    listExecutors(user),
   ]);
 
   const serialized = clients.map((c) => ({

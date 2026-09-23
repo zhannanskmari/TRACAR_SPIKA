@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveAssignee } from "@/lib/tasks-service";
+import { clientsVisibilityWhere } from "@/lib/task-scope";
 
 type Action = "salary" | "advance";
 
@@ -38,17 +40,6 @@ function monthLabel(d: Date): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function clientsWhere(session: { id: string; role: string }) {
-  if (session.role === "ADMIN") return {};
-  return {
-    OR: [
-      { primaryExecutorId: session.id },
-      { secondaryExecutorId: session.id },
-      { tasks: { some: { assignedToId: session.id } } },
-    ],
-  };
-}
-
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -65,7 +56,7 @@ export async function POST(request: NextRequest) {
 
   const clients = await prisma.client.findMany({
     where: {
-      ...clientsWhere(session),
+      ...clientsVisibilityWhere(session),
       [dayField]: { not: null },
     },
     select: {
@@ -109,15 +100,11 @@ export async function POST(request: NextRequest) {
     if (existing) continue;
 
     // ответственный: исполнитель создаёт себе; руководитель — по правилу, иначе primary
-    let assignedToId = c.primaryExecutorId;
-    if (session.role === "EXECUTOR") {
-      assignedToId = session.id;
-    } else {
-      const rule = await prisma.assignmentRule.findUnique({
-        where: { clientId_taskType: { clientId: c.id, taskType } },
-      });
-      if (rule) assignedToId = rule.executorId;
-    }
+    const assignedToId = await resolveAssignee(session, {
+      clientId: c.id,
+      taskType,
+      primaryExecutorId: c.primaryExecutorId,
+    });
 
     await prisma.task.create({
       data: {

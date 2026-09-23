@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getVisibleClients } from "@/lib/tasks-service";
 
 function taskDate(task: {
   deadline: Date | null;
@@ -25,30 +26,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Доступные клиенты для роли
-  const clients = await prisma.client.findMany({
-    where:
-      session.role === "ADMIN"
-        ? {}
-        : session.role === "CLIENT"
-          ? { clientUserId: session.id }
-          : {
-              OR: [
-                { primaryExecutorId: session.id },
-                { secondaryExecutorId: session.id },
-                {
-                  tasks: {
-                    some: {
-                      OR: [
-                        { assignedToId: session.id },
-                        { executorId: session.id },
-                      ],
-                    },
-                  },
-                },
-              ],
-            },
-    orderBy: { name: "asc" },
+  // Доступные клиенты для роли (исполнитель видит и клиентов,
+  // где он только исполнитель задачи — как раньше)
+  const clients = await getVisibleClients(session, {
+    includeExecutorTasks: true,
   });
 
   const clientIds = clients.map((c) => c.id);

@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addBusinessDays } from "@/lib/dates";
+import { getVisibleTasks, resolveAssignee } from "@/lib/tasks-service";
 
 export async function GET() {
   const session = await getSession();
@@ -10,50 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      archivedAt: null,
-      ...(session.role === "ADMIN"
-        ? {}
-        : session.role === "EXECUTOR"
-          ? {
-              OR: [{ assignedToId: session.id }, { executorId: session.id }],
-            }
-          : {
-              AND: [
-                { client: { clientUserId: session.id } },
-                {
-                  OR: [
-                    { createdById: session.id },
-                    { status: "SENT_TO_CLIENT" },
-                  ],
-                },
-              ],
-            }),
-    },
-    include: {
-      client: {
-        select: { id: true, name: true, taxSystem: true },
-      },
-      assignedTo: {
-        select: { id: true, name: true, specialization: true },
-      },
-      executor: {
-        select: { id: true, name: true, specialization: true },
-      },
-      createdBy: {
-        select: { id: true, name: true },
-      },
-      comments: {
-        include: { user: { select: { id: true, name: true, role: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      _count: {
-        select: { documents: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const tasks = await getVisibleTasks(session);
 
   return NextResponse.json({ tasks });
 }
@@ -97,15 +55,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Определяем исполнителя по правилам авто-распределения, иначе по primary executor
-  let assignedToId = client.primaryExecutorId;
-  if (session.role === "EXECUTOR") {
-    assignedToId = session.id;
-  } else {
-    const rule = await prisma.assignmentRule.findUnique({
-      where: { clientId_taskType: { clientId, taskType } },
-    });
-    if (rule) assignedToId = rule.executorId;
-  }
+  let assignedToId = await resolveAssignee(session, {
+    clientId,
+    taskType,
+    primaryExecutorId: client.primaryExecutorId,
+  });
 
   // Явно выбранный ответственный (только для сотрудников/руководителя)
   if (
