@@ -9,7 +9,9 @@ export default async function ClientsPage() {
   if (!session) redirect("/login");
 
   const user = await prisma.user.findUnique({ where: { id: session.id } });
-  if (!user) redirect("/login");
+  // Пользователя нет в БД: гасим куку через logout (см. dashboard/page.tsx),
+  // иначе будет бесконечный редирект /login <-> защищённая страница.
+  if (!user) redirect("/api/auth/logout");
 
   // Вводить клиентов может только админ
   if (user.role !== "ADMIN") redirect("/dashboard");

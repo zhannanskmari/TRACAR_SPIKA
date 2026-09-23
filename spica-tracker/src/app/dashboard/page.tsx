@@ -14,7 +14,9 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
 
   const user = await prisma.user.findUnique({ where: { id: session.id } });
-  if (!user) redirect("/login");
+  // Пользователя нет в БД (удалён / старая сессия): гасим куку через logout,
+  // иначе middleware вернёт с /login обратно сюда — бесконечный редирект.
+  if (!user) redirect("/api/auth/logout");
 
   const isAdmin = user.role === "ADMIN";
 
