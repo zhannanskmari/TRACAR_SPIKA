@@ -21,6 +21,26 @@ function daysInMonth(year: number, mon: number): number {
   return new Date(year, mon, 0).getDate();
 }
 
+// Предыдущий месяц "YYYY-MM"
+function prevMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
+// Месяцы, предшествующие месяцу month (ближайший первый)
+function precedingMonths(month: string, count: number): string[] {
+  const out: string[] = [];
+  let m = month;
+  for (let i = 0; i < count; i++) {
+    m = prevMonth(m);
+    out.push(m);
+  }
+  return out;
+}
+
+// Сколько месяцев назад уходим за остатком, если записи нет
+const BALANCE_CARRY_DEPTH = 24;
+
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -47,15 +67,48 @@ export async function GET(request: NextRequest) {
   const clientIds = clients.map((c) => c.id);
 
   const balances = await prisma.monthBalance.findMany({
-    where: { clientId: { in: clientIds }, month },
+    where: {
+      clientId: { in: clientIds },
+      month: { in: [month, ...precedingMonths(month, BALANCE_CARRY_DEPTH)] },
+    },
   });
-  const balanceByClient = new Map(balances.map((b) => [b.clientId, b]));
+  const balanceByClient = new Map<string, Map<string, (typeof balances)[number]>>();
+  for (const b of balances) {
+    let perClient = balanceByClient.get(b.clientId);
+    if (!perClient) {
+      perClient = new Map();
+      balanceByClient.set(b.clientId, perClient);
+    }
+    perClient.set(b.month, b);
+  }
+
+  // Остаток на конец месяца m: начало месяца + счёт − оплата.
+  // Если записи за месяц нет — начало = остаток на конец предыдущего.
+  function endBalanceAt(
+    perClient: Map<string, (typeof balances)[number]>,
+    m: string,
+    invoice: number,
+    depth: number
+  ): number {
+    const rec = perClient.get(m);
+    const start = rec
+      ? rec.startBalance
+      : depth < BALANCE_CARRY_DEPTH
+        ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
+        : 0;
+    return start + invoice - (rec?.paymentAmount ?? 0);
+  }
 
   const rows = clients.map((c) => {
-    const rec = balanceByClient.get(c.id);
-    const startBalance = rec?.startBalance ?? 0;
-    const paymentAmount = rec?.paymentAmount ?? 0;
+    const perClient = balanceByClient.get(c.id) ?? new Map();
+    const rec = perClient.get(month);
     const invoiceSum = c.invoiceAmount ?? 0;
+    // Начало месяца: запись за месяц (в т.ч. вручную введённая)
+    // либо перенос остатка с прошлого месяца
+    const startBalance = rec
+      ? rec.startBalance
+      : endBalanceAt(perClient, prevMonth(month), invoiceSum, 1);
+    const paymentAmount = rec?.paymentAmount ?? 0;
     return {
       clientId: c.id,
       name: c.name,
@@ -149,7 +202,15 @@ export async function POST(request: NextRequest) {
     });
     const existingSet = new Set(existing.map((t) => t.clientId));
 
-    const label = monthLabel(year, mon);
+    // Назначение счёта — месяц после текущего (независимо от выбранного в пикере)
+    const now = new Date();
+    let tY = now.getFullYear();
+    let tM = now.getMonth() + 2; // индекс месяца+1 (0-based + 2)
+    if (tM > 12) {
+      tM = 1;
+      tY += 1;
+    }
+    const label = monthLabel(tY, tM);
     let count = 0;
     for (const c of clients) {
       if (existingSet.has(c.id)) continue;
