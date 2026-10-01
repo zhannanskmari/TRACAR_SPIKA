@@ -113,19 +113,27 @@ export async function PATCH(
     data.endTime = body.endTime;
   }
 
-  // Факт = разница «Окончание» − «Начало» (в минутах), если оба времени заданы
-  const startRaw = data.startTime !== undefined ? data.startTime : task.startTime;
-  const endRaw = data.endTime !== undefined ? data.endTime : task.endTime;
-  const start = typeof startRaw === "string" && TIME_RE.test(startRaw) ? startRaw : null;
-  const end = typeof endRaw === "string" && TIME_RE.test(endRaw) ? endRaw : null;
-  if (start && end) {
-    const toMin = (t: string) => {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
-    const diff = toMin(end) - toMin(start);
-    if (diff >= 0) {
-      data.factDurationMinutes = diff;
+  // Факт = разница «Окончание» − «Начало» (в минутах), но только когда
+  // в этом запросе меняются сами времена. Явно введённый в карточке
+  // «Факт» сервер не затирает — иначе вручную введённые минуты
+  // перетирались нулём (start и end в одну минуту).
+  const timesChanged =
+    data.startTime !== undefined || data.endTime !== undefined;
+  const factProvided = data.factDurationMinutes !== undefined;
+  if (timesChanged && !factProvided) {
+    const startRaw = data.startTime !== undefined ? data.startTime : task.startTime;
+    const endRaw = data.endTime !== undefined ? data.endTime : task.endTime;
+    const start = typeof startRaw === "string" && TIME_RE.test(startRaw) ? startRaw : null;
+    const end = typeof endRaw === "string" && TIME_RE.test(endRaw) ? endRaw : null;
+    if (start && end) {
+      const toMin = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      const diff = toMin(end) - toMin(start);
+      if (diff >= 0) {
+        data.factDurationMinutes = diff;
+      }
     }
   }
 
