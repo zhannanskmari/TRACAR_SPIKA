@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { toIso } from "@/lib/dates";
+import { hasSimplePanel } from "@/lib/panel-access";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
 import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
@@ -27,6 +28,7 @@ export type DashboardTask = {
   urgent: boolean;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
+  docCount: number | null;
   startTime: string | null;
   endTime: string | null;
   createdAt: string;
@@ -82,6 +84,7 @@ type RawTask = {
   urgent: boolean;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
+  docCount: number | null;
   startTime: string | null;
   endTime: string | null;
   createdAt: string | null;
@@ -174,9 +177,15 @@ export default function DashboardView({
 
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
+  // Упрощённая панель: только «Доска задач» и «Календарь» —
+  // без оплат, архива и начислений (см. lib/panel-access.ts).
+  const simplePanel = hasSimplePanel(user);
   const canAccrueSalary =
-    user.role === "ADMIN" ||
-    (user.role === "EXECUTOR" && user.specialization === "SALARY");
+    !simplePanel &&
+    (user.role === "ADMIN" ||
+      (user.role === "EXECUTOR" && user.specialization === "SALARY"));
+  const effectiveTab: Tab =
+    simplePanel && (tab === "archive" || tab === "payments") ? "kanban" : tab;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -538,7 +547,7 @@ export default function DashboardView({
             <CalendarDays className="h-4 w-4" />
             Календарь
           </button>
-          {user.role !== "CLIENT" && (
+          {!simplePanel && user.role !== "CLIENT" && (
             <button
               onClick={() => {
                 setTab("archive");
@@ -568,7 +577,7 @@ export default function DashboardView({
               Клиенты
             </button>
           )}
-          {user.role !== "CLIENT" && (
+          {!simplePanel && user.role !== "CLIENT" && (
             <button
               onClick={() => {
                 setTab("payments");
@@ -594,7 +603,7 @@ export default function DashboardView({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {user.role !== "CLIENT" && (
+          {!simplePanel && user.role !== "CLIENT" && (
             <>
               <button
                 onClick={handleArchive}
@@ -728,7 +737,7 @@ export default function DashboardView({
       </div>
 
       <main className="flex-1 overflow-hidden p-6">
-        {tab === "kanban" ? (
+        {effectiveTab === "kanban" ? (
           <KanbanBoard
             tasks={filteredTasks}
             patchTask={patchTask}
@@ -737,13 +746,13 @@ export default function DashboardView({
             canEditTax={canEditTax}
             executors={executors}
           />
-        ) : tab === "archive" ? (
+        ) : effectiveTab === "archive" ? (
           <ArchiveView
             tasks={filteredArchived}
             onRestore={handleRestore}
             restoringId={restoringId}
           />
-        ) : tab === "payments" ? (
+        ) : effectiveTab === "payments" ? (
           <PaymentsView />
         ) : loadingCalendar ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-400">

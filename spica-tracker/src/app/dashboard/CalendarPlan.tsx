@@ -37,6 +37,7 @@ export type CalendarTask = {
   taxAmount: number | null;
   durationMinutes: number | null;
   factDurationMinutes: number | null;
+  docCount: number | null;
   startTime: string | null;
   endTime: string | null;
   urgent: boolean;
@@ -240,22 +241,26 @@ const DraggableCard = memo(function DraggableCard({
       )}
       {(task.taxAmount != null ||
         task.durationMinutes != null ||
-        task.factDurationMinutes != null) && (
+        task.factDurationMinutes != null ||
+        task.docCount != null) && (
         <div className={`font-semibold ${col.amount}`}>
           {task.taxAmount != null && (
             <span>{formatAmount(task.taxAmount)} ₽</span>
           )}
           {task.taxAmount != null &&
             (task.durationMinutes != null ||
-              task.factDurationMinutes != null) && <span> · </span>}
+              task.factDurationMinutes != null ||
+              task.docCount != null) && <span> · </span>}
           {task.durationMinutes != null && (
             <span>План: {task.durationMinutes} мин</span>
           )}
           {task.durationMinutes != null &&
-            task.factDurationMinutes != null && <span> · </span>}
+            (task.factDurationMinutes != null || task.docCount != null) && <span> · </span>}
           {task.factDurationMinutes != null && (
             <span>Факт: {task.factDurationMinutes} мин</span>
           )}
+          {task.factDurationMinutes != null && task.docCount != null && <span> · </span>}
+          {task.docCount != null && <span>Док: {task.docCount}</span>}
         </div>
       )}
       {(task.startTime || task.endTime) && (
@@ -325,6 +330,9 @@ function EditModal({
   const [factDuration, setFactDuration] = useState(
     task.factDurationMinutes != null ? String(task.factDurationMinutes) : ""
   );
+  const [docCount, setDocCount] = useState(
+    task.docCount != null ? String(task.docCount) : ""
+  );
   const [startTime, setStartTime] = useState(task.startTime ?? "");
   const [endTime, setEndTime] = useState(task.endTime ?? "");
   const [assignedToId, setAssignedToId] = useState(task.assignedTo?.id ?? "");
@@ -384,6 +392,20 @@ function EditModal({
       patch.factDurationMinutes = Math.round(newFact);
     } else if (factDuration === "" && oldFact !== null) {
       patch.factDurationMinutes = null;
+    }
+
+    // Количество первичных документов (ввод в бухгалтерскую программу)
+    const newDocs = docCount === "" ? null : Math.max(0, Number(docCount));
+    const oldDocs = task.docCount ?? null;
+    if (
+      docCount !== "" &&
+      newDocs !== null &&
+      !isNaN(newDocs) &&
+      newDocs !== oldDocs
+    ) {
+      patch.docCount = Math.round(newDocs);
+    } else if (docCount === "" && oldDocs !== null) {
+      patch.docCount = null;
     }
 
     if (startTime.trim() !== (task.startTime ?? "")) {
@@ -517,7 +539,7 @@ function EditModal({
             />
           </div>
           <div className="sm:col-span-2">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={label}>План, мин</label>
                 <input
@@ -535,6 +557,21 @@ function EditModal({
                   min="0"
                   value={factDuration}
                   onChange={(e) => setFactDuration(e.target.value)}
+                  className={input}
+                />
+              </div>
+              <div>
+                <label
+                  className={label}
+                  title="Количество первичных документов, введённых в бухгалтерскую программу"
+                >
+                  Документов
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={docCount}
+                  onChange={(e) => setDocCount(e.target.value)}
                   className={input}
                 />
               </div>

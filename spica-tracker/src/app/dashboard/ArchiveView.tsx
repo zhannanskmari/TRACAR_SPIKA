@@ -220,6 +220,7 @@ export default function ArchiveView({
               </Field>
               <Field title="План, мин">{viewing.durationMinutes}</Field>
               <Field title="Факт, мин">{viewing.factDurationMinutes}</Field>
+              <Field title="Первичных документов">{viewing.docCount}</Field>
               <Field title="Ответственный">
                 {viewing.assignedTo?.name}
               </Field>

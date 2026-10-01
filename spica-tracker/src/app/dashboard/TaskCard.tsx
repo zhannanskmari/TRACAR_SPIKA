@@ -148,6 +148,9 @@ export default function TaskCard({
   const [edFactDuration, setEdFactDuration] = useState(
     task.factDurationMinutes != null ? String(task.factDurationMinutes) : ""
   );
+  const [edDocCount, setEdDocCount] = useState(
+    task.docCount != null ? String(task.docCount) : ""
+  );
   const [edStartTime, setEdStartTime] = useState(task.startTime ?? "");
   const [edEndTime, setEdEndTime] = useState(task.endTime ?? "");
   const [saving, setSaving] = useState(false);
@@ -232,6 +235,7 @@ export default function TaskCard({
     setEdStatus(task.status);
     setEdDuration(task.durationMinutes != null ? String(task.durationMinutes) : "");
     setEdFactDuration(task.factDurationMinutes != null ? String(task.factDurationMinutes) : "");
+    setEdDocCount(task.docCount != null ? String(task.docCount) : "");
     setEdStartTime(task.startTime ?? "");
     setEdEndTime(task.endTime ?? "");
     setSaveError("");
@@ -287,6 +291,20 @@ export default function TaskCard({
       patch.factDurationMinutes = Math.round(newFact);
     } else if (edFactDuration === "" && oldFact !== null) {
       patch.factDurationMinutes = null;
+    }
+
+    // Количество первичных документов (ввод в бухгалтерскую программу)
+    const newDocs = edDocCount === "" ? null : Math.max(0, Number(edDocCount));
+    const oldDocs = task.docCount ?? null;
+    if (
+      edDocCount !== "" &&
+      newDocs !== null &&
+      !isNaN(newDocs) &&
+      newDocs !== oldDocs
+    ) {
+      patch.docCount = Math.round(newDocs);
+    } else if (edDocCount === "" && oldDocs !== null) {
+      patch.docCount = null;
     }
 
     if (edStartTime.trim() !== (task.startTime ?? "")) {
@@ -564,7 +582,7 @@ export default function TaskCard({
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
                 План, мин
@@ -589,6 +607,23 @@ export default function TaskCard({
                 step="1"
                 value={edFactDuration}
                 onChange={(e) => setEdFactDuration(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label
+                className="mb-0.5 block text-[10px] font-medium text-zinc-500"
+                title="Количество первичных документов, введённых в бухгалтерскую программу"
+              >
+                Документов
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={edDocCount}
+                onChange={(e) => setEdDocCount(e.target.value)}
                 placeholder="0"
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
               />
@@ -855,10 +890,21 @@ export default function TaskCard({
           </div>
 
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
-            {task.durationMinutes != null || task.factDurationMinutes != null ? (
-              <span className="flex items-center gap-1">
+            {task.durationMinutes != null ||
+            task.factDurationMinutes != null ||
+            task.docCount != null ? (
+              <span className="flex min-w-0 items-center gap-1">
                 <Clock4 className="h-3.5 w-3.5 shrink-0" />
-                <span>План: {task.durationMinutes ?? "—"} мин · Факт: {task.factDurationMinutes ?? "—"} мин</span>
+                <span className="truncate">
+                  {[
+                    task.durationMinutes != null || task.factDurationMinutes != null
+                      ? `План: ${task.durationMinutes ?? "—"} мин · Факт: ${task.factDurationMinutes ?? "—"} мин`
+                      : null,
+                    task.docCount != null ? `Документов: ${task.docCount}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
               </span>
             ) : (
               <span />

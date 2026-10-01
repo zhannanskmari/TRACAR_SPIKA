@@ -87,9 +87,19 @@ export async function PATCH(
     data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
   }
 
+  // Количество первичных документов (ввод в бухгалтерскую программу)
+  if (body.docCount === null) {
+    data.docCount = null;
+  } else if (
+    typeof body.docCount === "number" &&
+    !isNaN(body.docCount) &&
+    Number.isFinite(body.docCount)
+  ) {
+    data.docCount = Math.max(0, Math.round(body.docCount));
+  }
+
   // «Начало»/«Окончание» — время переноса в формате ЧЧ:ММ
-  const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  if (body.startTime === null || body.startTime === "") {
+  const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;  if (body.startTime === null || body.startTime === "") {
     data.startTime = null;
   } else if (typeof body.startTime === "string" && TIME_RE.test(body.startTime)) {
     data.startTime = body.startTime;

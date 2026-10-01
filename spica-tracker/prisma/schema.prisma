@@ -90,6 +90,7 @@ model Task {
   urgent             Boolean   @default(false)
   durationMinutes    Int?      // план (минуты)
   factDurationMinutes Int?     // факт (минуты)
+  docCount           Int?      // количество первичных документов (ввод на бух. программу)
   startTime          String?   // время переноса в «Ежедневник у сотрудников» (ЧЧ:ММ)
   endTime            String?   // время переноса на «Выполнено» (ЧЧ:ММ)
   createdAt          DateTime  @default(now())

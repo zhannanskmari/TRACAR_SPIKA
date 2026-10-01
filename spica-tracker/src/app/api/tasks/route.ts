@@ -136,6 +136,11 @@ export async function POST(request: NextRequest) {
     data.factDurationMinutes = Math.max(0, Math.round(body.factDurationMinutes));
   }
 
+  // Количество первичных документов (ввод в бухгалтерскую программу)
+  if (typeof body.docCount === "number" && !isNaN(body.docCount)) {
+    data.docCount = Math.max(0, Math.round(body.docCount));
+  }
+
   // Сумма для задач «Счёт» / «Оплата счёта»
   if (typeof body.amount === "number" && !isNaN(body.amount)) {
     data.amount = Math.max(0, body.amount);
