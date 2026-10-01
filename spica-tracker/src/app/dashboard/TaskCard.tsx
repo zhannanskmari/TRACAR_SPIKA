@@ -559,7 +559,7 @@ export default function TaskCard({
             </div>
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                Срок
+                {edTaskType === "IFNS_DEMAND" ? "Срок квитанции" : "Срок"}
               </label>
               <input
                 type="date"

@@ -241,6 +241,8 @@ export default function CreateTaskForm({
                         .slice(0, 10);
                     setDeadline(toInput(addBusinessDays(new Date(), 5)));
                     setReceiptDeadline(toInput(addBusinessDays(new Date(), 10)));
+                    // пустое поле — подставляем заголовок требования
+                    if (!title.trim()) setTitle("Получено требование");
                   }
                 }}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
@@ -254,7 +256,7 @@ export default function CreateTaskForm({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Срок
+                {taskType === "IFNS_DEMAND" ? "Срок квитанции" : "Срок"}
               </label>
               <input
                 type="date"
