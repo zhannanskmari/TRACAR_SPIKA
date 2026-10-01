@@ -147,6 +147,18 @@ export async function GET(request: NextRequest) {
     };
   });
 
+  // Временный debug: ?debug=1 (только ADMIN) — сырые записи из БД
+  if (session.role === "ADMIN" && request.nextUrl.searchParams.get("debug") === "1") {
+    const raw = balances.map((b) => ({
+      clientId: b.clientId,
+      month: b.month,
+      startBalance: b.startBalance,
+      startManual: b.startManual,
+      paymentAmount: b.paymentAmount,
+    }));
+    return NextResponse.json({ month, raw });
+  }
+
   return NextResponse.json({ month, rows });
 }
 
