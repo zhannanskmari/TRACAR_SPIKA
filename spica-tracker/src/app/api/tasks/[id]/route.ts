@@ -242,28 +242,44 @@ export async function PATCH(
     },
   });
 
-  // «Оплата счёта»: при выполнении сумма уходит во вкладку «Оплаты»
-  // за текущий месяц, при возврате из «Выполнено» — вычитается обратно.
-  if (
-    task.taskType === "INVOICE_PAYMENT" &&
-    task.amount != null &&
-    task.amount > 0
-  ) {
-    const wasDone = task.status === "DONE";
-    const isDone = updated.status === "DONE";
-    if (wasDone !== isDone) {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const delta = (isDone ? 1 : -1) * task.amount;
-      await prisma.monthBalance.upsert({
-        where: { clientId_month: { clientId: task.clientId, month } },
-        update: { paymentAmount: { increment: delta } },
-        create: {
-          clientId: task.clientId,
-          month,
-          paymentAmount: Math.max(0, delta),
-        },
+  // «Оплата счёта»: сумма учитывается во вкладке «Оплаты» за тот месяц,
+  // который указан в дате карточки («Срок»), а не за месяц перевода
+  // в «Выполнено». При смене даты, суммы или статуса прошлый вклад
+  // вычитается из старого месяца, новый — добавляется в новый.
+  if (task.taskType === "INVOICE_PAYMENT") {
+    const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+    const monthOf = (d: Date | null) =>
+      d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : null;
+    const deltas = new Map<string, number>();
+    const add = (m: string | null, v: number) => {
+      if (!m || v === 0) return;
+      deltas.set(m, round2((deltas.get(m) ?? 0) + v));
+    };
+    if (task.status === "DONE" && task.amount != null && task.amount > 0) {
+      add(monthOf(task.deadline), -round2(task.amount));
+    }
+    if (updated.status === "DONE" && updated.amount != null && updated.amount > 0) {
+      add(monthOf(updated.deadline), round2(updated.amount));
+    }
+    for (const [m, delta] of deltas) {
+      if (delta === 0) continue;
+      const existing = await prisma.monthBalance.findUnique({
+        where: { clientId_month: { clientId: task.clientId, month: m } },
       });
+      if (existing) {
+        await prisma.monthBalance.update({
+          where: { id: existing.id },
+          data: { paymentAmount: round2(Math.max(0, existing.paymentAmount + delta)) },
+        });
+      } else if (delta > 0) {
+        await prisma.monthBalance.create({
+          data: {
+            clientId: task.clientId,
+            month: m,
+            paymentAmount: round2(delta),
+          },
+        });
+      }
     }
   }
 

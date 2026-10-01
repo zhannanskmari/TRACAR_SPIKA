@@ -41,10 +41,15 @@ function precedingMonths(month: string, count: number): string[] {
 // Сколько месяцев назад уходим за остатком, если записи нет
 const BALANCE_CARRY_DEPTH = 24;
 
-type BalRec = { startBalance: number; paymentAmount: number };
+// Все суммы — до второго десятичного знака (копейки)
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+type BalRec = { startBalance: number; startManual: boolean; paymentAmount: number };
 
 // Остаток на конец месяца m: начало месяца + счёт − оплата.
-// Если записи за месяц нет — начало = остаток на конец предыдущего (перенос).
+// Начало — ручной старт (startManual) либо перенос с прошлого месяца.
 function endBalanceAt(
   perClient: Map<string, BalRec>,
   m: string,
@@ -52,12 +57,13 @@ function endBalanceAt(
   depth: number
 ): number {
   const rec = perClient.get(m);
-  const start = rec
-    ? rec.startBalance
-    : depth < BALANCE_CARRY_DEPTH
-      ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
-      : 0;
-  return start + invoice - (rec?.paymentAmount ?? 0);
+  const start =
+    rec && rec.startManual
+      ? rec.startBalance
+      : depth < BALANCE_CARRY_DEPTH
+        ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
+        : 0;
+  return round2(start + invoice - (rec?.paymentAmount ?? 0));
 }
 
 // Записи клиента за предшествующие месяцы (для переноса остатка)
@@ -115,13 +121,15 @@ export async function GET(request: NextRequest) {
   const rows = clients.map((c) => {
     const perClient = balanceByClient.get(c.id) ?? new Map();
     const rec = perClient.get(month);
-    const invoiceSum = c.invoiceAmount ?? 0;
-    // Начало месяца: запись за месяц (в т.ч. вручную введённая)
-    // либо перенос остатка с прошлого месяца
-    const startBalance = rec
-      ? rec.startBalance
-      : endBalanceAt(perClient, prevMonth(month), invoiceSum, 1);
-    const paymentAmount = rec?.paymentAmount ?? 0;
+    const invoiceSum = round2(c.invoiceAmount ?? 0);
+    // Начало месяца: ручной ввод (startManual) либо перенос остатка
+    // с прошлого месяца — тогда «остаток на 01-е» всегда равен
+    // «остатку на конец предыдущего месяца»
+    const startBalance =
+      rec && rec.startManual
+        ? round2(rec.startBalance)
+        : round2(endBalanceAt(perClient, prevMonth(month), invoiceSum, 1));
+    const paymentAmount = round2(rec?.paymentAmount ?? 0);
     return {
       clientId: c.id,
       name: c.name,
@@ -132,7 +140,7 @@ export async function GET(request: NextRequest) {
       startBalance,
       invoiceSum,
       paymentAmount,
-      endBalance: startBalance + invoiceSum - paymentAmount,
+      endBalance: round2(startBalance + invoiceSum - paymentAmount),
     };
   });
 
@@ -172,10 +180,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (action === "setStart") {
+      // Ручной ввод стартового остатка закрепляет его за месяцем
       await prisma.monthBalance.upsert({
         where: { clientId_month: { clientId, month } },
-        update: { startBalance: value },
-        create: { clientId, month, startBalance: value },
+        update: { startBalance: value, startManual: true },
+        create: { clientId, month, startBalance: value, startManual: true },
       });
       return NextResponse.json({ ok: true, value });
     }
@@ -199,7 +208,7 @@ export async function POST(request: NextRequest) {
         data: { clientId, month, startBalance, paymentAmount: value },
       });
     }
-    return NextResponse.json({ ok: true, value });
+    return NextResponse.json({ ok: true, value: round2(value) });
   }
 
   if (action === "generateInvoices") {

@@ -112,6 +112,7 @@ model MonthBalance {
   clientId      String
   month         String  // "YYYY-MM"
   startBalance  Float   @default(0)
+  startManual   Boolean @default(false) // старт введён вручную; иначе переносится с прошлого месяца
   paymentAmount Float   @default(0)
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
