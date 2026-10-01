@@ -50,6 +50,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     advanceDay: toDay(body.advanceDay),
     invoiceDay: toDay(body.invoiceDay),
     invoiceAmount: toAmount(body.invoiceAmount),
+    paymentPeriod: body.paymentPeriod === "QUARTER" ? "QUARTER" : "MONTH",
     employeeCount:
       typeof body.employeeCount === "number" && !isNaN(body.employeeCount)
         ? Math.max(0, Math.round(body.employeeCount))

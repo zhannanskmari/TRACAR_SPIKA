@@ -39,7 +39,8 @@ model Client {
   advanceDay          Int?     // день месяца выплаты аванса
   employeeCount       Int?     // кол-во сотрудников
   invoiceDay          Int?     // день выписки счёта
-  invoiceAmount       Float?   // сумма счёта за месяц (в карточке клиента)
+  invoiceAmount       Float?   // сумма счёта (в карточке клиента)
+  paymentPeriod       String   @default("MONTH") // MONTH | QUARTER — оплата за месяц или за квартал
   accountNote         String?  // расч. счёт (присылает или авто) — текст
   hasCashRegister     Boolean  @default(false) // касса есть
   salaryViaCash       Boolean  @default(false) // зарплата выдаётся через кассу
