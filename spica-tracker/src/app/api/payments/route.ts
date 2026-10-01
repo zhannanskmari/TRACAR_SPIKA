@@ -28,20 +28,6 @@ function prevMonth(month: string): string {
   return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
-// Месяцы, предшествующие месяцу month (ближайший первый)
-function precedingMonths(month: string, count: number): string[] {
-  const out: string[] = [];
-  let m = month;
-  for (let i = 0; i < count; i++) {
-    m = prevMonth(m);
-    out.push(m);
-  }
-  return out;
-}
-
-// Сколько месяцев назад уходим за остатком, если записи нет
-const BALANCE_CARRY_DEPTH = 24;
-
 // Все суммы — до второго десятичного знака (копейки)
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -49,33 +35,51 @@ function round2(n: number): number {
 
 type BalRec = { startBalance: number; startManual: boolean; paymentAmount: number };
 
-// Остаток на конец месяца m: начало месяца + счёт − оплата.
-// Начало — ручной старт (startManual) либо перенос с прошлого месяца.
-function endBalanceAt(
-  perClient: Map<string, BalRec>,
-  m: string,
-  invoice: number,
-  depth: number
-): number {
-  const rec = perClient.get(m);
-  const start =
-    rec && rec.startManual
-      ? rec.startBalance
-      : depth < BALANCE_CARRY_DEPTH
-        ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
-        : 0;
-  return round2(start + invoice - (rec?.paymentAmount ?? 0));
+// Первая (самая ранняя) месячная запись клиента или null, если записей нет
+function earliestRecord(records: { month: string }[]): string | null {
+  let min: string | null = null;
+  for (const r of records) {
+    if (min === null || r.month < min) min = r.month;
+  }
+  return min;
 }
 
-// Записи клиента за предшествующие месяцы (для переноса остатка)
-async function precedingBalances(clientId: string, month: string) {
-  const balances = await prisma.monthBalance.findMany({
-    where: {
-      clientId,
-      month: { in: precedingMonths(month, BALANCE_CARRY_DEPTH) },
-    },
-  });
-  return new Map(balances.map((b) => [b.month, b]));
+// Начало месяца x для клиента:
+//  - ручной старт (startManual) — всегда побеждает;
+//  - иначе строгая цепочка «начало(x) = конец(x−1)», уходящая назад
+//    до ручного старта либо до месяца раньше первой записи;
+//  - раньше первой записи данных нет — 0 (пользователь может ввести
+//    старт вручную, тогда месяц становится якорем).
+// Формула цепочки: base + счёт×(x−u) − Σоплат(u..x−1), где u — месяц
+// остановки (ручной старт либо earliest−1).
+function startBalanceAt(
+  perClient: Map<string, BalRec>,
+  earliest: string | null,
+  x: string,
+  invoice: number
+): number {
+  const direct = perClient.get(x);
+  if (direct?.startManual) return round2(direct.startBalance);
+  if (earliest === null || x < earliest) return 0;
+
+  const months: string[] = []; // от x−1 вниз до u+1
+  let base = 0;
+  let basePay = 0;
+  let m = prevMonth(x);
+  for (;;) {
+    const rec = perClient.get(m);
+    if (rec?.startManual) {
+      base = rec.startBalance;
+      basePay = rec.paymentAmount;
+      break;
+    }
+    if (m < earliest) break; // base = 0, basePay = 0
+    months.push(m);
+    m = prevMonth(m);
+  }
+  let pays = basePay;
+  for (const mm of months) pays += perClient.get(mm)?.paymentAmount ?? 0;
+  return round2(base + invoice * (months.length + 1) - pays);
 }
 
 export async function GET(request: NextRequest) {
@@ -108,30 +112,33 @@ export async function GET(request: NextRequest) {
   const balances = await prisma.monthBalance.findMany({
     where: {
       clientId: { in: clientIds },
-      month: { in: [month, ...precedingMonths(month, BALANCE_CARRY_DEPTH)] },
+      month: { lte: month },
     },
   });
   const balanceByClient = new Map<string, Map<string, (typeof balances)[number]>>();
+  const earliestByClient = new Map<string, string | null>();
+  for (const c of clients) balanceByClient.set(c.id, new Map());
   for (const b of balances) {
-    let perClient = balanceByClient.get(b.clientId);
-    if (!perClient) {
-      perClient = new Map();
-      balanceByClient.set(b.clientId, perClient);
-    }
-    perClient.set(b.month, b);
+    const perClient = balanceByClient.get(b.clientId);
+    if (perClient) perClient.set(b.month, b);
+  }
+  for (const [cid, perClient] of balanceByClient) {
+    earliestByClient.set(cid, earliestRecord([...perClient.values()]));
   }
 
   const rows = clients.map((c) => {
-    const perClient = balanceByClient.get(c.id) ?? new Map();
+    const perClient = balanceByClient.get(c.id) ?? new Map<string, (typeof balances)[number]>();
     const rec = perClient.get(month);
     const invoiceSum = round2(c.invoiceAmount ?? 0);
-    // Начало месяца: ручной ввод (startManual) либо перенос остатка
-    // с прошлого месяца — тогда «остаток на 01-е» всегда равен
-    // «остатку на конец предыдущего месяца»
-    const startBalance =
-      rec && rec.startManual
-        ? round2(rec.startBalance)
-        : round2(endBalanceAt(perClient, prevMonth(month), invoiceSum, 1));
+    // Начало месяца: ручной ввод (startManual) либо цепочка от первой
+    // записи клиента — тогда «остаток на 01-е» всегда равен
+    // «остаток на конец предыдущего месяца»
+    const startBalance = startBalanceAt(
+      perClient,
+      earliestByClient.get(c.id) ?? null,
+      month,
+      invoiceSum
+    );
     const paymentAmount = round2(rec?.paymentAmount ?? 0);
     return {
       clientId: c.id,
@@ -146,18 +153,6 @@ export async function GET(request: NextRequest) {
       endBalance: round2(startBalance + invoiceSum - paymentAmount),
     };
   });
-
-  // Временный debug: ?debug=1 (только ADMIN) — сырые записи из БД
-  if (session.role === "ADMIN" && request.nextUrl.searchParams.get("debug") === "1") {
-    const raw = balances.map((b) => ({
-      clientId: b.clientId,
-      month: b.month,
-      startBalance: b.startBalance,
-      startManual: b.startManual,
-      paymentAmount: b.paymentAmount,
-    }));
-    return NextResponse.json({ month, raw });
-  }
 
   return NextResponse.json({ month, rows });
 }
@@ -214,12 +209,15 @@ export async function POST(request: NextRequest) {
         data: { paymentAmount: value },
       });
     } else {
-      const perClient = await precedingBalances(clientId, month);
-      const startBalance = endBalanceAt(
+      const records = await prisma.monthBalance.findMany({
+        where: { clientId, month: { lte: month } },
+      });
+      const perClient = new Map(records.map((b) => [b.month, b]));
+      const startBalance = startBalanceAt(
         perClient,
-        prevMonth(month),
-        client.invoiceAmount ?? 0,
-        1
+        earliestRecord(records),
+        month,
+        client.invoiceAmount ?? 0
       );
       await prisma.monthBalance.create({
         data: { clientId, month, startBalance, paymentAmount: value },
