@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clientsVisibilityWhere } from "@/lib/task-scope";
+import { ensureMonthBalanceSchema } from "@/lib/payments-schema";
 
 const MONTH_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
@@ -88,6 +89,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Укажите месяц (YYYY-MM)" }, { status: 400 });
   }
 
+  await ensureMonthBalanceSchema();
+
   const clients = await prisma.client.findMany({
     where: clientsVisibilityWhere(session),
     select: {
@@ -159,6 +162,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const action = typeof body.action === "string" ? body.action : "";
+
+  await ensureMonthBalanceSchema();
 
   if (action === "setStart" || action === "setPayment") {
     const clientId = typeof body.clientId === "string" ? body.clientId : "";

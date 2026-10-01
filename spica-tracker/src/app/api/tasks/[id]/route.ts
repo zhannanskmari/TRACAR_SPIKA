@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ensureMonthBalanceSchema } from "@/lib/payments-schema";
 
 const ALLOWED_STATUSES = [
   "NEW",
@@ -247,6 +248,7 @@ export async function PATCH(
   // в «Выполнено». При смене даты, суммы или статуса прошлый вклад
   // вычитается из старого месяца, новый — добавляется в новый.
   if (task.taskType === "INVOICE_PAYMENT") {
+    await ensureMonthBalanceSchema();
     const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
     const monthOf = (d: Date | null) =>
       d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : null;
