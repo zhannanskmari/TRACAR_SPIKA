@@ -41,6 +41,36 @@ function precedingMonths(month: string, count: number): string[] {
 // Сколько месяцев назад уходим за остатком, если записи нет
 const BALANCE_CARRY_DEPTH = 24;
 
+type BalRec = { startBalance: number; paymentAmount: number };
+
+// Остаток на конец месяца m: начало месяца + счёт − оплата.
+// Если записи за месяц нет — начало = остаток на конец предыдущего (перенос).
+function endBalanceAt(
+  perClient: Map<string, BalRec>,
+  m: string,
+  invoice: number,
+  depth: number
+): number {
+  const rec = perClient.get(m);
+  const start = rec
+    ? rec.startBalance
+    : depth < BALANCE_CARRY_DEPTH
+      ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
+      : 0;
+  return start + invoice - (rec?.paymentAmount ?? 0);
+}
+
+// Записи клиента за предшествующие месяцы (для переноса остатка)
+async function precedingBalances(clientId: string, month: string) {
+  const balances = await prisma.monthBalance.findMany({
+    where: {
+      clientId,
+      month: { in: precedingMonths(month, BALANCE_CARRY_DEPTH) },
+    },
+  });
+  return new Map(balances.map((b) => [b.month, b]));
+}
+
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -80,23 +110,6 @@ export async function GET(request: NextRequest) {
       balanceByClient.set(b.clientId, perClient);
     }
     perClient.set(b.month, b);
-  }
-
-  // Остаток на конец месяца m: начало месяца + счёт − оплата.
-  // Если записи за месяц нет — начало = остаток на конец предыдущего.
-  function endBalanceAt(
-    perClient: Map<string, (typeof balances)[number]>,
-    m: string,
-    invoice: number,
-    depth: number
-  ): number {
-    const rec = perClient.get(m);
-    const start = rec
-      ? rec.startBalance
-      : depth < BALANCE_CARRY_DEPTH
-        ? endBalanceAt(perClient, prevMonth(m), invoice, depth + 1)
-        : 0;
-    return start + invoice - (rec?.paymentAmount ?? 0);
   }
 
   const rows = clients.map((c) => {
@@ -154,16 +167,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Клиент не найден" }, { status: 404 });
     }
 
-    const data =
-      action === "setStart"
-        ? { startBalance: value }
-        : { paymentAmount: value };
-
-    await prisma.monthBalance.upsert({
+    const existing = await prisma.monthBalance.findUnique({
       where: { clientId_month: { clientId, month } },
-      update: data,
-      create: { clientId, month, ...data },
     });
+
+    if (action === "setStart") {
+      await prisma.monthBalance.upsert({
+        where: { clientId_month: { clientId, month } },
+        update: { startBalance: value },
+        create: { clientId, month, startBalance: value },
+      });
+      return NextResponse.json({ ok: true, value });
+    }
+
+    // setPayment: если записи за месяц ещё нет — создаём её с начальным
+    // остатком, перенесённым с прошлого месяца (а не с нулём)
+    if (existing) {
+      await prisma.monthBalance.update({
+        where: { clientId_month: { clientId, month } },
+        data: { paymentAmount: value },
+      });
+    } else {
+      const perClient = await precedingBalances(clientId, month);
+      const startBalance = endBalanceAt(
+        perClient,
+        prevMonth(month),
+        client.invoiceAmount ?? 0,
+        1
+      );
+      await prisma.monthBalance.create({
+        data: { clientId, month, startBalance, paymentAmount: value },
+      });
+    }
     return NextResponse.json({ ok: true, value });
   }
 
