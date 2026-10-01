@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -104,6 +104,16 @@ export default function ClientsView({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // При открытии формы подтягиваем её в зону видимости
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() =>
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    }
+  }, [open, editingId]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -340,6 +350,7 @@ export default function ClientsView({
 
         {open && (
           <form
+            ref={formRef}
             onSubmit={handleSubmit}
             className="mb-6 grid grid-cols-1 gap-x-4 gap-y-3 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4"
           >
