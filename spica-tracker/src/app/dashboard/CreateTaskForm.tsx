@@ -39,12 +39,14 @@ export default function CreateTaskForm({
   canEditTax,
   isClient,
   executors,
+  currentUserId,
   onCreated,
 }: {
   clients: DashboardClient[];
   canEditTax: boolean;
   isClient: boolean;
   executors: { id: string; name: string; specialization: string | null }[];
+  currentUserId?: string;
   onCreated?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -67,15 +69,23 @@ export default function CreateTaskForm({
   const [taxAmount, setTaxAmount] = useState("");
   const [taxPaymentDate, setTaxPaymentDate] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
-  const [assignedToId, setAssignedToId] = useState(
-    executors[0]?.id ?? ""
-  );
+  const [assignedToId, setAssignedToId] = useState(defaultAssignee());
   const [executorId, setExecutorId] = useState("");
   const [duration, setDuration] = useState("");
   const [factDuration, setFactDuration] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  // Ответственный по умолчанию — сам создатель (если он в списке исполнителей),
+  // иначе первый исполнитель. Иначе карточка, созданная исполнителем, уходит
+  // чужому ответственному и создатель её не видит.
+  function defaultAssignee(): string {
+    if (currentUserId && executors.some((e) => e.id === currentUserId)) {
+      return currentUserId;
+    }
+    return executors[0]?.id ?? "";
+  }
 
   const isInvoiceType = taskType === "INVOICE" || taskType === "INVOICE_PAYMENT";
 
@@ -153,7 +163,7 @@ export default function CreateTaskForm({
     setTaxAmount("");
     setTaxPaymentDate("");
     setInvoiceAmount("");
-    setAssignedToId(executors[0]?.id ?? "");
+    setAssignedToId(defaultAssignee());
     setExecutorId("");
     setDuration("");
     setFactDuration("");

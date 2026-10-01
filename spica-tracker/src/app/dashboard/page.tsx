@@ -23,7 +23,9 @@ export default async function DashboardPage() {
   const tasks = await getVisibleTasks(user);
 
   const clients = await prisma.client.findMany({
-    where: isAdmin ? {} : clientsVisibilityWhere(user),
+    // includeExecutorTasks — исполнитель видит клиента, где у него есть
+    // задача: такие клиенты нужны и для фильтров, и для «Новой задачи»
+    where: isAdmin ? {} : clientsVisibilityWhere(user, { includeExecutorTasks: true }),
     select: {
       id: true,
       name: true,

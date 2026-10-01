@@ -31,6 +31,8 @@ export async function PATCH(
   if (
     session.role !== "ADMIN" &&
     task.assignedToId !== session.id &&
+    // исполнитель задачи двигает свою карточку, как и ответственный
+    task.executorId !== session.id &&
     // клиент может редактировать только те задачи, которые создал сам
     !(session.role === "CLIENT" && task.createdById === session.id)
   ) {

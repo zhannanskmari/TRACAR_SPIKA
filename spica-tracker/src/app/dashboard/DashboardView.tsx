@@ -654,6 +654,7 @@ export default function DashboardView({
               canEditTax={canEditTax}
               isClient={isClient}
               executors={executors}
+              currentUserId={user.id}
               onCreated={handleTaskCreated}
             />
           )}

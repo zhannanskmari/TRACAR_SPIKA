@@ -45,13 +45,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Исполнитель может создавать задачи только для клиентов, где он исполнитель
-  if (
-    session.role === "EXECUTOR" &&
-    client.primaryExecutorId !== session.id &&
-    client.secondaryExecutorId !== session.id
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Исполнитель может создавать задачи для клиентов, где он primary/secondary
+  // исполнитель, либо где у него уже есть задача (ответственный или исполнитель)
+  if (session.role === "EXECUTOR") {
+    const isClientExecutor =
+      client.primaryExecutorId === session.id ||
+      client.secondaryExecutorId === session.id;
+    if (!isClientExecutor) {
+      const own = await prisma.task.findFirst({
+        where: {
+          clientId,
+          OR: [{ assignedToId: session.id }, { executorId: session.id }],
+        },
+        select: { id: true },
+      });
+      if (!own) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
   }
 
   // Определяем исполнителя по правилам авто-распределения, иначе по primary executor
