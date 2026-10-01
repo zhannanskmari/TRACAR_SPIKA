@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clientsVisibilityWhere } from "@/lib/task-scope";
+import { hasSimplePanel } from "@/lib/panel-access";
 import {
   getVisibleTasks,
   listExecutors,
@@ -24,8 +25,13 @@ export default async function DashboardPage() {
 
   const clients = await prisma.client.findMany({
     // includeExecutorTasks — исполнитель видит клиента, где у него есть
-    // задача: такие клиенты нужны и для фильтров, и для «Новой задачи»
-    where: isAdmin ? {} : clientsVisibilityWhere(user, { includeExecutorTasks: true }),
+    // задача: такие клиенты нужны и для фильтров, и для «Новой задачи».
+    // Упрощённая панель (см. lib/panel-access.ts) — весь список клиентов,
+    // чтобы выбор клиента в «Новой задаче» показывал всех.
+    where:
+      isAdmin || hasSimplePanel(user)
+        ? {}
+        : clientsVisibilityWhere(user, { includeExecutorTasks: true }),
     select: {
       id: true,
       name: true,

@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addBusinessDays } from "@/lib/dates";
+import { hasSimplePanel } from "@/lib/panel-access";
 import { getVisibleTasks, resolveAssignee } from "@/lib/tasks-service";
 
 export async function GET() {
@@ -46,12 +47,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Исполнитель может создавать задачи для клиентов, где он primary/secondary
-  // исполнитель, либо где у него уже есть задача (ответственный или исполнитель)
+  // исполнитель, либо где у него уже есть задача (ответственный или исполнитель).
+  // Упрощённая панель (lib/panel-access.ts) — для любого клиента.
   if (session.role === "EXECUTOR") {
     const isClientExecutor =
       client.primaryExecutorId === session.id ||
       client.secondaryExecutorId === session.id;
-    if (!isClientExecutor) {
+    if (!isClientExecutor && !hasSimplePanel(session)) {
       const own = await prisma.task.findFirst({
         where: {
           clientId,
