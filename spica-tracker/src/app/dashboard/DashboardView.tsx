@@ -6,6 +6,7 @@ import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, Filte
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { toIso } from "@/lib/dates";
 import { hasSimplePanel } from "@/lib/panel-access";
+import { specShort, specSuffix } from "@/lib/specialization";
 import KanbanBoard from "./KanbanBoard";
 import CalendarPlan, { type CalendarClient } from "./CalendarPlan";
 import CreateTaskForm, { type DashboardClient } from "./CreateTaskForm";
@@ -503,11 +504,7 @@ export default function DashboardView({
             <div className="text-sm font-medium text-zinc-900">{user.name}</div>
             <div className="text-xs text-zinc-500">
               {roleLabel}{" "}
-              {user.specialization
-                ? user.specialization === "SALARY"
-                  ? "• ЗП"
-                  : "• Налоги"
-                : ""}
+              {user.specialization ? `• ${specShort(user.specialization)}` : ""}
             </div>
           </div>
           <button
@@ -699,11 +696,7 @@ export default function DashboardView({
             {executors.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
-                {u.specialization
-                  ? u.specialization === "SALARY"
-                    ? " • ЗП"
-                    : " • Налоги"
-                  : ""}
+                {specSuffix(u.specialization)}
               </option>
             ))}
           </select>

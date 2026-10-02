@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
+import { specSuffix } from "@/lib/specialization";
 
 const TASK_TYPES = [
   "SALARY_CALC",
@@ -677,11 +678,7 @@ export default function TaskCard({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>
@@ -701,11 +698,7 @@ export default function TaskCard({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>

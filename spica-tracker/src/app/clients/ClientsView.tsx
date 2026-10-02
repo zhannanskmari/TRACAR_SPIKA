@@ -10,6 +10,7 @@ import {
   Pencil,
   X,
 } from "lucide-react";
+import { specSuffix } from "@/lib/specialization";
 
 const TAX_SYSTEMS = [
   { value: "OSNO", label: "ОСНО" },
@@ -529,11 +530,7 @@ export default function ClientsView({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>
@@ -549,11 +546,7 @@ export default function ClientsView({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>

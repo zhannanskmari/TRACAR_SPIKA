@@ -14,7 +14,7 @@ model User {
   email         String   @unique
   passwordHash  String
   role          String   // ADMIN | EXECUTOR | CLIENT
-  specialization String? // SALARY | TAX | null
+  specialization String? // SALARY | TAX | DOCS | null
   createdAt     DateTime @default(now())
 
   assignedTasks    Task[]      @relation("TaskAssignee")

@@ -16,6 +16,7 @@ import {
 import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
 import { deadlineForDayIso } from "@/lib/dates";
+import { specSuffix } from "@/lib/specialization";
 
 export type CalendarClient = {
   id: string;
@@ -610,11 +611,7 @@ function EditModal({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>

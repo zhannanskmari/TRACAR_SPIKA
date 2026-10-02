@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSpecialization } from "@/lib/specialization";
 
 type Params = { params: Promise<{ id: string }> };
-
-const SPECIALIZATIONS = ["SALARY", "TAX"];
 
 async function requireAdmin() {
   const session = await getSession();
@@ -74,7 +73,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   if (typeof body.specialization === "string") {
-    data.specialization = SPECIALIZATIONS.includes(body.specialization)
+    data.specialization = isSpecialization(body.specialization)
       ? body.specialization
       : null;
   }

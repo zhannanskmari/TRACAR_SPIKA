@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const SPECIALIZATIONS = ["SALARY", "TAX"];
+import { isSpecialization } from "@/lib/specialization";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -45,9 +45,10 @@ export async function POST(request: NextRequest) {
   const email =
     typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const specialization = SPECIALIZATIONS.includes(body.specialization)
-    ? body.specialization
-    : null;
+  const specialization =
+    typeof body.specialization === "string" && isSpecialization(body.specialization)
+      ? body.specialization
+      : null;
 
   if (!name) {
     return NextResponse.json({ error: "Укажите имя сотрудника" }, { status: 400 });

@@ -12,6 +12,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
+import { isSpecialization, specLabel } from "@/lib/specialization";
 
 type Employee = {
   id: string;
@@ -21,12 +22,6 @@ type Employee = {
   specialization: string | null;
   createdAt: string;
 };
-
-function specLabel(spec: string | null): string {
-  if (spec === "SALARY") return "Зарплата";
-  if (spec === "TAX") return "Налоги";
-  return "Общая";
-}
 
 export default function EmployeesView({
   adminName,
@@ -60,7 +55,11 @@ export default function EmployeesView({
     setName(e.name);
     setEmail(e.email);
     setPassword("");
-    setSpecialization(e.specialization === "TAX" ? "TAX" : "SALARY");
+    setSpecialization(
+      e.specialization && isSpecialization(e.specialization)
+        ? e.specialization
+        : "SALARY"
+    );
   }
 
   function resetForm() {
@@ -272,6 +271,7 @@ export default function EmployeesView({
               >
                 <option value="SALARY">Зарплата</option>
                 <option value="TAX">Налоги</option>
+                <option value="DOCS">Ввод док-тов</option>
                 <option value="">Общая</option>
               </select>
             </div>

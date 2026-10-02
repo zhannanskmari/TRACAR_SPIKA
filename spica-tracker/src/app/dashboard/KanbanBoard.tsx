@@ -366,6 +366,11 @@ export default function KanbanBoard({
         await patchTask(activeTask.id, patchData);
       } catch (e) {
         console.error(e);
+        window.alert(
+          `Не удалось переместить карточку: ${
+            e instanceof Error ? e.message : String(e)
+          }`
+        );
         // откат — возвращаем карточку в исходную колонку
         setColumns((prev) => ({
           ...prev,

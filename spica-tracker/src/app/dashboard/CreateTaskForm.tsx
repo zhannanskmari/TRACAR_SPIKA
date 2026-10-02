@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { addBusinessDays } from "@/lib/dates";
+import { specSuffix } from "@/lib/specialization";
 
 export type DashboardClient = {
   id: string;
@@ -323,11 +324,7 @@ export default function CreateTaskForm({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>
@@ -348,11 +345,7 @@ export default function CreateTaskForm({
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
-                    {u.specialization
-                      ? u.specialization === "SALARY"
-                        ? " • ЗП"
-                        : " • Налоги"
-                      : ""}
+                    {specSuffix(u.specialization)}
                   </option>
                 ))}
               </select>
