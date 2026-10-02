@@ -30,6 +30,9 @@ const TASK_TYPES = [
   "SALARY_CALC",
   "SALARY_PAYMENT",
   "SALARY_ADVANCE",
+  "SALARY_SICK_LEAVE",
+  "SALARY_VACATION",
+  "SALARY_BONUS",
   "TAX_PAYMENT",
   "REPORT",
   "IFNS_DEMAND",
@@ -552,7 +555,14 @@ export default function TaskCard({
                 onChange={(e) => setEdTaskType(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
               >
-                {TASK_TYPES.map((t) => (
+                <optgroup label="Зарплата">
+                  {TASK_TYPES.filter((t) => t.startsWith("SALARY_")).map((t) => (
+                    <option key={t} value={t}>
+                      {TASK_TYPE_LABELS[t] ?? t}
+                    </option>
+                  ))}
+                </optgroup>
+                {TASK_TYPES.filter((t) => !t.startsWith("SALARY_")).map((t) => (
                   <option key={t} value={t}>
                     {TASK_TYPE_LABELS[t] ?? t}
                   </option>

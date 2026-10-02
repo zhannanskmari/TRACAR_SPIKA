@@ -50,6 +50,10 @@ export type CalendarTask = {
 const TASK_TYPES = [
   "SALARY_CALC",
   "SALARY_PAYMENT",
+  "SALARY_ADVANCE",
+  "SALARY_SICK_LEAVE",
+  "SALARY_VACATION",
+  "SALARY_BONUS",
   "TAX_PAYMENT",
   "REPORT",
   "IFNS_DEMAND",
@@ -511,7 +515,14 @@ function EditModal({
               onChange={(e) => setTaskType(e.target.value)}
               className={input}
             >
-              {TASK_TYPES.map((t) => (
+              <optgroup label="Зарплата">
+                {TASK_TYPES.filter((t) => t.startsWith("SALARY_")).map((t) => (
+                  <option key={t} value={t}>
+                    {TASK_TYPE_LABELS[t] ?? t}
+                  </option>
+                ))}
+              </optgroup>
+              {TASK_TYPES.filter((t) => !t.startsWith("SALARY_")).map((t) => (
                 <option key={t} value={t}>
                   {TASK_TYPE_LABELS[t] ?? t}
                 </option>
