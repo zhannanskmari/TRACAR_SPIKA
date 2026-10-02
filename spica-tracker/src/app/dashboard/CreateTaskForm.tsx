@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
-import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { addBusinessDays } from "@/lib/dates";
 import { specSuffix } from "@/lib/specialization";
+import TaskTypeSelect from "@/app/dashboard/TaskTypeSelect";
 
 export type DashboardClient = {
   id: string;
@@ -232,10 +232,11 @@ export default function CreateTaskForm({
               <label className="mb-1 block text-xs font-medium text-zinc-600">
                 Тип
               </label>
-              <select
+              <TaskTypeSelect
                 value={taskType}
-                onChange={(e) => {
-                  const next = e.target.value;
+                types={TASK_TYPES}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+                onChange={(next) => {
                   setTaskType(next);
                   if (next === "IFNS_DEMAND") {
                     const toInput = (d: Date) =>
@@ -250,21 +251,7 @@ export default function CreateTaskForm({
                     if (!title.trim()) setTitle("Получено требование");
                   }
                 }}
-                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
-              >
-                <optgroup label="Зарплата">
-                  {TASK_TYPES.filter((t) => t.startsWith("SALARY_")).map((t) => (
-                    <option key={t} value={t}>
-                      {TASK_TYPE_LABELS[t] ?? t}
-                    </option>
-                  ))}
-                </optgroup>
-                {TASK_TYPES.filter((t) => !t.startsWith("SALARY_")).map((t) => (
-                  <option key={t} value={t}>
-                    {TASK_TYPE_LABELS[t] ?? t}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">

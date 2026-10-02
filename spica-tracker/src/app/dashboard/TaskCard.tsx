@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { DashboardTask } from "./DashboardView";
 import { TASK_TYPE_LABELS, TASK_TYPE_BADGES } from "@/lib/task-meta";
+import TaskTypeSelect from "@/app/dashboard/TaskTypeSelect";
 import { specSuffix } from "@/lib/specialization";
 
 const TASK_TYPES = [
@@ -550,24 +551,12 @@ export default function TaskCard({
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
                 Тип
               </label>
-              <select
+              <TaskTypeSelect
                 value={edTaskType}
-                onChange={(e) => setEdTaskType(e.target.value)}
+                types={TASK_TYPES}
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
-              >
-                <optgroup label="Зарплата">
-                  {TASK_TYPES.filter((t) => t.startsWith("SALARY_")).map((t) => (
-                    <option key={t} value={t}>
-                      {TASK_TYPE_LABELS[t] ?? t}
-                    </option>
-                  ))}
-                </optgroup>
-                {TASK_TYPES.filter((t) => !t.startsWith("SALARY_")).map((t) => (
-                  <option key={t} value={t}>
-                    {TASK_TYPE_LABELS[t] ?? t}
-                  </option>
-                ))}
-              </select>
+                onChange={setEdTaskType}
+              />
             </div>
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">

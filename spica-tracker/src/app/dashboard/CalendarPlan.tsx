@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { Pencil, X, Check, CircleDot, Loader, RefreshCw, CheckCircle2, Send, AlertTriangle, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { TASK_TYPE_LABELS, STATUS_LABELS } from "@/lib/task-meta";
+import TaskTypeSelect from "@/app/dashboard/TaskTypeSelect";
 import { deadlineForDayIso } from "@/lib/dates";
 import { specSuffix } from "@/lib/specialization";
 
@@ -510,24 +511,12 @@ function EditModal({
           </div>
           <div>
             <label className={label}>Тип задачи</label>
-            <select
+            <TaskTypeSelect
               value={taskType}
-              onChange={(e) => setTaskType(e.target.value)}
+              types={TASK_TYPES}
               className={input}
-            >
-              <optgroup label="Зарплата">
-                {TASK_TYPES.filter((t) => t.startsWith("SALARY_")).map((t) => (
-                  <option key={t} value={t}>
-                    {TASK_TYPE_LABELS[t] ?? t}
-                  </option>
-                ))}
-              </optgroup>
-              {TASK_TYPES.filter((t) => !t.startsWith("SALARY_")).map((t) => (
-                <option key={t} value={t}>
-                  {TASK_TYPE_LABELS[t] ?? t}
-                </option>
-              ))}
-            </select>
+              onChange={setTaskType}
+            />
           </div>
           <div>
             <label className={label}>Статус</label>
