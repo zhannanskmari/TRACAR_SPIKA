@@ -4,11 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { getVisibleClients } from "@/lib/tasks-service";
 
 function taskDate(task: {
+  taskType: string;
   deadline: Date | null;
+  receiptDeadline: Date | null;
   salaryCalcDate: Date | null;
   salaryPaymentDate: Date | null;
   taxPaymentDate: Date | null;
 }): string | null {
+  // «Требование ИФНС» — в календаре по окончательному сроку (срок требования),
+  // а не по сроку квитанции
+  if (task.taskType === "IFNS_DEMAND" && task.receiptDeadline) {
+    return task.receiptDeadline.toISOString();
+  }
   if (task.deadline) return task.deadline.toISOString();
   const candidates = [
     task.taxPaymentDate,

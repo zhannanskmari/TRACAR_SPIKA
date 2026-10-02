@@ -352,9 +352,14 @@ export default function KanbanBoard({
         const now = nowTime();
         if (endContainer === "IN_PROGRESS") {
           // «Начало» — время переноса в «Ежедневник у сотрудников»;
-          // «Крайний срок» — сегодняшняя дата, чтобы карточка встала на сегодня
+          // «Крайний срок» — сегодняшняя дата, чтобы карточка встала на сегодня.
+          // «Требование ИФНС» не трогаем: его сроки — важные данные
+          // (срок квитанции и окончательный срок), а в календаре он стоит
+          // по окончательному сроку, который перенос не затирает.
           patchData.startTime = now;
-          patchData.deadline = new Date().toISOString();
+          if (activeTask.taskType !== "IFNS_DEMAND") {
+            patchData.deadline = new Date().toISOString();
+          }
         } else if (endContainer === "DONE") {
           // «Окончание» — время переноса на «Выполнено»; факт = разница
           patchData.endTime = now;

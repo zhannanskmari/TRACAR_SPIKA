@@ -188,5 +188,26 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json({ task }, { status: 201 });
+  // «Требование ИФНС»: параллельно создаём сопроводительную карточку
+  // «Квитанция по требованию» — подписать квитанцию к сроку квитанции
+  // (дедлайн новой карточки = «Срок квитанции» требования).
+  let receiptTask = null;
+  if (taskType === "IFNS_DEMAND" && data.deadline) {
+    receiptTask = await prisma.task.create({
+      data: {
+        title: "Подписать квитанцию",
+        clientId,
+        taskType: "DEMAND_RECEIPT",
+        status: "NEW",
+        assignedToId: data.assignedToId ?? null,
+        executorId: data.executorId ?? null,
+        createdById: session.id,
+        urgent: data.urgent,
+        deadline: data.deadline,
+      },
+      select: { id: true },
+    });
+  }
+
+  return NextResponse.json({ task, receiptTask }, { status: 201 });
 }

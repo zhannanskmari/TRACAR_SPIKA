@@ -53,6 +53,7 @@ const TASK_TYPES = [
   "TAX_PAYMENT",
   "REPORT",
   "IFNS_DEMAND",
+  "DEMAND_RECEIPT",
   "CLIENT_REQUEST",
   "PAYMENT_ORDER",
   "DIADOK",
@@ -856,9 +857,15 @@ export default function CalendarPlan({
     const targetDay = days.find((d) => dayKey(d) === targetKey);
     if (!targetDay) return;
     try {
-      await onSave(src.task.id, {
-        deadline: deadlineForDayIso(src.task.date, targetDay),
-      });
+      const iso = deadlineForDayIso(src.task.date, targetDay);
+      // «Требование ИФНС» стоит в календаре по окончательному сроку —
+      // перенос двигает именно его, иначе карточка вернётся на старый день
+      await onSave(
+        src.task.id,
+        src.task.taskType === "IFNS_DEMAND"
+          ? { receiptDeadline: iso }
+          : { deadline: iso }
+      );
     } catch {
       showMoveError("Не удалось перенести карточку");
     }
