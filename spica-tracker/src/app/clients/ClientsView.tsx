@@ -11,64 +11,16 @@ import {
   X,
 } from "lucide-react";
 import { specSuffix } from "@/lib/specialization";
-
-const TAX_SYSTEMS = [
-  { value: "OSNO", label: "ОСНО" },
-  { value: "USN", label: "УСН 6%" },
-  { value: "USN15", label: "УСН 15%" },
-  { value: "AUSN8", label: "АУСН 8%" },
-  { value: "AUSN20", label: "АУСН 20%" },
-  { value: "PSN", label: "ПСН" },
-  { value: "ESHN", label: "ЕСХН" },
-  { value: "PATENT", label: "Патент" },
-];
-
-const LEGAL_FORMS = ["ООО", "ИП", "АО", "ОАО", "ЗАО", "НКО"];
-
-function taxLabel(value: string): string {
-  const found = TAX_SYSTEMS.find((t) => t.value === value);
-  return found ? found.label : value;
-}
-
-const TAX_CATEGORIES: { label: string; values: string[] }[] = [
-  { label: "АУСН", values: ["AUSN8", "AUSN20"] },
-  { label: "УСН", values: ["USN", "USN15"] },
-  { label: "ОСНО", values: ["OSNO", "ESHN"] },
-  { label: "Патент", values: ["PSN", "PATENT"] },
-];
-
-function taxCategory(value: string): string {
-  const cat = TAX_CATEGORIES.find((c) => c.values.includes(value));
-  return cat ? cat.label : "Другие";
-}
-
-type Executor = {
-  id: string;
-  name: string;
-  specialization: string | null;
-};
-
-type Client = {
-  id: string;
-  name: string;
-  taxSystem: string;
-  legalForm: string | null;
-  shortName: string | null;
-  salaryPaymentDay: number | null;
-  advanceDay: number | null;
-  employeeCount: number | null;
-  invoiceDay: number | null;
-  invoiceAmount: number | null;
-  paymentPeriod: string;
-  accountNote: string | null;
-  hasCashRegister: boolean;
-  salaryViaCash: boolean;
-  primaryExecutorId: string;
-  secondaryExecutorId: string | null;
-  createdAt: string;
-  primaryExecutor: { id: string; name: string };
-  secondaryExecutor: { id: string; name: string } | null;
-};
+import ClientCard from "./ClientCard";
+import {
+  LEGAL_FORMS,
+  TAX_CATEGORIES,
+  TAX_SYSTEMS,
+  taxCategory,
+  taxLabel,
+  type Client,
+  type Executor,
+} from "./client-meta";
 
 export default function ClientsView({
   adminName,
@@ -83,6 +35,7 @@ export default function ClientsView({
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const [legalForm, setLegalForm] = useState("ООО");
   const [name, setName] = useState("");
@@ -246,9 +199,14 @@ export default function ClientsView({
     clients: clients.filter((c) => taxCategory(c.taxSystem) === cat.label),
   })).filter((cat) => cat.clients.length > 0);
   const otherClients = clients.filter((c) => taxCategory(c.taxSystem) === "Другие");
+  const viewingClient = clients.find((c) => c.id === viewingId) ?? null;
 
   const renderClientRow = (c: Client) => (
-    <tr key={c.id} className="align-top hover:bg-zinc-50">
+    <tr
+      key={c.id}
+      onClick={() => setViewingId(c.id)}
+      className="align-top cursor-pointer hover:bg-zinc-50"
+    >
       <td className="border-b border-r border-zinc-100 px-3 py-2">
         <div className="font-medium text-zinc-900">{c.name}</div>
         {c.shortName && (
@@ -291,7 +249,10 @@ export default function ClientsView({
       </td>
       <td className="border-b px-3 py-2 text-right">
         <button
-          onClick={() => startEdit(c)}
+          onClick={(e) => {
+            e.stopPropagation();
+            startEdit(c);
+          }}
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
         >
           <Pencil className="h-3.5 w-3.5" />
@@ -634,6 +595,15 @@ export default function ClientsView({
           </table>
         </div>
       </main>
+
+      {viewingClient && (
+        <ClientCard
+          client={viewingClient}
+          executors={executors}
+          onClose={() => setViewingId(null)}
+          onSaved={refreshClients}
+        />
+      )}
     </div>
   );
 }
