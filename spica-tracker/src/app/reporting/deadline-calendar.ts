@@ -15,6 +15,8 @@ export type DeadlineEvent = {
   daysRule?: "PAY_23_30" | "NOTICE_01_22";
   /** Уведомление по НДФЛ: не подаётся для ИП без сотрудников */
   ndflNotice?: boolean;
+  /** Не подавать при количестве сотрудников = 0 */
+  skipIfNoEmployees?: boolean;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -58,6 +60,7 @@ const RAW_EVENTS: {
   taskType: string;
   daysRule?: "PAY_23_30" | "NOTICE_01_22";
   ndflNotice?: boolean;
+  skipIfNoEmployees?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -81,6 +84,7 @@ const RAW_EVENTS: {
     label: "Страховые взносы на травматизм за сентябрь — уплата",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_INSURANCE_PAY",
+    skipIfNoEmployees: true,
   },
 
   // 26 октября (перенос с 25 октября — воскресенье)
@@ -183,6 +187,7 @@ const RAW_EVENTS: {
     label: "Страховые взносы по единому тарифу за сентябрь — уплата",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_INSURANCE_PAY",
+    skipIfNoEmployees: true,
   },
 ];
 
@@ -249,6 +254,7 @@ export function eventAppliesToClient(
   ) {
     return false;
   }
+  if (event.skipIfNoEmployees && client.employeeCount === 0) return false;
   if (event.daysRule === "PAY_23_30") {
     return (
       dayIn(client.advanceDay, 23, 30) ||
