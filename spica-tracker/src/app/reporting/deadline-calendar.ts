@@ -44,6 +44,9 @@ const ALL_SYSTEMS = [
 // Основные «имущественные» системы (транспорт, земля, имущество)
 const PROPERTY_SYSTEMS = ["OSNO", "USN", "USN15", "AUSN8", "AUSN20", "ESHN"];
 
+// Уведомления по НДФЛ на АУСН не подаются (НДФЛ считает ФНС)
+const NDFL_NOTICE_SYSTEMS = ["OSNO", "USN", "USN15", "PSN", "PATENT", "ESHN"];
+
 // Календарь налоговых сроков на октябрь 2026 (эталон):
 // 03.10 (сб) → 05.10 (пн), 15.10 (чт), 25.10 (вс) → 26.10 (пн), 28.10 (ср)
 const RAW_EVENTS: {
@@ -64,7 +67,7 @@ const RAW_EVENTS: {
   {
     date: "2026-10-03",
     label: "НДФЛ: уведомление об исчисленных суммах (23–30 сентября)",
-    systems: ALL_SYSTEMS,
+    systems: NDFL_NOTICE_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
   },
 
@@ -98,7 +101,7 @@ const RAW_EVENTS: {
   {
     date: "2026-10-25",
     label: "НДФЛ: уведомление об исчисленных суммах за октябрь",
-    systems: ALL_SYSTEMS,
+    systems: NDFL_NOTICE_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
     daysRule: "NOTICE_01_22",
   },

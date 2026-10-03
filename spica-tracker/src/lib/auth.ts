@@ -41,3 +41,8 @@ export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
 }
+
+// Анастасия — исполнитель с доступом к разделам «Клиенты» и «Отчётность»
+export function isAnastasiya(user: { name: string; role: string }): boolean {
+  return user.role === "EXECUTOR" && user.name.includes("Анастасия");
+}

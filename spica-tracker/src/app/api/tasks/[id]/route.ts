@@ -53,6 +53,13 @@ export async function PATCH(
       );
     }
     data.status = body.status;
+    // Дата выполнения: день перехода в DONE (показывается в таблице
+    // отчётности); при возврате из DONE — сбрасывается
+    if (body.status === "DONE" && task.status !== "DONE") {
+      data.completedAt = new Date();
+    } else if (body.status !== "DONE" && task.status === "DONE") {
+      data.completedAt = null;
+    }
   }
 
   if (typeof body.isClientNotified === "boolean") {

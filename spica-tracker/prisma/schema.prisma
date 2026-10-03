@@ -97,6 +97,7 @@ model Task {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   archivedAt         DateTime? // null — активная; не null — в архиве
+  completedAt        DateTime? // дата выполнения (переход в DONE, для таблицы отчётности)
 
   client     Client     @relation(fields: [clientId], references: [id])
   assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])

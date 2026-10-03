@@ -618,7 +618,8 @@ export default function DashboardView({
               )}
             </button>
           )}
-          {user.role === "ADMIN" && (
+          {(user.role === "ADMIN" ||
+            (user.role === "EXECUTOR" && user.name.includes("Анастасия"))) && (
             <button
               onClick={() => router.push("/clients")}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100"

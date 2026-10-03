@@ -19,11 +19,26 @@ type ClientRow = {
   salaryPaymentDay: number | null;
 };
 
+type DoneTask = {
+  clientId: string;
+  title: string;
+  /** ISO-дата выполнения (перевод в статус DONE) */
+  completedAt: string | null;
+};
+
 const WEEKDAYS = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 
 function fmtDate(iso: string): string {
   const [, m, d] = iso.split("-");
   return `${d}.${m}`;
+}
+
+// Дата выполнения (локальная зона): «дд.мм»
+function fmtDone(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}.${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}`;
 }
 
 function weekday(iso: string): string {
@@ -34,11 +49,18 @@ function weekday(iso: string): string {
 export default function ReportingView({
   adminName,
   clients,
+  doneTasks,
 }: {
   adminName: string;
   clients: ClientRow[];
+  doneTasks: DoneTask[];
 }) {
   const router = useRouter();
+
+  // Ключ «клиент|срок» → дата выполнения
+  const doneMap = new Map(
+    doneTasks.map((t) => [`${t.clientId}|${t.title}`, t.completedAt])
+  );
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -64,6 +86,9 @@ export default function ReportingView({
       </td>
       {DEADLINE_EVENTS.map((ev, i) => {
         const active = eventAppliesToClient(ev, c);
+        const doneAt = active
+          ? doneMap.get(`${c.id}|${ev.label}`)
+          : undefined;
         return (
           <td
             key={`${ev.date}-${i}`}
@@ -71,7 +96,17 @@ export default function ReportingView({
               active ? "bg-yellow-300" : ""
             }`}
           >
-            {active ? "✓" : ""}
+            {active ? (
+              doneAt ? (
+                <span className="text-[11px] font-semibold text-zinc-800">
+                  {fmtDone(doneAt)}
+                </span>
+              ) : (
+                "✓"
+              )
+            ) : (
+              ""
+            )}
           </td>
         );
       })}
@@ -124,17 +159,19 @@ export default function ReportingView({
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+        {/* Без overflow-обёртки: вертикальный скролл у main — иначе
+            sticky-шапка таблицы не прилипает при прокрутке страницы */}
+        <div className="rounded-xl border border-zinc-200 bg-white">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-left text-xs text-zinc-600">
-                <th className="sticky left-0 z-20 min-w-[220px] border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 font-semibold">
+                <th className="sticky left-0 top-0 z-30 min-w-[220px] border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 font-semibold">
                   Вид налогообложения / клиент
                 </th>
                 {DEADLINE_EVENTS.map((ev, i) => (
                   <th
                     key={`${ev.date}-${i}`}
-                    className="min-w-[130px] border-b border-r border-zinc-200 bg-zinc-50 px-2 py-2 align-top font-semibold"
+                    className="sticky top-0 z-20 min-w-[130px] border-b border-r border-zinc-200 bg-zinc-50 px-2 py-2 align-top font-semibold"
                   >
                     <div className="text-sm font-bold text-zinc-900">
                       {fmtDate(ev.date)}.{ev.date.slice(0, 4)}{" "}
@@ -161,9 +198,12 @@ export default function ReportingView({
                   <tr className="bg-blue-50">
                     <td
                       colSpan={colCount}
-                      className="border-b border-zinc-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
+                      className="border-b border-zinc-200 px-3 py-1.5 text-xs uppercase tracking-wide text-blue-700"
                     >
-                      {g.label} ({g.clients.length})
+                      {/* текст группы остаётся на месте при горизонтальном скролле */}
+                      <span className="sticky left-3 inline-block font-bold">
+                        {g.label} ({g.clients.length})
+                      </span>
                     </td>
                   </tr>
                   {g.clients.map(renderClient)}
@@ -174,9 +214,11 @@ export default function ReportingView({
                   <tr className="bg-blue-50">
                     <td
                       colSpan={colCount}
-                      className="border-b border-zinc-200 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
+                      className="border-b border-zinc-200 px-3 py-1.5 text-xs uppercase tracking-wide text-blue-700"
                     >
-                      Другие ({otherClients.length})
+                      <span className="sticky left-3 inline-block font-bold">
+                        Другие ({otherClients.length})
+                      </span>
                     </td>
                   </tr>
                   {otherClients.map(renderClient)}

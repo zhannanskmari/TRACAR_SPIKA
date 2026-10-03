@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, isAnastasiya } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { listExecutors } from "@/lib/tasks-service";
 import ClientsView from "./ClientsView";
@@ -13,8 +13,8 @@ export default async function ClientsPage() {
   // иначе будет бесконечный редирект /login <-> защищённая страница.
   if (!user) redirect("/api/auth/logout");
 
-  // Вводить клиентов может только админ
-  if (user.role !== "ADMIN") redirect("/dashboard");
+  // Вводить клиентов может админ и Анастасия
+  if (user.role !== "ADMIN" && !isAnastasiya(user)) redirect("/dashboard");
 
   const [clients, executors] = await Promise.all([
     prisma.client.findMany({

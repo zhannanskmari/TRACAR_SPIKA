@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, isAnastasiya } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Вводить клиентов может только админ
-  if (session.role !== "ADMIN") {
+  // Вводить клиентов может админ и Анастасия
+  if (session.role !== "ADMIN" && !isAnastasiya(session)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

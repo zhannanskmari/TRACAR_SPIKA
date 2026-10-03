@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, isAnastasiya } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
@@ -22,8 +22,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Редактировать клиентов может только админ
-  if (session.role !== "ADMIN") {
+  // Редактировать клиентов может админ и Анастасия
+  if (session.role !== "ADMIN" && !isAnastasiya(session)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, isAnastasiya } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   DEADLINE_EVENTS,
@@ -15,7 +15,8 @@ export async function POST() {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (session.role !== "ADMIN") {
+  // Создавать записи может админ и Анастасия
+  if (session.role !== "ADMIN" && !isAnastasiya(session)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
