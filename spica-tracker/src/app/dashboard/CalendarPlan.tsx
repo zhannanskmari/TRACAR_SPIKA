@@ -110,6 +110,7 @@ const CAL_COLORS: Record<string, { bg: string; text: string; amount: string }> =
   blue:   { bg: "bg-sky-100",   text: "text-sky-900",   amount: "text-sky-700" },
   green:  { bg: "bg-emerald-100", text: "text-emerald-900", amount: "text-emerald-700" },
   beige:  { bg: "bg-amber-50",  text: "text-amber-900",  amount: "text-amber-700" },
+  yellow: { bg: "bg-yellow-100", text: "text-yellow-900", amount: "text-yellow-700" },
 };
 
 // Символ статуса карточки (соответствует статусу задачи)
@@ -140,6 +141,10 @@ function cardColor(task: {
   assignedTo: { id: string; name: string } | null;
   taskType: string;
 }): { bg: string; text: string; amount: string } {
+  // Карточки по срокам отчётности и налогов — светло-жёлтые
+  if (task.taskType === "REPORT" || task.taskType.startsWith("REPORT_")) {
+    return CAL_COLORS.yellow;
+  }
   const name = task.assignedTo?.name ?? "";
   if (name.includes("Булгакова")) return CAL_COLORS.beige;
   if (name.includes("Анастасия") && task.taskType === "SALARY_CALC") return CAL_COLORS.blue;

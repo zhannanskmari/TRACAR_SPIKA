@@ -392,6 +392,9 @@ export default function TaskCard({
     }
   }
 
+  const isReportTask =
+    task.taskType === "REPORT" || task.taskType.startsWith("REPORT_");
+
   return (
     <div
       ref={setNodeRef}
@@ -402,9 +405,11 @@ export default function TaskCard({
       // расхождений гидрации; screen-reader'у это не мешает
       aria-describedby={undefined}
       {...listeners}
-      className={`group cursor-grab rounded-lg border border-zinc-200 bg-white p-2 shadow-sm active:cursor-grabbing ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={`group cursor-grab rounded-lg border p-2 shadow-sm active:cursor-grabbing ${
+        isReportTask
+          ? "border-yellow-200 bg-yellow-100"
+          : "border-zinc-200 bg-white"
+      } ${isDragging ? "opacity-50" : ""}`}
       onClick={(e) => {
         // в колонке «Ежедневник у сотрудников» клик по карточке открывает редактирование
         if (task.status === "IN_PROGRESS") {
