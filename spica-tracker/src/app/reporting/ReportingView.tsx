@@ -8,9 +8,16 @@ import {
   CALENDAR_TO,
   DEADLINE_EVENTS,
   SYSTEM_GROUPS,
+  eventAppliesToClient,
 } from "./deadline-calendar";
 
-type ClientRow = { id: string; name: string; taxSystem: string };
+type ClientRow = {
+  id: string;
+  name: string;
+  taxSystem: string;
+  advanceDay: number | null;
+  salaryPaymentDay: number | null;
+};
 
 const WEEKDAYS = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 
@@ -56,7 +63,7 @@ export default function ReportingView({
         {c.name}
       </td>
       {DEADLINE_EVENTS.map((ev, i) => {
-        const active = ev.systems.includes(c.taxSystem);
+        const active = eventAppliesToClient(ev, c);
         return (
           <td
             key={`${ev.date}-${i}`}

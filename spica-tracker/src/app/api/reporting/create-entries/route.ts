@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { DEADLINE_EVENTS } from "@/app/reporting/deadline-calendar";
+import {
+  DEADLINE_EVENTS,
+  eventAppliesToClient,
+} from "@/app/reporting/deadline-calendar";
 
 // Массовое создание карточек «по таблице отчётности»:
 // для каждого клиента по каждому сроку, подходящему под его систему
@@ -28,7 +31,7 @@ export async function POST() {
   }
 
   const clients = await prisma.client.findMany({
-    select: { id: true, taxSystem: true },
+    select: { id: true, taxSystem: true, advanceDay: true, salaryPaymentDay: true },
   });
 
   // Существующие карточки по этим срокам — чтобы не создавать дубли
@@ -61,7 +64,7 @@ export async function POST() {
   let total = 0;
   for (const client of clients) {
     for (const e of DEADLINE_EVENTS) {
-      if (!e.systems.includes(client.taxSystem)) continue;
+      if (!eventAppliesToClient(e, client)) continue;
       total += 1;
       const key = `${client.id}|${e.label}|${e.date}`;
       if (existingSet.has(key)) continue;

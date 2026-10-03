@@ -8,6 +8,11 @@ export type DeadlineEvent = {
   systems: string[];
   /** Тип задачи (REPORT_*) для карточек по этому сроку */
   taskType: string;
+  /**
+   * Дополнительный отбор по датам выплаты (аванс/зарплата клиента):
+   * PAY_23_30 — дни выплаты с 23 по 30; NOTICE_01_22 — дни с 01 по 22
+   */
+  daysRule?: "PAY_23_30" | "NOTICE_01_22";
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -46,6 +51,7 @@ const RAW_EVENTS: {
   label: string;
   systems: string[];
   taskType: string;
+  daysRule?: "PAY_23_30" | "NOTICE_01_22";
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -53,6 +59,7 @@ const RAW_EVENTS: {
     label: "НДФЛ: уплата удержанного за период 23–30 сентября",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_NDFL_PAY",
+    daysRule: "PAY_23_30",
   },
   {
     date: "2026-10-03",
@@ -93,6 +100,7 @@ const RAW_EVENTS: {
     label: "НДФЛ: уведомление об исчисленных суммах за октябрь",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
+    daysRule: "NOTICE_01_22",
   },
   {
     date: "2026-10-25",
@@ -200,4 +208,40 @@ export const SYSTEM_GROUPS: {
 export function groupLabel(taxSystem: string): string {
   const g = SYSTEM_GROUPS.find((x) => x.match(taxSystem));
   return g ? g.label : "Другие";
+}
+
+type ClientDays = {
+  taxSystem: string;
+  advanceDay?: number | null;
+  salaryPaymentDay?: number | null;
+};
+
+function dayIn(
+  day: number | null | undefined,
+  from: number,
+  to: number
+): boolean {
+  return day != null && day >= from && day <= to;
+}
+
+// Попадает ли срок под клиента: система налогообложения + для НДФЛ-правил —
+// дни выплаты аванса/зарплаты (день аванса или день ЗП в указанном периоде)
+export function eventAppliesToClient(
+  event: DeadlineEvent,
+  client: ClientDays
+): boolean {
+  if (!event.systems.includes(client.taxSystem)) return false;
+  if (event.daysRule === "PAY_23_30") {
+    return (
+      dayIn(client.advanceDay, 23, 30) ||
+      dayIn(client.salaryPaymentDay, 23, 30)
+    );
+  }
+  if (event.daysRule === "NOTICE_01_22") {
+    return (
+      dayIn(client.advanceDay, 1, 22) ||
+      dayIn(client.salaryPaymentDay, 1, 22)
+    );
+  }
+  return true;
 }

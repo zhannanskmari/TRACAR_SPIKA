@@ -17,7 +17,13 @@ export default async function ReportingPage() {
 
   const clients = await prisma.client.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, taxSystem: true },
+    select: {
+      id: true,
+      name: true,
+      taxSystem: true,
+      advanceDay: true,
+      salaryPaymentDay: true,
+    },
   });
 
   return <ReportingView adminName={user.name} clients={clients} />;
