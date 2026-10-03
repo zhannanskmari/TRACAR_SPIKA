@@ -6,6 +6,8 @@ export type DeadlineEvent = {
   label: string;
   /** Какие системы налогообложения касаются срок */
   systems: string[];
+  /** Тип задачи (REPORT_*) для карточек по этому сроку */
+  taskType: string;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -39,17 +41,24 @@ const PROPERTY_SYSTEMS = ["OSNO", "USN", "USN15", "AUSN8", "AUSN20", "ESHN"];
 
 // Календарь налоговых сроков на октябрь 2026 (эталон):
 // 03.10 (сб) → 05.10 (пн), 15.10 (чт), 25.10 (вс) → 26.10 (пн), 28.10 (ср)
-const RAW_EVENTS: { date: string; label: string; systems: string[] }[] = [
+const RAW_EVENTS: {
+  date: string;
+  label: string;
+  systems: string[];
+  taskType: string;
+}[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
     date: "2026-10-03",
     label: "НДФЛ: уплата удержанного за период 23–30 сентября",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_NDFL_PAY",
   },
   {
     date: "2026-10-03",
     label: "НДФЛ: уведомление об исчисленных суммах (23–30 сентября)",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_NDFL_NOTICE",
   },
 
   // 15 октября (четверг)
@@ -57,6 +66,7 @@ const RAW_EVENTS: { date: string; label: string; systems: string[] }[] = [
     date: "2026-10-15",
     label: "Страховые взносы на травматизм за сентябрь — уплата",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_INSURANCE_PAY",
   },
 
   // 26 октября (перенос с 25 октября — воскресенье)
@@ -64,46 +74,55 @@ const RAW_EVENTS: { date: string; label: string; systems: string[] }[] = [
     date: "2026-10-25",
     label: "6-НДФЛ за 9 месяцев 2026 — подача расчёта",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_NDFL_6",
   },
   {
     date: "2026-10-25",
     label: "Декларация по НДС за III квартал 2026 — подача",
     systems: ["OSNO", "ESHN"],
+    taskType: "REPORT_VAT_DECL",
   },
   {
     date: "2026-10-25",
     label: "Декларация по налогу на прибыль за 9 месяцев — подача",
     systems: ["OSNO"],
+    taskType: "REPORT_PROFIT_DECL",
   },
   {
     date: "2026-10-25",
     label: "НДФЛ: уведомление об исчисленных суммах за октябрь",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_NDFL_NOTICE",
   },
   {
     date: "2026-10-25",
     label: "УСН: уведомление об авансовом платеже за 9 месяцев",
     systems: ["USN", "USN15"],
+    taskType: "REPORT_USN_NOTICE",
   },
   {
     date: "2026-10-25",
     label: "Транспортный налог: уведомление об авансе за III квартал",
     systems: PROPERTY_SYSTEMS,
+    taskType: "REPORT_TRANSPORT_NOTICE",
   },
   {
     date: "2026-10-25",
     label: "ПСФ (персонифицированные сведения) за сентябрь — подача",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_PSF",
   },
   {
     date: "2026-10-25",
     label: "ЕФС-1 (сведения о трудовой деятельности) за сентябрь",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_EFS1",
   },
   {
     date: "2026-10-25",
     label: "Налог при АУСН за сентябрь — уплата",
     systems: ["AUSN8", "AUSN20"],
+    taskType: "REPORT_AUSN_PAY",
   },
 
   // 28 октября (среда)
@@ -111,36 +130,43 @@ const RAW_EVENTS: { date: string; label: string; systems: string[] }[] = [
     date: "2026-10-28",
     label: "УСН: уплата авансового платежа за 9 месяцев",
     systems: ["USN", "USN15"],
+    taskType: "REPORT_USN_PAY",
   },
   {
     date: "2026-10-28",
     label: "Налог на имущество организаций: аванс за III квартал — уплата",
     systems: ["OSNO", "ESHN"],
+    taskType: "REPORT_PROPERTY_PAY",
   },
   {
     date: "2026-10-28",
     label: "Налог на прибыль по итогам 9 месяцев — уплата",
     systems: ["OSNO"],
+    taskType: "REPORT_PROFIT_PAY",
   },
   {
     date: "2026-10-28",
     label: "Транспортный налог: аванс за III квартал — уплата",
     systems: PROPERTY_SYSTEMS,
+    taskType: "REPORT_TRANSPORT_PAY",
   },
   {
     date: "2026-10-28",
     label: "НДС: третий ежемесячный платёж за III квартал — уплата",
     systems: ["OSNO", "ESHN"],
+    taskType: "REPORT_VAT_PAY",
   },
   {
     date: "2026-10-28",
     label: "РСВ (расчёт по страховым взносам) за 9 месяцев — подача",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_RSV",
   },
   {
     date: "2026-10-28",
     label: "Страховые взносы по единому тарифу за сентябрь — уплата",
     systems: ALL_SYSTEMS,
+    taskType: "REPORT_INSURANCE_PAY",
   },
 ];
 

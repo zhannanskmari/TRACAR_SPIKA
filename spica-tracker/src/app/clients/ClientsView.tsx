@@ -10,6 +10,7 @@ import {
   X,
   Banknote,
   FileText,
+  CalendarPlus,
 } from "lucide-react";
 import { specSuffix } from "@/lib/specialization";
 import ClientCard from "./ClientCard";
@@ -58,6 +59,40 @@ export default function ClientsView({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [creatingEntries, setCreatingEntries] = useState(false);
+
+  // Создать карточки по всем клиентам по всем срокам таблицы отчётности
+  async function handleCreateReportingEntries() {
+    if (creatingEntries) return;
+    if (
+      !window.confirm(
+        "Создать карточки по таблице отчётности для всех клиентов?\n" +
+          "Ответственный — Анастасия, план — 30 мин. Уже созданные сроки не дублируются."
+      )
+    ) {
+      return;
+    }
+    setCreatingEntries(true);
+    try {
+      const res = await fetch("/api/reporting/create-entries", {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Не удалось создать карточки");
+        return;
+      }
+      alert(
+        `Создано карточек: ${data.created}\n` +
+          `Пропущено (уже есть): ${data.skipped}\n` +
+          `Всего сроков по клиентам: ${data.total}`
+      );
+    } catch {
+      alert("Ошибка сети при создании карточек");
+    } finally {
+      setCreatingEntries(false);
+    }
+  }
   const [success, setSuccess] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -271,6 +306,16 @@ export default function ClientsView({
             >
               <FileText className="h-4 w-4" />
               Отчётность
+            </button>
+            <button
+              onClick={handleCreateReportingEntries}
+              disabled={creatingEntries}
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 shadow-sm transition hover:bg-indigo-100 disabled:opacity-60"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              {creatingEntries
+                ? "Создание…"
+                : "Создать записи по таблице отчётности"}
             </button>
             <button
               onClick={() => router.push("/dashboard?tab=payments")}
