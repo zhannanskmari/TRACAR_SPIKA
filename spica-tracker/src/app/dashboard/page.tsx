@@ -10,7 +10,12 @@ import {
 } from "@/lib/tasks-service";
 import DashboardView from "./DashboardView";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -52,6 +57,7 @@ export default async function DashboardPage() {
       tasks={serialized}
       clients={clients}
       executors={executors}
+      initialTab={tab}
     />
   );
 }

@@ -7,8 +7,8 @@ import {
   ArrowLeft,
   Plus,
   Building2,
-  Pencil,
   X,
+  Banknote,
 } from "lucide-react";
 import { specSuffix } from "@/lib/specialization";
 import ClientCard from "./ClientCard";
@@ -73,24 +73,6 @@ export default function ClientsView({
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
-  }
-
-  function fillForm(c: Client) {
-    setLegalForm(c.legalForm ?? "ООО");
-    setName(c.name.replace(/^(\S+\s)?/, "").trim());
-    setShortName(c.shortName ?? "");
-    setTaxSystem(c.taxSystem);
-    setSalaryPaymentDay(c.salaryPaymentDay != null ? String(c.salaryPaymentDay) : "");
-    setAdvanceDay(c.advanceDay != null ? String(c.advanceDay) : "");
-    setEmployeeCount(c.employeeCount != null ? String(c.employeeCount) : "");
-    setInvoiceDay(c.invoiceDay != null ? String(c.invoiceDay) : "");
-    setInvoiceAmount(c.invoiceAmount != null ? String(c.invoiceAmount) : "");
-    setPaymentPeriod(c.paymentPeriod === "QUARTER" ? "QUARTER" : "MONTH");
-    setAccountNote(c.accountNote ?? "");
-    setHasCashRegister(c.hasCashRegister);
-    setSalaryViaCash(c.salaryViaCash);
-    setPrimaryExecutorId(c.primaryExecutorId || executors[0]?.id || "");
-    setSecondaryExecutorId(c.secondaryExecutorId ?? "");
   }
 
   function resetForm() {
@@ -174,14 +156,6 @@ export default function ClientsView({
     }
   }
 
-  function startEdit(c: Client) {
-    setError("");
-    setSuccess("");
-    setEditingId(c.id);
-    fillForm(c);
-    setOpen(true);
-  }
-
   function startCreate() {
     setError("");
     setSuccess("");
@@ -247,18 +221,6 @@ export default function ClientsView({
           <div className="text-zinc-500">{c.secondaryExecutor.name}</div>
         )}
       </td>
-      <td className="border-b px-3 py-2 text-right">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            startEdit(c);
-          }}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Изменить
-        </button>
-      </td>
     </tr>
   );
 
@@ -301,13 +263,22 @@ export default function ClientsView({
               Клиенты ({clients.length})
             </h1>
           </div>
-          <button
-            onClick={() => (open && !editingId ? setOpen(false) : startCreate())}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            {open && !editingId ? "Скрыть форму" : "Новый клиент"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/dashboard?tab=payments")}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+            >
+              <Banknote className="h-4 w-4" />
+              Оплаты
+            </button>
+            <button
+              onClick={() => (open && !editingId ? setOpen(false) : startCreate())}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              {open && !editingId ? "Скрыть форму" : "Новый клиент"}
+            </button>
+          </div>
         </div>
 
         {open && (
@@ -551,14 +522,13 @@ export default function ClientsView({
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Счёт / выписка</th>
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Касса</th>
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Исполнители</th>
-                <th className="border-b px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {clients.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={7}
                     className="px-3 py-6 text-center text-zinc-400"
                   >
                     Клиентов пока нет
@@ -569,7 +539,7 @@ export default function ClientsView({
                 <Fragment key={cat.label}>
                   <tr className="bg-blue-50">
                     <td
-                      colSpan={8}
+                      colSpan={7}
                       className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
                     >
                       {cat.label} ({cat.clients.length})
@@ -582,7 +552,7 @@ export default function ClientsView({
                 <Fragment>
                   <tr className="bg-blue-50">
                     <td
-                      colSpan={8}
+                      colSpan={7}
                       className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
                     >
                       Другие ({otherClients.length})

@@ -153,14 +153,22 @@ export default function DashboardView({
   tasks: initialTasks,
   clients,
   executors,
+  initialTab,
 }: {
   user: DashboardUser;
   tasks: DashboardTask[];
   clients: DashboardClient[];
   executors: { id: string; name: string; specialization: string | null }[];
+  initialTab?: string;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("kanban");
+  const [tab, setTab] = useState<Tab>(() =>
+    initialTab === "calendar" ||
+    initialTab === "archive" ||
+    initialTab === "payments"
+      ? initialTab
+      : "kanban"
+  );
   const [tasks, setTasks] = useState<DashboardTask[]>(initialTasks);
   const [archived, setArchived] = useState<DashboardTask[] | null>(null);
   const [calendar, setCalendar] = useState<CalendarClient[] | null>(null);
@@ -572,21 +580,6 @@ export default function DashboardView({
             >
               <Building2 className="h-4 w-4" />
               Клиенты
-            </button>
-          )}
-          {!simplePanel && user.role !== "CLIENT" && (
-            <button
-              onClick={() => {
-                setTab("payments");
-              }}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                tab === "payments"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}
-            >
-              <Banknote className="h-4 w-4" />
-              Оплаты
             </button>
           )}
           {user.role === "ADMIN" && (
