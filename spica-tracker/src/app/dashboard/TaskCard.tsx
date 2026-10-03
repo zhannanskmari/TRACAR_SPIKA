@@ -407,7 +407,7 @@ export default function TaskCard({
       {...listeners}
       className={`group cursor-grab rounded-lg border p-2 shadow-sm active:cursor-grabbing ${
         isReportTask
-          ? "border-yellow-200 bg-yellow-50"
+          ? "border-yellow-100 bg-[#fffef7]"
           : "border-zinc-200 bg-white"
       } ${isDragging ? "opacity-50" : ""}`}
       onClick={(e) => {
