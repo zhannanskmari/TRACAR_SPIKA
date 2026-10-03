@@ -15,5 +15,10 @@ export default async function ReportingPage() {
   // Отчётность — только для админа (как и раздел «Клиенты»)
   if (user.role !== "ADMIN") redirect("/dashboard");
 
-  return <ReportingView adminName={user.name} />;
+  const clients = await prisma.client.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, taxSystem: true },
+  });
+
+  return <ReportingView adminName={user.name} clients={clients} />;
 }
