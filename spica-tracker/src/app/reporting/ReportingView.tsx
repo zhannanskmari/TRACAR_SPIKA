@@ -17,6 +17,8 @@ type ClientRow = {
   taxSystem: string;
   advanceDay: number | null;
   salaryPaymentDay: number | null;
+  legalForm: string | null;
+  employeeCount: number | null;
 };
 
 type DoneTask = {

@@ -13,6 +13,8 @@ export type DeadlineEvent = {
    * PAY_23_30 — дни выплаты с 23 по 30; NOTICE_01_22 — дни с 01 по 22
    */
   daysRule?: "PAY_23_30" | "NOTICE_01_22";
+  /** Уведомление по НДФЛ: не подаётся для ИП без сотрудников */
+  ndflNotice?: boolean;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -55,6 +57,7 @@ const RAW_EVENTS: {
   systems: string[];
   taskType: string;
   daysRule?: "PAY_23_30" | "NOTICE_01_22";
+  ndflNotice?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -69,6 +72,7 @@ const RAW_EVENTS: {
     label: "НДФЛ: уведомление об исчисленных суммах (23–30 сентября)",
     systems: NDFL_NOTICE_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
+    ndflNotice: true,
   },
 
   // 15 октября (четверг)
@@ -104,6 +108,7 @@ const RAW_EVENTS: {
     systems: NDFL_NOTICE_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
     daysRule: "NOTICE_01_22",
+    ndflNotice: true,
   },
   {
     date: "2026-10-25",
@@ -217,6 +222,8 @@ type ClientDays = {
   taxSystem: string;
   advanceDay?: number | null;
   salaryPaymentDay?: number | null;
+  legalForm?: string | null;
+  employeeCount?: number | null;
 };
 
 function dayIn(
@@ -228,12 +235,20 @@ function dayIn(
 }
 
 // Попадает ли срок под клиента: система налогообложения + для НДФЛ-правил —
-// дни выплаты аванса/зарплаты (день аванса или день ЗП в указанном периоде)
+// дни выплаты аванса/зарплаты (день аванса или день ЗП в указанном периоде);
+// уведомления по НДФЛ — не для ИП без сотрудников
 export function eventAppliesToClient(
   event: DeadlineEvent,
   client: ClientDays
 ): boolean {
   if (!event.systems.includes(client.taxSystem)) return false;
+  if (
+    event.ndflNotice &&
+    client.legalForm === "ИП" &&
+    (client.employeeCount ?? 0) === 0
+  ) {
+    return false;
+  }
   if (event.daysRule === "PAY_23_30") {
     return (
       dayIn(client.advanceDay, 23, 30) ||

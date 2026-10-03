@@ -32,7 +32,14 @@ export async function POST() {
   }
 
   const clients = await prisma.client.findMany({
-    select: { id: true, taxSystem: true, advanceDay: true, salaryPaymentDay: true },
+    select: {
+      id: true,
+      taxSystem: true,
+      advanceDay: true,
+      salaryPaymentDay: true,
+      legalForm: true,
+      employeeCount: true,
+    },
   });
 
   // Существующие карточки по этим срокам — чтобы не создавать дубли

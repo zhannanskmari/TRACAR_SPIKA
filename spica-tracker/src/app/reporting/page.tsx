@@ -25,6 +25,8 @@ export default async function ReportingPage() {
         taxSystem: true,
         advanceDay: true,
         salaryPaymentDay: true,
+        legalForm: true,
+        employeeCount: true,
       },
     }),
     // Выполненные карточки по срокам отчётности — дата выполнения
