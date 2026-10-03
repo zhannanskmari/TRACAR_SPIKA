@@ -9,6 +9,7 @@ import {
   Building2,
   X,
   Banknote,
+  FileText,
 } from "lucide-react";
 import { specSuffix } from "@/lib/specialization";
 import ClientCard from "./ClientCard";
@@ -264,6 +265,13 @@ export default function ClientsView({
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/reporting")}
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+            >
+              <FileText className="h-4 w-4" />
+              Отчётность
+            </button>
             <button
               onClick={() => router.push("/dashboard?tab=payments")}
               className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
