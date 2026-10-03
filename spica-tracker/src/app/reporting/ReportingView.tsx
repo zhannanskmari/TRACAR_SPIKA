@@ -161,9 +161,9 @@ export default function ReportingView({
           </div>
         </div>
 
-        {/* Без overflow-обёртки: вертикальный скролл у main — иначе
-            sticky-шапка таблицы не прилипает при прокрутке страницы */}
-        <div className="rounded-xl border border-zinc-200 bg-white">
+        {/* Явный скролл-контейнер таблицы: шапка колонок (sticky top)
+            и первая колонка (sticky left) остаются на виду при прокрутке */}
+        <div className="max-h-[75vh] overflow-auto rounded-xl border border-zinc-200 bg-white">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-left text-xs text-zinc-600">
