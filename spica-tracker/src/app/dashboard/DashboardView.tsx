@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote } from "lucide-react";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote, ScrollText } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { toIso } from "@/lib/dates";
 import { hasSimplePanel } from "@/lib/panel-access";
@@ -183,6 +183,8 @@ export default function DashboardView({
   const [filterTaskType, setFilterTaskType] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterExecutorId, setFilterExecutorId] = useState("");
+  const [changesOpen, setChangesOpen] = useState(false);
+  const [changesText, setChangesText] = useState<string | null>(null);
 
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
@@ -200,6 +202,19 @@ export default function DashboardView({
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
+  }
+
+  // Кнопка «Изменения в трекере задач»: показывает текст файла изменений
+  async function openChanges() {
+    setChangesOpen(true);
+    if (changesText == null) {
+      try {
+        const res = await fetch("/changes.txt");
+        setChangesText(await res.text());
+      } catch {
+        setChangesText("Не удалось загрузить файл изменений");
+      }
+    }
   }
 
   const refreshTasks = useCallback(async () => {
@@ -506,6 +521,13 @@ export default function DashboardView({
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
             Кабинет сотрудника
           </span>
+          <button
+            onClick={openChanges}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            <ScrollText className="h-4 w-4" />
+            Изменения в трекере задач
+          </button>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -524,6 +546,29 @@ export default function DashboardView({
           </button>
         </div>
       </header>
+
+      {changesOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+              <span className="text-sm font-semibold text-zinc-900">
+                Изменения в трекере задач
+              </span>
+              <button
+                onClick={() => setChangesOpen(false)}
+                className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
+              >
+                Закрыть
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700">
+                {changesText ?? "Загрузка…"}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-6 py-2">
         <div className="flex gap-1">
