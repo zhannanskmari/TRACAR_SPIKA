@@ -75,7 +75,7 @@ model Task {
   id                 String    @id @default(cuid())
   title              String
   clientId           String
-  taskType           String    // SALARY_CALC | SALARY_PAYMENT | SALARY_ADVANCE | SALARY_SICK_LEAVE | SALARY_VACATION | SALARY_BONUS | TAX_PAYMENT | REPORT | IFNS_DEMAND | DEMAND_RECEIPT | CLIENT_REQUEST | OTHER
+  taskType           String    // SALARY_* | TAX_PAYMENT | REPORT | REPORT_* (виды сроков: НДС/прибыль/6-НДФЛ/НДФЛ/УСН/транспорт/имущество/взносы/РСВ/ЕФС-1/ПСФ/АУСН) | IFNS_DEMAND | DEMAND_RECEIPT | CLIENT_REQUEST | OTHER
   status             String    @default("NEW") // NEW | IN_PROGRESS | DONE | SENT_TO_CLIENT | REWORK | OVERDUE
   assignedToId       String
   executorId         String?

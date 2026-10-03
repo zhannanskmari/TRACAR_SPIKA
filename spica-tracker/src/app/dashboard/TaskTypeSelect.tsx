@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 
-// Выпадающий выбор типа задачи: зарплатные типы свёрнуты в группу
-// «Зарплата» (раскрывается кликом), остальные типы — обычным списком.
+// Сворачиваемые группы в выборе типа задачи
+const GROUPS: { label: string; match: (t: string) => boolean }[] = [
+  { label: "Зарплата", match: (t) => t.startsWith("SALARY_") },
+  {
+    label: "Отчётность",
+    match: (t) => t === "REPORT" || t.startsWith("REPORT_"),
+  },
+];
+
+// Выпадающий выбор типа задачи: типы групп («Зарплата», «Отчётность»)
+// свёрнуты и раскрываются кликом, остальные типы — обычным списком.
 export default function TaskTypeSelect({
   value,
   onChange,
@@ -18,11 +27,15 @@ export default function TaskTypeSelect({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [salaryOpen, setSalaryOpen] = useState(false);
+  const [openLabel, setOpenLabel] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const salaryTypes = types.filter((t) => t.startsWith("SALARY_"));
-  const otherTypes = types.filter((t) => !t.startsWith("SALARY_"));
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    types: types.filter(g.match),
+  })).filter((g) => g.types.length > 0);
+  const groupedSet = new Set(groups.flatMap((g) => g.types));
+  const otherTypes = types.filter((t) => !groupedSet.has(t));
 
   // Закрытие списка кликом вне
   useEffect(() => {
@@ -39,8 +52,11 @@ export default function TaskTypeSelect({
   function toggleOpen() {
     setOpen((v) => {
       const next = !v;
-      // при открытии сразу показываем подтипы, если выбранный тип зарплатный
-      if (next) setSalaryOpen(value.startsWith("SALARY_"));
+      if (next) {
+        // при открытии сразу показываем группу выбранного типа
+        const g = groups.find((x) => x.match(value));
+        setOpenLabel(g ? g.label : null);
+      }
       return next;
     });
   }
@@ -51,7 +67,7 @@ export default function TaskTypeSelect({
   }
 
   const itemCls = (active: boolean) =>
-    `flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-zinc-100 ${
+    `flex w-full items-center py-1.5 pl-7 pr-3 text-left text-sm hover:bg-zinc-100 ${
       active ? "bg-blue-50 font-medium text-blue-700" : "text-zinc-700"
     }`;
 
@@ -66,41 +82,47 @@ export default function TaskTypeSelect({
         <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-xl">
-          <button
-            type="button"
-            onClick={() => setSalaryOpen((v) => !v)}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
-          >
-            <span>Зарплата</span>
-            {salaryOpen ? (
-              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-            )}
-          </button>
-          {salaryOpen &&
-            salaryTypes.map((t) => (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-xl">
+          {groups.map((g) => (
+            <Fragment key={g.label}>
               <button
-                key={t}
                 type="button"
-                onClick={() => pick(t)}
-                className={`flex w-full items-center py-1.5 pl-7 pr-3 text-left text-sm hover:bg-zinc-100 ${
-                  t === value
-                    ? "bg-blue-50 font-medium text-blue-700"
-                    : "text-zinc-700"
-                }`}
+                onClick={() =>
+                  setOpenLabel((cur) => (cur === g.label ? null : g.label))
+                }
+                className="flex w-full items-center justify-between px-3 py-1.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
               >
-                {TASK_TYPE_LABELS[t] ?? t}
+                <span>{g.label}</span>
+                {openLabel === g.label ? (
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+                )}
               </button>
-            ))}
+              {openLabel === g.label &&
+                g.types.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => pick(t)}
+                    className={itemCls(t === value)}
+                  >
+                    {TASK_TYPE_LABELS[t] ?? t}
+                  </button>
+                ))}
+            </Fragment>
+          ))}
           <div className="my-1 border-t border-zinc-100" />
           {otherTypes.map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => pick(t)}
-              className={itemCls(t === value)}
+              className={`flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-zinc-100 ${
+                t === value
+                  ? "bg-blue-50 font-medium text-blue-700"
+                  : "text-zinc-700"
+              }`}
             >
               {TASK_TYPE_LABELS[t] ?? t}
             </button>
