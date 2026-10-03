@@ -22,8 +22,20 @@ function nextWorkday(isoDate: string): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-const RAW: { date: string; label: string; systems: string[] }[] = [
-  // Октябрь 2026: 25.10 — воскресенье, поэтому сроки уходят на 26.10 (пн)
+// Октябрь 2026: 25.10 — воскресенье, поэтому сроки уходят на 26.10 (пн)
+// Все системы налогообложения (работодатели/налоговые агенты)
+const ALL_SYSTEMS = [
+  "OSNO",
+  "USN",
+  "USN15",
+  "AUSN8",
+  "AUSN20",
+  "PSN",
+  "PATENT",
+  "ESHN",
+];
+
+const RAW_EVENTS: { date: string; label: string; systems: string[] }[] = [
   {
     date: "2026-10-25",
     label: "НДС: декларация за III квартал",
@@ -47,12 +59,27 @@ const RAW: { date: string; label: string; systems: string[] }[] = [
   {
     date: "2026-10-25",
     label: "НДФЛ: уведомление из источников выплат (ст. 230)",
-    systems: ["OSNO"],
+    systems: ALL_SYSTEMS,
   },
   {
     date: "2026-10-25",
     label: "Уведомления: транспорт, земля, имущество",
     systems: ["OSNO", "USN", "USN15", "AUSN8", "AUSN20", "ESHN"],
+  },
+  {
+    date: "2026-10-25",
+    label: "Страховые взносы: уплата за III квартал",
+    systems: ALL_SYSTEMS,
+  },
+  {
+    date: "2026-10-25",
+    label: "ЕФС-1 (РСВ): отчёт по страховым взносам",
+    systems: ALL_SYSTEMS,
+  },
+  {
+    date: "2026-10-25",
+    label: "4-ФСС: сведения о несчастных случаях",
+    systems: ALL_SYSTEMS,
   },
   {
     date: "2026-10-28",
@@ -66,7 +93,7 @@ const RAW: { date: string; label: string; systems: string[] }[] = [
   },
 ];
 
-export const DEADLINE_EVENTS: DeadlineEvent[] = RAW.map((e) => ({
+export const DEADLINE_EVENTS: DeadlineEvent[] = RAW_EVENTS.map((e) => ({
   ...e,
   sourceDate: e.date,
   date: nextWorkday(e.date),
