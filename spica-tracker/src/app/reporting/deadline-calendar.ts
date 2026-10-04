@@ -19,6 +19,8 @@ export type DeadlineEvent = {
   skipIfNoEmployees?: boolean;
   /** Срок только для клиентов, в имени которых есть эта строка */
   onlyClient?: string;
+  /** Не подавать для ИП без сотрудников */
+  skipIfIpWithoutEmployees?: boolean;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -67,6 +69,7 @@ const RAW_EVENTS: {
   ndflNotice?: boolean;
   skipIfNoEmployees?: boolean;
   onlyClient?: string;
+  skipIfIpWithoutEmployees?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -99,6 +102,7 @@ const RAW_EVENTS: {
     label: "6-НДФЛ за 9 месяцев 2026 — подача расчёта",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_NDFL_6",
+    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-25",
@@ -138,12 +142,14 @@ const RAW_EVENTS: {
     label: "ПСФ (персонифицированные сведения) за сентябрь — подача",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_PSF",
+    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-25",
     label: "ЕФС-1 (сведения о трудовой деятельности) за сентябрь",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_EFS1",
+    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-25",
@@ -158,12 +164,6 @@ const RAW_EVENTS: {
     label: "УСН: уплата авансового платежа за 9 месяцев",
     systems: ["USN", "USN15"],
     taskType: "REPORT_USN_PAY",
-  },
-  {
-    date: "2026-10-28",
-    label: "Налог на имущество организаций: аванс за III квартал — уплата",
-    systems: ["OSNO", "ESHN"],
-    taskType: "REPORT_PROPERTY_PAY",
   },
   {
     date: "2026-10-28",
@@ -189,6 +189,7 @@ const RAW_EVENTS: {
     label: "РСВ (расчёт по страховым взносам) за 9 месяцев — подача",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_RSV",
+    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-28",
@@ -265,6 +266,13 @@ export function eventAppliesToClient(
   }
   if (event.skipIfNoEmployees && client.employeeCount === 0) return false;
   if (event.onlyClient && !client.name.includes(event.onlyClient)) return false;
+  if (
+    event.skipIfIpWithoutEmployees &&
+    client.legalForm === "ИП" &&
+    (client.employeeCount ?? 0) === 0
+  ) {
+    return false;
+  }
   if (event.daysRule === "PAY_23_30") {
     return (
       dayIn(client.advanceDay, 23, 30) ||
