@@ -185,16 +185,16 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-28",
-    label: "Налог на прибыль по итогам 9 месяцев — уплата",
-    systems: ["OSNO"],
-    taskType: "REPORT_PROFIT_PAY",
-  },
-  {
-    date: "2026-10-28",
     label: "Транспортный налог: аванс за III квартал — уплата",
     systems: PROPERTY_SYSTEMS,
     taskType: "REPORT_TRANSPORT_PAY",
     onlyClient: "Солнечная Архитектура",
+  },
+  {
+    date: "2026-10-28",
+    label: "Налог на прибыль по итогам 9 месяцев — уплата",
+    systems: ["OSNO"],
+    taskType: "REPORT_PROFIT_PAY",
   },
   {
     date: "2026-10-28",
