@@ -125,6 +125,13 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-25",
+    label: "24-ФСС: ЕФС-1 (сведения о страх.взн. от несч.сл.)",
+    systems: ALL_SYSTEMS,
+    taskType: "REPORT_EFS1",
+    skipIfIpWithoutEmployees: true,
+  },
+  {
+    date: "2026-10-25",
     label: "СЗВ-ТД",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_SZV_TD",
@@ -154,13 +161,6 @@ const RAW_EVENTS: {
     systems: PROPERTY_SYSTEMS,
     taskType: "REPORT_TRANSPORT_NOTICE",
     onlyClient: "Солнечная Архитектура",
-  },
-  {
-    date: "2026-10-25",
-    label: "ЕФС-1 (сведения о трудовой деятельности) за сентябрь",
-    systems: ALL_SYSTEMS,
-    taskType: "REPORT_EFS1",
-    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-25",
