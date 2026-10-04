@@ -87,7 +87,7 @@ const RAW_EVENTS: {
     daysRule: "PAY_23_30",
   },
   {
-    date: "2026-10-03",
+    date: "2026-10-06",
     label: "НДФЛ на АУСН",
     systems: ["AUSN8", "AUSN20"],
     taskType: "REPORT_NDFL_PAY",
