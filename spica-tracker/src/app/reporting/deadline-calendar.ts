@@ -17,6 +17,8 @@ export type DeadlineEvent = {
   ndflNotice?: boolean;
   /** Не подавать при количестве сотрудников = 0 */
   skipIfNoEmployees?: boolean;
+  /** Срок только для клиентов, в имени которых есть эта строка */
+  onlyClient?: string;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -64,6 +66,7 @@ const RAW_EVENTS: {
   daysRule?: "PAY_23_30" | "NOTICE_01_22";
   ndflNotice?: boolean;
   skipIfNoEmployees?: boolean;
+  onlyClient?: string;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -128,6 +131,7 @@ const RAW_EVENTS: {
     label: "Транспортный налог: уведомление об авансе за III квартал",
     systems: PROPERTY_SYSTEMS,
     taskType: "REPORT_TRANSPORT_NOTICE",
+    onlyClient: "Солнечная Архитектура",
   },
   {
     date: "2026-10-25",
@@ -172,6 +176,7 @@ const RAW_EVENTS: {
     label: "Транспортный налог: аванс за III квартал — уплата",
     systems: PROPERTY_SYSTEMS,
     taskType: "REPORT_TRANSPORT_PAY",
+    onlyClient: "Солнечная Архитектура",
   },
   {
     date: "2026-10-28",
@@ -227,6 +232,7 @@ export function groupLabel(taxSystem: string): string {
 }
 
 type ClientDays = {
+  name: string;
   taxSystem: string;
   advanceDay?: number | null;
   salaryPaymentDay?: number | null;
@@ -258,6 +264,7 @@ export function eventAppliesToClient(
     return false;
   }
   if (event.skipIfNoEmployees && client.employeeCount === 0) return false;
+  if (event.onlyClient && !client.name.includes(event.onlyClient)) return false;
   if (event.daysRule === "PAY_23_30") {
     return (
       dayIn(client.advanceDay, 23, 30) ||

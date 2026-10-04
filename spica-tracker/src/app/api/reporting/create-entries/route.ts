@@ -34,6 +34,7 @@ export async function POST() {
   const clients = await prisma.client.findMany({
     select: {
       id: true,
+      name: true,
       taxSystem: true,
       advanceDay: true,
       salaryPaymentDay: true,
