@@ -298,11 +298,7 @@ export function eventAppliesToClient(
   client: ClientDays
 ): boolean {
   if (!event.systems.includes(client.taxSystem)) return false;
-  if (
-    event.ndflNotice &&
-    client.legalForm === "ИП" &&
-    (client.employeeCount ?? 0) === 0
-  ) {
+  if (event.ndflNotice && (client.employeeCount ?? 0) === 0) {
     return false;
   }
   if (event.skipIfNoEmployees && client.employeeCount === 0) return false;
