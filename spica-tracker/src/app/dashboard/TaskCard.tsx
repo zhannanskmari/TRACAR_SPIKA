@@ -180,29 +180,71 @@ export default function TaskCard({
   const [edArticleId, setEdArticleId] = useState(
     task.knowledgeArticle?.id ?? ""
   );
-  // Список материалов базы знаний — подгружается при первом редактировании
+  const [edCategoryId, setEdCategoryId] = useState("");
+  const [edKnowledgeUrl, setEdKnowledgeUrl] = useState(
+    task.knowledgeUrl ?? ""
+  );
+  // Списки разделов и материалов базы знаний — подгружаются
+  // при первом редактировании карточки
   const [kbArticles, setKbArticles] = useState<
-    { id: string; title: string }[] | null
+    { id: string; title: string; categoryId: string }[] | null
+  >(null);
+  const [kbCategories, setKbCategories] = useState<
+    { id: string; name: string; icon: string }[] | null
   >(null);
 
   async function loadKbArticles() {
-    if (kbArticles !== null) return;
-    try {
-      const res = await fetch("/api/knowledge/articles");
-      if (res.ok) {
-        const data = await res.json();
-        setKbArticles(
-          (data.articles ?? []).map(
-            (a: { id: string; title: string }) => ({ id: a.id, title: a.title })
-          )
-        );
-        return;
+    if (kbArticles === null) {
+      try {
+        const res = await fetch("/api/knowledge/articles");
+        if (res.ok) {
+          const data = await res.json();
+          setKbArticles(
+            (data.articles ?? []).map(
+              (a: { id: string; title: string; categoryId: string }) => ({
+                id: a.id,
+                title: a.title,
+                categoryId: a.categoryId,
+              })
+            )
+          );
+        } else {
+          setKbArticles([]);
+        }
+      } catch {
+        // список недоступен — селект останется пустым
+        setKbArticles([]);
       }
-    } catch {
-      // список недоступен — селект останется пустым
     }
-    setKbArticles([]);
+    if (kbCategories === null) {
+      try {
+        const res = await fetch("/api/knowledge/categories");
+        if (res.ok) {
+          const data = await res.json();
+          setKbCategories(
+            (data.categories ?? []).map(
+              (c: { id: string; name: string; icon: string }) => ({
+                id: c.id,
+                name: c.name,
+                icon: c.icon,
+              })
+            )
+          );
+        } else {
+          setKbCategories([]);
+        }
+      } catch {
+        setKbCategories([]);
+      }
+    }
   }
+  // У уже привязанной статьи подставляем её раздел (выбор в два шага)
+  useEffect(() => {
+    if (kbArticles === null || !edArticleId || edCategoryId) return;
+    const a = kbArticles.find((x) => x.id === edArticleId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (a) setEdCategoryId(a.categoryId);
+  }, [kbArticles, edArticleId, edCategoryId]);
   // Быстрая привязка статьи: кнопка на карточке открывает
   // редактирование и сразу ставит фокус на выбор материала
   const kbSelectRef = useRef<HTMLSelectElement>(null);
@@ -299,6 +341,8 @@ export default function TaskCard({
     setEdStartTime(task.startTime ?? "");
     setEdEndTime(task.endTime ?? "");
     setEdArticleId(task.knowledgeArticle?.id ?? "");
+    setEdCategoryId("");
+    setEdKnowledgeUrl(task.knowledgeUrl ?? "");
     void loadKbArticles();
     setSaveError("");
     setEditing(true);
@@ -380,6 +424,13 @@ export default function TaskCard({
     const oldArticleId = task.knowledgeArticle?.id ?? "";
     if (edArticleId !== oldArticleId) {
       patch.knowledgeArticleId = edArticleId || null;
+    }
+
+    // Прямая ссылка на статью (поле рядом с разделами)
+    const newUrl = edKnowledgeUrl.trim();
+    const oldUrl = task.knowledgeUrl ?? "";
+    if (newUrl !== oldUrl) {
+      patch.knowledgeUrl = newUrl || null;
     }
 
     const newDeadline = edDeadline
@@ -613,23 +664,67 @@ export default function TaskCard({
               ))}
             </select>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                📚 Раздел
+              </label>
+              <select
+                ref={kbSelectRef}
+                value={edCategoryId}
+                onChange={(e) => {
+                  const cid = e.target.value;
+                  setEdCategoryId(cid);
+                  const cur = (kbArticles ?? []).find(
+                    (x) => x.id === edArticleId
+                  );
+                  if (!(cur && cur.categoryId === cid)) setEdArticleId("");
+                }}
+                onFocus={() => void loadKbArticles()}
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              >
+                <option value="">— не выбран —</option>
+                {(kbCategories ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                🔗 Ссылка на статью
+              </label>
+              <input
+                type="text"
+                value={edKnowledgeUrl}
+                onChange={(e) => setEdKnowledgeUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
           <div>
             <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-              📚 Материал базы знаний
+              📚 Материал
             </label>
             <select
-              ref={kbSelectRef}
               value={edArticleId}
               onChange={(e) => setEdArticleId(e.target.value)}
               onFocus={() => void loadKbArticles()}
-              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+              disabled={!edCategoryId}
+              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400"
             >
-              <option value="">— не выбран —</option>
-              {(kbArticles ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                </option>
-              ))}
+              <option value="">
+                {edCategoryId ? "— не выбран —" : "— сначала раздел —"}
+              </option>
+              {(kbArticles ?? [])
+                .filter((a) => a.categoryId === edCategoryId)
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -966,6 +1061,19 @@ export default function TaskCard({
             >
               📚 Привязать материал базы знаний
             </button>
+          )}
+
+          {task.knowledgeUrl && (
+            <a
+              href={task.knowledgeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={task.knowledgeUrl}
+              className="mb-1 flex items-center gap-1 truncate rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-700 hover:bg-sky-100"
+            >
+              🔗 {task.knowledgeUrl.replace(/^https?:\/\//, "")}
+            </a>
           )}
 
           <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">

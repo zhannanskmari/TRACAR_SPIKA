@@ -97,37 +97,68 @@ export default function CreateTaskForm({
   const [duration, setDuration] = useState("");
   const [factDuration, setFactDuration] = useState("");
   const [articleId, setArticleId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [knowledgeUrl, setKnowledgeUrl] = useState("");
   const [kbArticles, setKbArticles] = useState<
-    { id: string; title: string }[] | null
+    { id: string; title: string; categoryId: string }[] | null
+  >(null);
+  const [kbCategories, setKbCategories] = useState<
+    { id: string; name: string; icon: string }[] | null
   >(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  // Список материалов базы знаний — подгружается при открытии формы
+  // Списки разделов и материалов базы знаний — подгружаются при открытии формы
   useEffect(() => {
-    if (!open || kbArticles !== null) return;
+    if (!open) return;
+    if (kbArticles !== null && kbCategories !== null) return;
     (async () => {
-      try {
-        const res = await fetch("/api/knowledge/articles");
-        if (res.ok) {
-          const data = await res.json();
-          setKbArticles(
-            (data.articles ?? []).map(
-              (a: { id: string; title: string }) => ({
-                id: a.id,
-                title: a.title,
-              })
-            )
-          );
-          return;
+      if (kbArticles === null) {
+        try {
+          const res = await fetch("/api/knowledge/articles");
+          if (res.ok) {
+            const data = await res.json();
+            setKbArticles(
+              (data.articles ?? []).map(
+                (a: { id: string; title: string; categoryId: string }) => ({
+                  id: a.id,
+                  title: a.title,
+                  categoryId: a.categoryId,
+                })
+              )
+            );
+          } else {
+            setKbArticles([]);
+          }
+        } catch {
+          // список недоступен — селект останется пустым
+          setKbArticles([]);
         }
-      } catch {
-        // список недоступен — селект останется пустым
       }
-      setKbArticles([]);
+      if (kbCategories === null) {
+        try {
+          const res = await fetch("/api/knowledge/categories");
+          if (res.ok) {
+            const data = await res.json();
+            setKbCategories(
+              (data.categories ?? []).map(
+                (c: { id: string; name: string; icon: string }) => ({
+                  id: c.id,
+                  name: c.name,
+                  icon: c.icon,
+                })
+              )
+            );
+          } else {
+            setKbCategories([]);
+          }
+        } catch {
+          setKbCategories([]);
+        }
+      }
     })();
-  }, [open, kbArticles]);
+  }, [open, kbArticles, kbCategories]);
 
   // Ответственный по умолчанию — сам создатель (если он в списке исполнителей),
   // иначе первый исполнитель. Иначе карточка, созданная исполнителем, уходит
@@ -178,6 +209,7 @@ export default function CreateTaskForm({
       body.taxPaymentDate = new Date(taxPaymentDate).toISOString();
     if (isInvoiceType && invoiceAmount) body.amount = Number(invoiceAmount);
     if (articleId) body.knowledgeArticleId = articleId;
+    if (knowledgeUrl.trim()) body.knowledgeUrl = knowledgeUrl.trim();
 
     try {
       const res = await fetch("/api/tasks", {
@@ -221,6 +253,8 @@ export default function CreateTaskForm({
     setDuration("");
     setFactDuration("");
     setArticleId("");
+    setCategoryId("");
+    setKnowledgeUrl("");
     setError("");
     setDone(false);
     setSaving(false);
@@ -315,6 +349,45 @@ export default function CreateTaskForm({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                📚 Раздел базы знаний
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => {
+                  const cid = e.target.value;
+                  setCategoryId(cid);
+                  const cur = (kbArticles ?? []).find(
+                    (x) => x.id === articleId
+                  );
+                  if (!(cur && cur.categoryId === cid)) setArticleId("");
+                }}
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              >
+                <option value="">— не выбран —</option>
+                {(kbCategories ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-600">
+                🔗 Ссылка на статью
+              </label>
+              <input
+                type="text"
+                value={knowledgeUrl}
+                onChange={(e) => setKnowledgeUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">
               📚 Материал базы знаний
@@ -322,14 +395,19 @@ export default function CreateTaskForm({
             <select
               value={articleId}
               onChange={(e) => setArticleId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              disabled={!categoryId}
+              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400"
             >
-              <option value="">— не выбран —</option>
-              {(kbArticles ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                </option>
-              ))}
+              <option value="">
+                {categoryId ? "— не выбран —" : "— сначала раздел —"}
+              </option>
+              {(kbArticles ?? [])
+                .filter((a) => a.categoryId === categoryId)
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
             </select>
           </div>
 

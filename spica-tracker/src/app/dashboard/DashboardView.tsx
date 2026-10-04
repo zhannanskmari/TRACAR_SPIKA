@@ -44,6 +44,7 @@ export type DashboardTask = {
   executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
   knowledgeArticle: { id: string; title: string; type: string } | null;
+  knowledgeUrl: string | null;
   comments: {
     id: string;
     text: string;
@@ -101,6 +102,7 @@ type RawTask = {
   executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
   knowledgeArticle: { id: string; title: string; type: string } | null;
+  knowledgeUrl: string | null;
   comments: RawComment[];
   _count: { documents: number };
   archivedAt: string | null;

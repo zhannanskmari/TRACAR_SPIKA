@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { addBusinessDays } from "@/lib/dates";
 import { hasSimplePanel } from "@/lib/panel-access";
+import { normalizeKnowledgeUrl } from "@/lib/knowledge";
 import { getVisibleTasks, resolveAssignee } from "@/lib/tasks-service";
 
 export async function GET() {
@@ -166,6 +167,11 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     if (article) data.knowledgeArticleId = article.id;
+  }
+
+  // Прямая ссылка на статью (вводится вручную, поле рядом с разделами)
+  if (body.knowledgeUrl !== undefined) {
+    data.knowledgeUrl = normalizeKnowledgeUrl(body.knowledgeUrl);
   }
 
   // Сумму налога и дату уплаты может вводить только сотрудник/руководитель

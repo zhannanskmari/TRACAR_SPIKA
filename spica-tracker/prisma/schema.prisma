@@ -102,6 +102,7 @@ model Task {
   archivedAt         DateTime? // null — активная; не null — в архиве
   completedAt        DateTime? // дата выполнения (переход в DONE, для таблицы отчётности)
   knowledgeArticleId String?   // ссылка на статью базы знаний
+  knowledgeUrl       String?   // прямая ссылка на статью/ресурс (вводится вручную)
 
   client     Client     @relation(fields: [clientId], references: [id])
   assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureMonthBalanceSchema } from "@/lib/payments-schema";
+import { normalizeKnowledgeUrl } from "@/lib/knowledge";
 
 const ALLOWED_STATUSES = [
   "NEW",
@@ -240,6 +241,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Материал не найден" }, { status: 404 });
     }
     data.knowledgeArticleId = article.id;
+  }
+
+  // Прямая ссылка на статью: строка — сохранение, null/"" — снятие
+  if (body.knowledgeUrl === null || body.knowledgeUrl === "") {
+    data.knowledgeUrl = null;
+  } else if (typeof body.knowledgeUrl === "string") {
+    data.knowledgeUrl = normalizeKnowledgeUrl(body.knowledgeUrl);
   }
 
   // Восстановление из архива (только сотрудник/руководитель)

@@ -74,3 +74,12 @@ export function normalizeTags(raw: unknown): string[] {
   }
   return tags;
 }
+
+/** Прямая ссылка из карточки задачи: обрезка, протокол https:// по умолчанию */
+export function normalizeKnowledgeUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const url = raw.trim();
+  if (!url) return null;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
