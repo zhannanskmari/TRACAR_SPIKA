@@ -200,7 +200,6 @@ export default function ClientsView({
     setOpen(true);
   }
 
-  const label = "mb-1 block text-xs font-medium text-zinc-600";
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500";
 
@@ -338,9 +337,9 @@ export default function ClientsView({
           <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className="mb-6 grid grid-cols-1 gap-x-4 gap-y-3 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="mb-6 rounded-xl border border-zinc-200 bg-white p-4"
           >
-            <div className="sm:col-span-2 lg:col-span-4 -mb-1 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-semibold text-zinc-800">
                 {editingId ? "Редактирование клиента" : "Новый клиент"}
               </span>
@@ -359,183 +358,246 @@ export default function ClientsView({
                 </button>
               )}
             </div>
-            <div>
-              <label className={label}>Форма собственности</label>
-              <select
-                value={legalForm}
-                onChange={(e) => setLegalForm(e.target.value)}
-                className={input}
-              >
-                {LEGAL_FORMS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={label}>Название *</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="Полное название"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Краткое название</label>
-              <input
-                value={shortName}
-                onChange={(e) => setShortName(e.target.value)}
-                placeholder="Краткое название"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Вид налогообложения *</label>
-              <select
-                value={taxSystem}
-                onChange={(e) => setTaxSystem(e.target.value)}
-                className={input}
-              >
-                {TAX_SYSTEMS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={label}>Дата выплаты зарплаты (день)</label>
-              <input
-                type="number"
-                min="1"
-                max="31"
-                value={salaryPaymentDay}
-                onChange={(e) => setSalaryPaymentDay(e.target.value)}
-                placeholder="1–31"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Дата аванса (день)</label>
-              <input
-                type="number"
-                min="1"
-                max="31"
-                value={advanceDay}
-                onChange={(e) => setAdvanceDay(e.target.value)}
-                placeholder="1–31"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Кол-во сотрудников</label>
-              <input
-                type="number"
-                min="0"
-                value={employeeCount}
-                onChange={(e) => setEmployeeCount(e.target.value)}
-                placeholder="0"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Дата выписки счёта (день)</label>
-              <input
-                type="number"
-                min="1"
-                max="31"
-                value={invoiceDay}
-                onChange={(e) => setInvoiceDay(e.target.value)}
-                placeholder="1–31"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Сумма счёта, ₽</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={invoiceAmount}
-                onChange={(e) => setInvoiceAmount(e.target.value)}
-                placeholder="0.00"
-                className={input}
-              />
-            </div>
-            <div>
-              <label className={label}>Оплата за месяц или за квартал</label>
-              <select
-                value={paymentPeriod}
-                onChange={(e) => setPaymentPeriod(e.target.value)}
-                className={input}
-              >
-                <option value="MONTH">За месяц</option>
-                <option value="QUARTER">За квартал</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className={label}>Расч. счёт (присылает или авто)</label>
-              <input
-                value={accountNote}
-                onChange={(e) => setAccountNote(e.target.value)}
-                placeholder="Например: присылает клиент / авто"
-                className={input}
-              />
-            </div>
-            <div className="flex flex-col justify-end gap-1.5">
-              <label className="flex items-center gap-2 text-sm text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={hasCashRegister}
-                  onChange={(e) => setHasCashRegister(e.target.checked)}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                Касса есть
-              </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={salaryViaCash}
-                  onChange={(e) => setSalaryViaCash(e.target.checked)}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                ЗП через кассу
-              </label>
-            </div>
-            <div>
-              <label className={label}>Глав. исполнитель</label>
-              <select
-                value={primaryExecutorId}
-                onChange={(e) => setPrimaryExecutorId(e.target.value)}
-                className={input}
-              >
-                {executors.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                    {specSuffix(u.specialization)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={label}>Второй исполнитель</label>
-              <select
-                value={secondaryExecutorId}
-                onChange={(e) => setSecondaryExecutorId(e.target.value)}
-                className={input}
-              >
-                <option value="">—</option>
-                {executors.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                    {specSuffix(u.specialization)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Вертикальная таблица «поле» — как в карточке просмотра */}
+            <table className="w-full border-collapse text-sm">
+              <tbody>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Форма собственности
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <select
+                      value={legalForm}
+                      onChange={(e) => setLegalForm(e.target.value)}
+                      className={input}
+                    >
+                      {LEGAL_FORMS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Название *
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      placeholder="Полное название"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Краткое название
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      value={shortName}
+                      onChange={(e) => setShortName(e.target.value)}
+                      placeholder="Краткое название"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Вид налогообложения *
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <select
+                      value={taxSystem}
+                      onChange={(e) => setTaxSystem(e.target.value)}
+                      className={input}
+                    >
+                      {TAX_SYSTEMS.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Дата выплаты зарплаты (день)
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={salaryPaymentDay}
+                      onChange={(e) => setSalaryPaymentDay(e.target.value)}
+                      placeholder="1–31"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Дата аванса (день)
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={advanceDay}
+                      onChange={(e) => setAdvanceDay(e.target.value)}
+                      placeholder="1–31"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Кол-во сотрудников
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={employeeCount}
+                      onChange={(e) => setEmployeeCount(e.target.value)}
+                      placeholder="0"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Дата выписки счёта (день)
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={invoiceDay}
+                      onChange={(e) => setInvoiceDay(e.target.value)}
+                      placeholder="1–31"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Сумма счёта, ₽
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={invoiceAmount}
+                      onChange={(e) => setInvoiceAmount(e.target.value)}
+                      placeholder="0.00"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Оплата за месяц или за квартал
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <select
+                      value={paymentPeriod}
+                      onChange={(e) => setPaymentPeriod(e.target.value)}
+                      className={input}
+                    >
+                      <option value="MONTH">За месяц</option>
+                      <option value="QUARTER">За квартал</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Расч. счёт (присылает или авто)
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      value={accountNote}
+                      onChange={(e) => setAccountNote(e.target.value)}
+                      placeholder="Например: присылает клиент / авто"
+                      className={input}
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Касса есть
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="checkbox"
+                      checked={hasCashRegister}
+                      onChange={(e) => setHasCashRegister(e.target.checked)}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    ЗП через кассу
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <input
+                      type="checkbox"
+                      checked={salaryViaCash}
+                      onChange={(e) => setSalaryViaCash(e.target.checked)}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Глав. исполнитель
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <select
+                      value={primaryExecutorId}
+                      onChange={(e) => setPrimaryExecutorId(e.target.value)}
+                      className={input}
+                    >
+                      {executors.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                          {specSuffix(u.specialization)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Второй исполнитель
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <select
+                      value={secondaryExecutorId}
+                      onChange={(e) => setSecondaryExecutorId(e.target.value)}
+                      className={input}
+                    >
+                      <option value="">—</option>
+                      {executors.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                          {specSuffix(u.specialization)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
             {error && (
               <p className="rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-600 sm:col-span-2">
