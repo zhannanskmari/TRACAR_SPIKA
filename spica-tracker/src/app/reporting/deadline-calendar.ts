@@ -131,7 +131,7 @@ const RAW_EVENTS: {
     skipIfIpWithoutEmployees: true,
   },
   {
-    date: "2026-10-26",
+    date: "2026-10-25",
     label: "РСВ за 9 месяцев",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_RSV",
