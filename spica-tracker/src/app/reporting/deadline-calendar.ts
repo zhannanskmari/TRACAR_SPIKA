@@ -21,6 +21,8 @@ export type DeadlineEvent = {
   onlyClient?: string;
   /** Не подавать для ИП без сотрудников */
   skipIfIpWithoutEmployees?: boolean;
+  /** Не подавать для НКО без сотрудников */
+  skipIfNkoNoEmployees?: boolean;
   /** Карточка создаётся только вручную: отметка в таблице — по факту
    * существования карточки, а не по правилу срока */
   manualOnly?: boolean;
@@ -73,6 +75,7 @@ const RAW_EVENTS: {
   skipIfNoEmployees?: boolean;
   onlyClient?: string;
   skipIfIpWithoutEmployees?: boolean;
+  skipIfNkoNoEmployees?: boolean;
   manualOnly?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
@@ -89,6 +92,7 @@ const RAW_EVENTS: {
     systems: NDFL_NOTICE_SYSTEMS,
     taskType: "REPORT_NDFL_NOTICE",
     ndflNotice: true,
+    skipIfNkoNoEmployees: true,
   },
 
   // 15 октября (четверг)
@@ -106,6 +110,7 @@ const RAW_EVENTS: {
     taskType: "REPORT_NDFL_NOTICE",
     daysRule: "NOTICE_01_22",
     ndflNotice: true,
+    skipIfNkoNoEmployees: true,
   },
 
   // 26 октября (перенос с 25 октября — воскресенье)
@@ -122,6 +127,7 @@ const RAW_EVENTS: {
     systems: NO_AUSN_SYSTEMS,
     taskType: "REPORT_PSF",
     skipIfIpWithoutEmployees: true,
+    skipIfNkoNoEmployees: true,
   },
   {
     date: "2026-10-25",
@@ -161,6 +167,7 @@ const RAW_EVENTS: {
     label: "УСН: уведомление об авансовом платеже за 9 месяцев",
     systems: ["USN", "USN15"],
     taskType: "REPORT_USN_NOTICE",
+    skipIfNkoNoEmployees: true,
   },
   {
     date: "2026-10-25",
@@ -182,6 +189,7 @@ const RAW_EVENTS: {
     label: "УСН: уплата авансового платежа за 9 месяцев",
     systems: ["USN", "USN15"],
     taskType: "REPORT_USN_PAY",
+    skipIfNkoNoEmployees: true,
   },
   {
     date: "2026-10-28",
@@ -280,6 +288,13 @@ export function eventAppliesToClient(
   if (
     event.skipIfIpWithoutEmployees &&
     client.legalForm === "ИП" &&
+    (client.employeeCount ?? 0) === 0
+  ) {
+    return false;
+  }
+  if (
+    event.skipIfNkoNoEmployees &&
+    client.legalForm === "НКО" &&
     (client.employeeCount ?? 0) === 0
   ) {
     return false;
