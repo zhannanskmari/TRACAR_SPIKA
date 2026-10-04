@@ -119,6 +119,12 @@ export default function ReportingView({
                 <span className="text-[11px] font-semibold text-green-800">
                   {fmtDone(doneAt)}
                 </span>
+              ) : c.employeeCount === 0 ? (
+                // Клиент без сотрудников: уведомление по НДФЛ не
+                // подаётся — «0» во всех столбцах с галочкой
+                <span className="text-[11px] font-semibold text-zinc-800">
+                  ✓ <span className="text-zinc-500">0</span>
+                </span>
               ) : (
                 "✓"
               )
@@ -264,6 +270,13 @@ export default function ReportingView({
           <span className="flex items-center gap-2">
             <span className="inline-block h-4 w-6 rounded border border-zinc-200 bg-green-100" />
             — выполнено: в ячейке дата выполнения (дд.мм)
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-zinc-800">
+              ✓ <span className="text-zinc-500">0</span>
+            </span>
+            — у клиента0 сотрудников: уведомление по НДФЛ не
+            подаётся
           </span>
         </div>
       </main>
