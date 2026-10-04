@@ -96,9 +96,38 @@ export default function CreateTaskForm({
   const [executorId, setExecutorId] = useState("");
   const [duration, setDuration] = useState("");
   const [factDuration, setFactDuration] = useState("");
+  const [articleId, setArticleId] = useState("");
+  const [kbArticles, setKbArticles] = useState<
+    { id: string; title: string }[] | null
+  >(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  // Список материалов базы знаний — подгружается при открытии формы
+  useEffect(() => {
+    if (!open || kbArticles !== null) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/knowledge/articles");
+        if (res.ok) {
+          const data = await res.json();
+          setKbArticles(
+            (data.articles ?? []).map(
+              (a: { id: string; title: string }) => ({
+                id: a.id,
+                title: a.title,
+              })
+            )
+          );
+          return;
+        }
+      } catch {
+        // список недоступен — селект останется пустым
+      }
+      setKbArticles([]);
+    })();
+  }, [open, kbArticles]);
 
   // Ответственный по умолчанию — сам создатель (если он в списке исполнителей),
   // иначе первый исполнитель. Иначе карточка, созданная исполнителем, уходит
@@ -148,6 +177,7 @@ export default function CreateTaskForm({
     if (canEditTax && taxPaymentDate)
       body.taxPaymentDate = new Date(taxPaymentDate).toISOString();
     if (isInvoiceType && invoiceAmount) body.amount = Number(invoiceAmount);
+    if (articleId) body.knowledgeArticleId = articleId;
 
     try {
       const res = await fetch("/api/tasks", {
@@ -190,6 +220,7 @@ export default function CreateTaskForm({
     setExecutorId("");
     setDuration("");
     setFactDuration("");
+    setArticleId("");
     setError("");
     setDone(false);
     setSaving(false);
@@ -282,6 +313,24 @@ export default function CreateTaskForm({
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-600">
+              📚 Материал базы знаний
+            </label>
+            <select
+              value={articleId}
+              onChange={(e) => setArticleId(e.target.value)}
+              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="">— не выбран —</option>
+              {(kbArticles ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           {taskType === "IFNS_DEMAND" && (
