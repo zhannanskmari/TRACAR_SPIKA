@@ -395,14 +395,11 @@ export default function CreateTaskForm({
             <select
               value={articleId}
               onChange={(e) => setArticleId(e.target.value)}
-              disabled={!categoryId}
-              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
             >
-              <option value="">
-                {categoryId ? "— не выбран —" : "— сначала раздел —"}
-              </option>
+              <option value="">— не выбран —</option>
               {(kbArticles ?? [])
-                .filter((a) => a.categoryId === categoryId)
+                .filter((a) => !categoryId || a.categoryId === categoryId)
                 .map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.title}

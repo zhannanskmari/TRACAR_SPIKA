@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -245,16 +245,6 @@ export default function TaskCard({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (a) setEdCategoryId(a.categoryId);
   }, [kbArticles, edArticleId, edCategoryId]);
-  // Быстрая привязка статьи: кнопка на карточке открывает
-  // редактирование и сразу ставит фокус на выбор материала
-  const kbSelectRef = useRef<HTMLSelectElement>(null);
-  const kbFocusPending = useRef(false);
-  useEffect(() => {
-    if (editing && kbFocusPending.current) {
-      kbFocusPending.current = false;
-      kbSelectRef.current?.focus();
-    }
-  }, [editing]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -670,7 +660,6 @@ export default function TaskCard({
                 📚 Раздел
               </label>
               <select
-                ref={kbSelectRef}
                 value={edCategoryId}
                 onChange={(e) => {
                   const cid = e.target.value;
@@ -712,14 +701,11 @@ export default function TaskCard({
               value={edArticleId}
               onChange={(e) => setEdArticleId(e.target.value)}
               onFocus={() => void loadKbArticles()}
-              disabled={!edCategoryId}
-              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500 disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
             >
-              <option value="">
-                {edCategoryId ? "— не выбран —" : "— сначала раздел —"}
-              </option>
+              <option value="">— не выбран —</option>
               {(kbArticles ?? [])
-                .filter((a) => a.categoryId === edCategoryId)
+                .filter((a) => !edCategoryId || a.categoryId === edCategoryId)
                 .map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.title}
@@ -1040,7 +1026,7 @@ export default function TaskCard({
             {task.title}
           </p>
 
-          {task.knowledgeArticle ? (
+          {task.knowledgeArticle && (
             <a
               href={`/knowledge/article/${task.knowledgeArticle.id}`}
               onClick={(e) => e.stopPropagation()}
@@ -1049,18 +1035,6 @@ export default function TaskCard({
             >
               📚 {task.knowledgeArticle.title}
             </a>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                kbFocusPending.current = true;
-                startEdit();
-              }}
-              title="Привязать материал базы знаний к карточке"
-              className="mb-1 flex w-full items-center gap-1 truncate rounded border border-dashed border-zinc-300 px-1.5 py-0.5 text-[11px] text-zinc-400 transition hover:border-emerald-300 hover:text-emerald-600"
-            >
-              📚 Привязать материал базы знаний
-            </button>
           )}
 
           {task.knowledgeUrl && (
