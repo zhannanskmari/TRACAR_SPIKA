@@ -61,6 +61,10 @@ export async function POST(request: NextRequest) {
     taxSystem,
     legalForm: legalForm || null,
     shortName: shortName || null,
+    features:
+      typeof body.features === "string" && body.features.trim()
+        ? body.features.trim()
+        : null,
     salaryPaymentDay: toDay(body.salaryPaymentDay),
     advanceDay: toDay(body.advanceDay),
     invoiceDay: toDay(body.invoiceDay),

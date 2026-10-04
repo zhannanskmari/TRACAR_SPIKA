@@ -48,6 +48,7 @@ export default function ClientsView({
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
   const [taxSystem, setTaxSystem] = useState("USN");
+  const [features, setFeatures] = useState("");
   const [salaryPaymentDay, setSalaryPaymentDay] = useState("");
   const [advanceDay, setAdvanceDay] = useState("");
   const [employeeCount, setEmployeeCount] = useState("");
@@ -121,6 +122,7 @@ export default function ClientsView({
     setName("");
     setShortName("");
     setTaxSystem("USN");
+    setFeatures("");
     setSalaryPaymentDay("");
     setAdvanceDay("");
     setEmployeeCount("");
@@ -155,6 +157,7 @@ export default function ClientsView({
       legalForm,
       shortName,
       taxSystem,
+      features,
       accountNote,
       hasCashRegister,
       salaryViaCash,
@@ -226,10 +229,12 @@ export default function ClientsView({
         {c.shortName && (
           <div className="text-xs text-zinc-500">{c.shortName}</div>
         )}
-        {c.features && (
-          <div className="mt-0.5 line-clamp-2 text-xs italic text-zinc-500">
-            {firstWords(c.features, 10)}
-          </div>
+      </td>
+      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs italic text-zinc-500">
+        {c.features ? (
+          <div className="line-clamp-2">{firstWords(c.features, 10)}</div>
+        ) : (
+          "—"
         )}
       </td>
       <td className="border-b border-r border-zinc-100 px-3 py-2">
@@ -432,6 +437,20 @@ export default function ClientsView({
                         </option>
                       ))}
                     </select>
+                  </td>
+                </tr>
+                <tr className="align-middle">
+                  <td className="w-1/2 border-b border-zinc-100 py-2 pr-4 text-zinc-500">
+                    Особенности
+                  </td>
+                  <td className="border-b border-zinc-100 py-2">
+                    <textarea
+                      value={features}
+                      onChange={(e) => setFeatures(e.target.value)}
+                      rows={4}
+                      placeholder="Текстовая информация о клиенте: нюансы работы, договорённости, ограничения..."
+                      className="w-full resize-y rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+                    />
                   </td>
                 </tr>
                 <tr className="align-middle">
@@ -641,6 +660,7 @@ export default function ClientsView({
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold text-zinc-600">
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Клиент</th>
+                <th className="border-b border-r border-zinc-200 px-3 py-2">Особенности</th>
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Налогооб.</th>
                 <th className="border-b border-r border-zinc-200 px-3 py-2">ЗП / аванс</th>
                 <th className="border-b border-r border-zinc-200 px-3 py-2">Сотр.</th>
@@ -653,7 +673,7 @@ export default function ClientsView({
               {clients.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-3 py-6 text-center text-zinc-400"
                   >
                     Клиентов пока нет
@@ -664,7 +684,7 @@ export default function ClientsView({
                 <Fragment key={cat.label}>
                   <tr className="bg-blue-50">
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
                     >
                       {cat.label} ({cat.clients.length})
@@ -677,7 +697,7 @@ export default function ClientsView({
                 <Fragment>
                   <tr className="bg-blue-50">
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-blue-700"
                     >
                       Другие ({otherClients.length})

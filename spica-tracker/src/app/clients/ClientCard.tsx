@@ -16,6 +16,7 @@ type EditValues = {
   name: string;
   shortName: string;
   taxSystem: string;
+  features: string;
   salaryPaymentDay: string;
   advanceDay: string;
   employeeCount: string;
@@ -35,6 +36,7 @@ function toValues(c: Client, executors: Executor[]): EditValues {
     name: c.name.replace(/^(\S+\s)?/, "").trim(),
     shortName: c.shortName ?? "",
     taxSystem: c.taxSystem,
+    features: c.features ?? "",
     salaryPaymentDay:
       c.salaryPaymentDay != null ? String(c.salaryPaymentDay) : "",
     advanceDay: c.advanceDay != null ? String(c.advanceDay) : "",
@@ -65,6 +67,7 @@ function toBody(v: EditValues): Record<string, unknown> {
     legalForm: v.legalForm,
     shortName: v.shortName,
     taxSystem: v.taxSystem,
+    features: v.features,
     accountNote: v.accountNote,
     hasCashRegister: v.hasCashRegister,
     salaryViaCash: v.salaryViaCash,
@@ -96,8 +99,7 @@ export default function ClientCard({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [featuresOpen, setFeaturesOpen] = useState(false);
-  const [featuresText, setFeaturesText] = useState(client.features ?? "");
+  const [showFeatures, setShowFeatures] = useState(false);
 
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-blue-500";
@@ -129,29 +131,6 @@ export default function ClientCard({
       await onSaved();
     } catch {
       setError("Не удалось сохранить изменения");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleFeaturesSave() {
-    setError("");
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/clients/${client.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...toBody(values), features: featuresText }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Ошибка сохранения");
-        return;
-      }
-      setFeaturesOpen(false);
-      await onSaved();
-    } catch {
-      setError("Не удалось сохранить особенности");
     } finally {
       setSaving(false);
     }
@@ -191,25 +170,7 @@ export default function ClientCard({
     },
     {
       label: "Название",
-      view: (
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{client.name}</span>
-          <button
-            type="button"
-            onClick={() => {
-              if (featuresOpen) {
-                setFeaturesOpen(false);
-              } else {
-                setFeaturesText(client.features ?? "");
-                setFeaturesOpen(true);
-              }
-            }}
-            className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
-          >
-            Особенности
-          </button>
-        </div>
-      ),
+      view: client.name,
       edit: (
         <input
           value={values.name}
@@ -246,6 +207,19 @@ export default function ClientCard({
             </option>
           ))}
         </select>
+      ),
+    },
+    {
+      label: "Особенности",
+      view: client.features || "—",
+      edit: (
+        <textarea
+          value={values.features}
+          onChange={(e) => set("features", e.target.value)}
+          rows={5}
+          placeholder="Текстовая информация о клиенте: нюансы работы, договорённости, ограничения..."
+          className="w-full resize-y rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+        />
       ),
     },
     {
@@ -394,8 +368,19 @@ export default function ClientCard({
       <div className="relative my-8 w-full max-w-2xl rounded-xl bg-white shadow-xl">
         <header className="flex items-start justify-between border-b border-zinc-200 px-5 py-4">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Карточка клиента
+            <div className="flex items-center gap-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Карточка клиента
+              </div>
+              {!editing && (
+                <button
+                  type="button"
+                  onClick={() => setShowFeatures(!showFeatures)}
+                  className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+                >
+                  Особенности
+                </button>
+              )}
             </div>
             <div className="text-lg font-semibold text-zinc-900">
               {client.name}
@@ -412,6 +397,16 @@ export default function ClientCard({
         </header>
 
         <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+          {showFeatures && (
+            <div className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <div className="mb-1 text-xs font-semibold text-zinc-600">
+                Особенности клиента
+              </div>
+              <div className="whitespace-pre-wrap text-sm text-zinc-800">
+                {client.features || "—"}
+              </div>
+            </div>
+          )}
           <table className="w-full border-collapse text-sm">
             <tbody>
               {rows.map((row) => (
@@ -427,40 +422,6 @@ export default function ClientCard({
             </tbody>
           </table>
 
-          {featuresOpen && (
-            <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-              <div className="mb-1.5 text-xs font-semibold text-zinc-600">
-                Особенности клиента
-              </div>
-              <textarea
-                value={featuresText}
-                onChange={(e) => setFeaturesText(e.target.value)}
-                rows={6}
-                placeholder="Текстовая информация о клиенте: нюансы работы, договорённости, ограничения..."
-                className="w-full resize-y rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
-              />
-              <div className="mt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setFeaturesOpen(false)}
-                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-white disabled:opacity-40"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleFeaturesSave}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-40"
-                >
-                  <Save className="h-4 w-4" />
-                  {saving ? "Сохранение..." : "Сохранить"}
-                </button>
-              </div>
-            </div>
-          )}
-
           {error && (
             <p className="mt-3 rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-600">
               {error}
@@ -474,7 +435,7 @@ export default function ClientCard({
             disabled={editing}
             onClick={() => {
               setError("");
-              setFeaturesOpen(false);
+              setShowFeatures(false);
               // значения формы берем из актуальных данных клиента
               setValues(toValues(client, executors));
               setEditing(true);
