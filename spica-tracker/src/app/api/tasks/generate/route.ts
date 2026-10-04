@@ -106,9 +106,15 @@ export async function POST(request: NextRequest) {
       primaryExecutorId: c.primaryExecutorId,
     });
 
+    // зарплата начисляется за предыдущий месяц, аванс — за текущий
+    const titleDate =
+      action === "salary"
+        ? new Date(deadline.getFullYear(), deadline.getMonth() - 1, 1)
+        : deadline;
+
     await prisma.task.create({
       data: {
-        title: `${action === "advance" ? "Начислить аванс" : "Начислить зарплату"} за ${monthLabel(deadline)}`,
+        title: `${action === "advance" ? "Начислить аванс" : "Начислить зарплату"} за ${monthLabel(titleDate)}`,
         clientId: c.id,
         taskType,
         status: "NEW",
