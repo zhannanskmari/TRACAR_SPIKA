@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote, ScrollText } from "lucide-react";
+import { LogOut, LayoutGrid, CalendarDays, KanbanSquare, Building2, Users, FilterX, Archive, ArchiveRestore, Banknote, ScrollText, BookOpen } from "lucide-react";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 import { toIso } from "@/lib/dates";
 import { hasSimplePanel } from "@/lib/panel-access";
@@ -42,6 +43,7 @@ export type DashboardTask = {
   assignedTo: { id: string; name: string; specialization: string | null };
   executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
+  knowledgeArticle: { id: string; title: string; type: string } | null;
   comments: {
     id: string;
     text: string;
@@ -98,6 +100,7 @@ type RawTask = {
   assignedTo: { id: string; name: string; specialization: string | null };
   executor: { id: string; name: string; specialization: string | null } | null;
   createdBy: { id: string; name: string };
+  knowledgeArticle: { id: string; title: string; type: string } | null;
   comments: RawComment[];
   _count: { documents: number };
   archivedAt: string | null;
@@ -528,6 +531,15 @@ export default function DashboardView({
             <ScrollText className="h-4 w-4" />
             Изменения в трекере задач
           </button>
+          {user.role !== "CLIENT" && (
+            <Link
+              href="/knowledge"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            >
+              <BookOpen className="h-4 w-4" />
+              Общая база знаний
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">

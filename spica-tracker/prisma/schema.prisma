@@ -26,6 +26,8 @@ model User {
   secondaryClients Client[]    @relation("SecondaryExecutor")
   assignmentRules  AssignmentRule[]
   clientCompany    Client?
+  articles         Article[]
+  favorites        Favorite[]
 }
 
 // Клиенты (компании)
@@ -99,11 +101,13 @@ model Task {
   updatedAt          DateTime  @updatedAt
   archivedAt         DateTime? // null — активная; не null — в архиве
   completedAt        DateTime? // дата выполнения (переход в DONE, для таблицы отчётности)
+  knowledgeArticleId String?   // ссылка на статью базы знаний
 
   client     Client     @relation(fields: [clientId], references: [id])
   assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])
   executor   User?      @relation("TaskExecutor", fields: [executorId], references: [id])
   createdBy  User       @relation("TaskCreator", fields: [createdById], references: [id])
+  knowledgeArticle Article? @relation(fields: [knowledgeArticleId], references: [id], onDelete: SetNull)
   comments   Comment[]
   documents  Document[]
 }
@@ -146,4 +150,48 @@ model Document {
 
   task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   uploadedBy User @relation(fields: [uploadedById], references: [id])
+}
+
+// Раздел общей базы знаний
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String   @default("📄")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  articles Article[]
+}
+
+// Материал базы знаний (текст или ссылка)
+model Article {
+  id         String   @id @default(cuid())
+  categoryId String
+  type       String   @default("text") // text | link
+  title      String
+  content    String?  // Markdown-текст (для type=text)
+  url        String?  // внешняя ссылка (для type=link)
+  tags       String[] @default([])
+  isPinned   Boolean  @default(false)
+  authorId   String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id])
+  favorites Favorite[]
+  tasks     Task[]
+}
+
+// Избранное пользователя (⭐ в базе знаний)
+model Favorite {
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, articleId])
 }

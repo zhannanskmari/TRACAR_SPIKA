@@ -20,6 +20,7 @@ export const TASK_LIST_INCLUDE = {
   assignedTo: { select: { id: true, name: true, specialization: true } },
   executor: { select: { id: true, name: true, specialization: true } },
   createdBy: { select: { id: true, name: true } },
+  knowledgeArticle: { select: { id: true, title: true, type: true } },
   comments: {
     include: { user: { select: { id: true, name: true, role: true } } },
     orderBy: { createdAt: "asc" },

@@ -228,6 +228,20 @@ export async function PATCH(
     }
   }
 
+  // Ссылка на статью базы знаний: строка — привязка, null/"" — снятие
+  if (body.knowledgeArticleId === null || body.knowledgeArticleId === "") {
+    data.knowledgeArticleId = null;
+  } else if (typeof body.knowledgeArticleId === "string") {
+    const article = await prisma.article.findUnique({
+      where: { id: body.knowledgeArticleId },
+      select: { id: true },
+    });
+    if (!article) {
+      return NextResponse.json({ error: "Материал не найден" }, { status: 404 });
+    }
+    data.knowledgeArticleId = article.id;
+  }
+
   // Восстановление из архива (только сотрудник/руководитель)
   if (
     body.archivedAt === null &&
@@ -247,6 +261,7 @@ export async function PATCH(
     include: {
       client: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
+      knowledgeArticle: { select: { id: true, title: true, type: true } },
     },
   });
 

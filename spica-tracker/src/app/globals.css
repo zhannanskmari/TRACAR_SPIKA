@@ -24,3 +24,59 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Рендер Markdown-статей в базе знаний */
+.kb-markdown h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 1rem 0 0.5rem;
+}
+.kb-markdown h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 0.9rem 0 0.4rem;
+}
+.kb-markdown h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #27272a;
+  margin: 0.75rem 0 0.35rem;
+}
+.kb-markdown p {
+  margin: 0.5rem 0;
+}
+.kb-markdown ul,
+.kb-markdown ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+.kb-markdown ul {
+  list-style: disc;
+}
+.kb-markdown ol {
+  list-style: decimal;
+}
+.kb-markdown li {
+  margin: 0.2rem 0;
+}
+.kb-markdown a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.kb-markdown strong {
+  font-weight: 700;
+}
+.kb-markdown code {
+  background: #f4f4f5;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+.kb-markdown blockquote {
+  border-left: 3px solid #d4d4d8;
+  padding-left: 0.75rem;
+  color: #52525b;
+  margin: 0.5rem 0;
+}

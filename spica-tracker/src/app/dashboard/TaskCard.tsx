@@ -177,6 +177,32 @@ export default function TaskCard({
   );
   const [edStartTime, setEdStartTime] = useState(task.startTime ?? "");
   const [edEndTime, setEdEndTime] = useState(task.endTime ?? "");
+  const [edArticleId, setEdArticleId] = useState(
+    task.knowledgeArticle?.id ?? ""
+  );
+  // Список материалов базы знаний — подгружается при первом редактировании
+  const [kbArticles, setKbArticles] = useState<
+    { id: string; title: string }[] | null
+  >(null);
+
+  async function loadKbArticles() {
+    if (kbArticles !== null) return;
+    try {
+      const res = await fetch("/api/knowledge/articles");
+      if (res.ok) {
+        const data = await res.json();
+        setKbArticles(
+          (data.articles ?? []).map(
+            (a: { id: string; title: string }) => ({ id: a.id, title: a.title })
+          )
+        );
+        return;
+      }
+    } catch {
+      // список недоступен — селект останется пустым
+    }
+    setKbArticles([]);
+  }
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -262,6 +288,8 @@ export default function TaskCard({
     setEdDocCount(task.docCount != null ? String(task.docCount) : "");
     setEdStartTime(task.startTime ?? "");
     setEdEndTime(task.endTime ?? "");
+    setEdArticleId(task.knowledgeArticle?.id ?? "");
+    void loadKbArticles();
     setSaveError("");
     setEditing(true);
   }
@@ -336,6 +364,12 @@ export default function TaskCard({
     }
     if (edEndTime.trim() !== (task.endTime ?? "")) {
       patch.endTime = edEndTime.trim() || null;
+    }
+
+    // Ссылка задачи на статью базы знаний
+    const oldArticleId = task.knowledgeArticle?.id ?? "";
+    if (edArticleId !== oldArticleId) {
+      patch.knowledgeArticleId = edArticleId || null;
     }
 
     const newDeadline = edDeadline
@@ -565,6 +599,24 @@ export default function TaskCard({
               {Object.entries(STATUS_SYMBOL).map(([value, s]) => (
                 <option key={value} value={value}>
                   {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+              📚 Материал базы знаний
+            </label>
+            <select
+              value={edArticleId}
+              onChange={(e) => setEdArticleId(e.target.value)}
+              onFocus={() => void loadKbArticles()}
+              className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+            >
+              <option value="">— не выбран —</option>
+              {(kbArticles ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
                 </option>
               ))}
             </select>
@@ -881,6 +933,17 @@ export default function TaskCard({
           <p className="mb-1 text-[13px] font-semibold leading-snug text-zinc-900">
             {task.title}
           </p>
+
+          {task.knowledgeArticle && (
+            <a
+              href={`/knowledge/article/${task.knowledgeArticle.id}`}
+              onClick={(e) => e.stopPropagation()}
+              title="Открыть материал базы знаний"
+              className="mb-1 flex items-center gap-1 truncate rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              📚 {task.knowledgeArticle.title}
+            </a>
+          )}
 
           <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
             <span className="flex min-w-0 items-center gap-1">

@@ -159,6 +159,15 @@ export async function POST(request: NextRequest) {
     data.amount = Math.max(0, body.amount);
   }
 
+  // Ссылка на статью базы знаний (из карточки задачи)
+  if (typeof body.knowledgeArticleId === "string" && body.knowledgeArticleId) {
+    const article = await prisma.article.findUnique({
+      where: { id: body.knowledgeArticleId },
+      select: { id: true },
+    });
+    if (article) data.knowledgeArticleId = article.id;
+  }
+
   // Сумму налога и дату уплаты может вводить только сотрудник/руководитель
   const canEditTax = session.role === "ADMIN" || session.role === "EXECUTOR";
   if (canEditTax) {
@@ -185,6 +194,7 @@ export async function POST(request: NextRequest) {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },
       createdBy: { select: { id: true, name: true } },
+      knowledgeArticle: { select: { id: true, title: true, type: true } },
     },
   });
 
