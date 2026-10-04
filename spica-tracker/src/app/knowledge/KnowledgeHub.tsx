@@ -66,6 +66,12 @@ export default function KnowledgeHub({
   );
   const allTags = collectTags(articles);
 
+  // Возврат к плиткам разделов (из избранного, поиска или статьи)
+  function resetToHub() {
+    setQuery("");
+    setShowFavorites(false);
+  }
+
   async function saveCategory() {
     if (!categoryModal) return;
     const name = categoryModal.name.trim();
@@ -112,9 +118,13 @@ export default function KnowledgeHub({
             <ArrowLeft className="h-4 w-4" />
             В трекер
           </Link>
-          <span className="text-lg font-bold text-zinc-900">
+          <button
+            onClick={resetToHub}
+            title="Вернуться к разделам базы знаний"
+            className="text-lg font-bold text-zinc-900 transition hover:text-blue-600"
+          >
             📚 Общая база знаний
-          </span>
+          </button>
 
           <div className="relative min-w-40 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -174,9 +184,17 @@ export default function KnowledgeHub({
 
         {loaded && searching && (
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">
-              Результаты поиска по запросу «{query.trim()}» — {results.length}
-            </h2>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <h2 className="text-sm font-semibold text-zinc-700">
+                Результаты поиска по запросу «{query.trim()}» — {results.length}
+              </h2>
+              <button
+                onClick={resetToHub}
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+              >
+                ← Все разделы
+              </button>
+            </div>
             {results.length === 0 ? (
               <p className="text-sm text-zinc-500">Ничего не найдено.</p>
             ) : (
@@ -191,9 +209,17 @@ export default function KnowledgeHub({
 
         {loaded && !searching && showFavorites && (
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">
-              ⭐ Избранное — {results.length}
-            </h2>
+            <div className="mb-3 flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-zinc-700">
+                ⭐ Избранное — {results.length}
+              </h2>
+              <button
+                onClick={resetToHub}
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+              >
+                ← Все разделы
+              </button>
+            </div>
             {results.length === 0 ? (
               <p className="text-sm text-zinc-500">
                 Пока пусто. Откройте материал и нажмите «⭐ В избранное».
