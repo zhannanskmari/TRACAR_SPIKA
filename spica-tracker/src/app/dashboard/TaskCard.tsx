@@ -703,9 +703,11 @@ export default function TaskCard({
               onFocus={() => void loadKbArticles()}
               className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
             >
-              <option value="">— не выбран —</option>
+              <option value="">
+                {edCategoryId ? "— не выбран —" : "— сначала выберите раздел —"}
+              </option>
               {(kbArticles ?? [])
-                .filter((a) => !edCategoryId || a.categoryId === edCategoryId)
+                .filter((a) => a.categoryId === edCategoryId)
                 .map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.title}
