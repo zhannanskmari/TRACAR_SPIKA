@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -192,8 +192,10 @@ export default function TaskCard({
   const [kbCategories, setKbCategories] = useState<
     { id: string; name: string; icon: string }[] | null
   >(null);
+  const kbLinkRef = useRef<HTMLInputElement>(null);
 
   async function loadKbArticles() {
+    // При ошибке список остаётся null — повторим при следующем открытии
     if (kbArticles === null) {
       try {
         const res = await fetch("/api/knowledge/articles");
@@ -208,12 +210,9 @@ export default function TaskCard({
               })
             )
           );
-        } else {
-          setKbArticles([]);
         }
       } catch {
-        // список недоступен — селект останется пустым
-        setKbArticles([]);
+        // список недоступен — попробуем позже
       }
     }
     if (kbCategories === null) {
@@ -230,11 +229,9 @@ export default function TaskCard({
               })
             )
           );
-        } else {
-          setKbCategories([]);
         }
       } catch {
-        setKbCategories([]);
+        // попробуем позже
       }
     }
   }
@@ -685,6 +682,7 @@ export default function TaskCard({
                 🔗 Ссылка на статью
               </label>
               <input
+                ref={kbLinkRef}
                 type="text"
                 value={edKnowledgeUrl}
                 onChange={(e) => setEdKnowledgeUrl(e.target.value)}
@@ -698,21 +696,47 @@ export default function TaskCard({
               📚 Материал
             </label>
             <select
-              value={edArticleId}
-              onChange={(e) => setEdArticleId(e.target.value)}
+              value={edCategoryId ? edArticleId : ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!edCategoryId) {
+                  // Шаг 1: в списке — разделы и пункт «ввести ссылку»
+                  if (v === "__link__") {
+                    kbLinkRef.current?.focus();
+                    return;
+                  }
+                  if (v) {
+                    setEdCategoryId(v);
+                    setEdArticleId("");
+                  }
+                  return;
+                }
+                // Шаг 2: статьи выбранного раздела
+                setEdArticleId(v);
+              }}
               onFocus={() => void loadKbArticles()}
               className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
             >
               <option value="">
                 {edCategoryId ? "— не выбран —" : "— сначала выберите раздел —"}
               </option>
-              {(kbArticles ?? [])
-                .filter((a) => a.categoryId === edCategoryId)
-                .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.title}
+              {!edCategoryId &&
+                (kbCategories ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    📚 {c.icon} {c.name}
                   </option>
                 ))}
+              {!edCategoryId && (
+                <option value="__link__">🔗 Ввести ссылку на статью…</option>
+              )}
+              {edCategoryId &&
+                (kbArticles ?? [])
+                  .filter((a) => a.categoryId === edCategoryId)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.title}
+                    </option>
+                  ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">

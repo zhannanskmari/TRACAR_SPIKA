@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
 import { addBusinessDays } from "@/lib/dates";
 import { specSuffix } from "@/lib/specialization";
@@ -105,6 +105,7 @@ export default function CreateTaskForm({
   const [kbCategories, setKbCategories] = useState<
     { id: string; name: string; icon: string }[] | null
   >(null);
+  const kbLinkRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -114,6 +115,7 @@ export default function CreateTaskForm({
     if (!open) return;
     if (kbArticles !== null && kbCategories !== null) return;
     (async () => {
+      // При ошибке оставляем null — повторим при следующем открытии
       if (kbArticles === null) {
         try {
           const res = await fetch("/api/knowledge/articles");
@@ -128,12 +130,9 @@ export default function CreateTaskForm({
                 })
               )
             );
-          } else {
-            setKbArticles([]);
           }
         } catch {
-          // список недоступен — селект останется пустым
-          setKbArticles([]);
+          // список недоступен — попробуем при следующем открытии
         }
       }
       if (kbCategories === null) {
@@ -150,11 +149,9 @@ export default function CreateTaskForm({
                 })
               )
             );
-          } else {
-            setKbCategories([]);
           }
         } catch {
-          setKbCategories([]);
+          // попробуем при следующем открытии
         }
       }
     })();
@@ -379,6 +376,7 @@ export default function CreateTaskForm({
                 🔗 Ссылка на статью
               </label>
               <input
+                ref={kbLinkRef}
                 type="text"
                 value={knowledgeUrl}
                 onChange={(e) => setKnowledgeUrl(e.target.value)}
@@ -393,20 +391,46 @@ export default function CreateTaskForm({
               📚 Материал базы знаний
             </label>
             <select
-              value={articleId}
-              onChange={(e) => setArticleId(e.target.value)}
+              value={categoryId ? articleId : ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!categoryId) {
+                  // Шаг 1: в списке — разделы и пункт «ввести ссылку»
+                  if (v === "__link__") {
+                    kbLinkRef.current?.focus();
+                    return;
+                  }
+                  if (v) {
+                    setCategoryId(v);
+                    setArticleId("");
+                  }
+                  return;
+                }
+                // Шаг 2: статьи выбранного раздела
+                setArticleId(v);
+              }}
               className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
             >
               <option value="">
                 {categoryId ? "— не выбран —" : "— сначала выберите раздел —"}
               </option>
-              {(kbArticles ?? [])
-                .filter((a) => a.categoryId === categoryId)
-                .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.title}
+              {!categoryId &&
+                (kbCategories ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    📚 {c.icon} {c.name}
                   </option>
                 ))}
+              {!categoryId && (
+                <option value="__link__">🔗 Ввести ссылку на статью…</option>
+              )}
+              {categoryId &&
+                (kbArticles ?? [])
+                  .filter((a) => a.categoryId === categoryId)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.title}
+                    </option>
+                  ))}
             </select>
           </div>
 
