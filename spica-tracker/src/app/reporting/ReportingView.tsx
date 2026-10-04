@@ -111,12 +111,12 @@ export default function ReportingView({
           <td
             key={`${ev.date}-${i}`}
             className={`border-b border-r border-zinc-100 px-2 py-2 text-center ${
-              active ? "bg-yellow-300" : ""
+              doneAt ? "bg-green-100" : active ? "bg-yellow-300" : ""
             }`}
           >
             {active ? (
               doneAt ? (
-                <span className="text-[11px] font-semibold text-zinc-800">
+                <span className="text-[11px] font-semibold text-green-800">
                   {fmtDone(doneAt)}
                 </span>
               ) : (
@@ -256,9 +256,15 @@ export default function ReportingView({
           </table>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
-          <span className="inline-block h-4 w-6 rounded border border-zinc-200 bg-yellow-300" />
-          — срок (налог, декларация или уведомление) для этого клиента
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-500">
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-4 w-6 rounded border border-zinc-200 bg-yellow-300" />
+            — срок (налог, декларация или уведомление) для этого клиента
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-4 w-6 rounded border border-zinc-200 bg-green-100" />
+            — выполнено: в ячейке дата выполнения (дд.мм)
+          </span>
         </div>
       </main>
     </div>
