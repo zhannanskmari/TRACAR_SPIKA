@@ -21,6 +21,9 @@ export type DeadlineEvent = {
   onlyClient?: string;
   /** Не подавать для ИП без сотрудников */
   skipIfIpWithoutEmployees?: boolean;
+  /** Карточка создаётся только вручную: отметка в таблице — по факту
+   * существования карточки, а не по правилу срока */
+  manualOnly?: boolean;
 };
 
 export const CALENDAR_FROM = "2026-10-01";
@@ -70,6 +73,7 @@ const RAW_EVENTS: {
   skipIfNoEmployees?: boolean;
   onlyClient?: string;
   skipIfIpWithoutEmployees?: boolean;
+  manualOnly?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
   {
@@ -95,6 +99,14 @@ const RAW_EVENTS: {
     taskType: "REPORT_INSURANCE_PAY",
     skipIfNoEmployees: true,
   },
+  {
+    date: "2026-10-25",
+    label: "НДФЛ: уведомление об исчисленных суммах (01-22.10)",
+    systems: NDFL_NOTICE_SYSTEMS,
+    taskType: "REPORT_NDFL_NOTICE",
+    daysRule: "NOTICE_01_22",
+    ndflNotice: true,
+  },
 
   // 26 октября (перенос с 25 октября — воскресенье)
   {
@@ -106,10 +118,17 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-25",
-    label: "ПСФ за сентябрь — подача",
+    label: "ПСВ за сентябрь",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_PSF",
     skipIfIpWithoutEmployees: true,
+  },
+  {
+    date: "2026-10-25",
+    label: "СЗВ-ТД",
+    systems: ALL_SYSTEMS,
+    taskType: "REPORT_SZV_TD",
+    manualOnly: true,
   },
   {
     date: "2026-10-25",
@@ -122,14 +141,6 @@ const RAW_EVENTS: {
     label: "Декларация по налогу на прибыль за 9 месяцев — подача",
     systems: ["OSNO"],
     taskType: "REPORT_PROFIT_DECL",
-  },
-  {
-    date: "2026-10-25",
-    label: "НДФЛ: уведомление об исчисленных суммах за октябрь",
-    systems: NDFL_NOTICE_SYSTEMS,
-    taskType: "REPORT_NDFL_NOTICE",
-    daysRule: "NOTICE_01_22",
-    ndflNotice: true,
   },
   {
     date: "2026-10-25",

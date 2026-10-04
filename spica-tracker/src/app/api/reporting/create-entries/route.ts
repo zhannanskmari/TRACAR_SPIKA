@@ -73,6 +73,8 @@ export async function POST() {
   let total = 0;
   for (const client of clients) {
     for (const e of DEADLINE_EVENTS) {
+      // Сроки, которые создаются только вручную, не создаём массово
+      if (e.manualOnly) continue;
       if (!eventAppliesToClient(e, client)) continue;
       total += 1;
       const key = `${client.id}|${e.label}|${e.date}`;

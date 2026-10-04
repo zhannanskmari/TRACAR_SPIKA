@@ -21,9 +21,11 @@ type ClientRow = {
   employeeCount: number | null;
 };
 
-type DoneTask = {
+type TaskRow = {
   clientId: string;
   title: string;
+  taskType: string | null;
+  status: string;
   /** ISO-дата выполнения (перевод в статус DONE) */
   completedAt: string | null;
 };
@@ -51,17 +53,24 @@ function weekday(iso: string): string {
 export default function ReportingView({
   adminName,
   clients,
-  doneTasks,
+  tasks,
 }: {
   adminName: string;
   clients: ClientRow[];
-  doneTasks: DoneTask[];
+  tasks: TaskRow[];
 }) {
   const router = useRouter();
 
-  // Ключ «клиент|срок» → дата выполнения
+  // Выполненные карточки: «клиент|название» → дата выполнения
   const doneMap = new Map(
-    doneTasks.map((t) => [`${t.clientId}|${t.title}`, t.completedAt])
+    tasks
+      .filter((t) => t.status === "DONE")
+      .map((t) => [`${t.clientId}|${t.title}`, t.completedAt])
+  );
+
+  // «Ручные» сроки (СЗВ-ТД): «клиент|тип» → карточка (наличие = отметка)
+  const presenceMap = new Map(
+    tasks.map((t) => [`${t.clientId}|${t.taskType ?? ""}`, t])
   );
 
   async function handleLogout() {
@@ -87,10 +96,17 @@ export default function ReportingView({
         {c.name}
       </td>
       {DEADLINE_EVENTS.map((ev, i) => {
-        const active = eventAppliesToClient(ev, c);
-        const doneAt = active
-          ? doneMap.get(`${c.id}|${ev.label}`)
-          : undefined;
+        let active: boolean;
+        let doneAt: string | null = null;
+        if (ev.manualOnly) {
+          // Отметка появляется только при созданной вручную карточке
+          const task = presenceMap.get(`${c.id}|${ev.taskType}`);
+          active = !!task;
+          doneAt = task && task.status === "DONE" ? task.completedAt : null;
+        } else {
+          active = eventAppliesToClient(ev, c);
+          doneAt = active ? doneMap.get(`${c.id}|${ev.label}`) ?? null : null;
+        }
         return (
           <td
             key={`${ev.date}-${i}`}

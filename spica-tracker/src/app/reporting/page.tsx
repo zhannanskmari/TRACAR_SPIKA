@@ -16,7 +16,7 @@ export default async function ReportingPage() {
   // Отчётность — для админа и Анастасии (как и раздел «Клиенты»)
   if (user.role !== "ADMIN" && !isAnastasiya(user)) redirect("/dashboard");
 
-  const [clients, doneTasks] = await Promise.all([
+  const [clients, tasks] = await Promise.all([
     prisma.client.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -29,20 +29,30 @@ export default async function ReportingPage() {
         employeeCount: true,
       },
     }),
-    // Выполненные карточки по срокам отчётности — дата выполнения
-    // показывается в таблице вместо «✓»
+    // Карточки по срокам отчётности: выполненные — дата в таблице,
+    // для «ручных» сроков (СЗВ-ТД) — наличие карточки = отметка
     prisma.task.findMany({
       where: {
-        status: "DONE",
-        title: { in: DEADLINE_EVENTS.map((e) => e.label) },
+        OR: [
+          { title: { in: DEADLINE_EVENTS.map((e) => e.label) } },
+          { taskType: { in: DEADLINE_EVENTS.map((e) => e.taskType) } },
+        ],
       },
-      select: { clientId: true, title: true, completedAt: true },
+      select: {
+        clientId: true,
+        title: true,
+        taskType: true,
+        status: true,
+        completedAt: true,
+      },
     }),
   ]);
 
-  const serializedDone = doneTasks.map((t) => ({
+  const serializedTasks = tasks.map((t) => ({
     clientId: t.clientId,
     title: t.title,
+    taskType: t.taskType,
+    status: t.status,
     completedAt: t.completedAt ? t.completedAt.toISOString() : null,
   }));
 
@@ -50,7 +60,7 @@ export default async function ReportingPage() {
     <ReportingView
       adminName={user.name}
       clients={clients}
-      doneTasks={serializedDone}
+      tasks={serializedTasks}
     />
   );
 }
