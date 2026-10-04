@@ -106,6 +106,13 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-25",
+    label: "ПСФ за сентябрь — подача",
+    systems: ALL_SYSTEMS,
+    taskType: "REPORT_PSF",
+    skipIfIpWithoutEmployees: true,
+  },
+  {
+    date: "2026-10-25",
     label: "Декларация по НДС за III квартал 2026 — подача",
     systems: ["OSNO", "ESHN"],
     taskType: "REPORT_VAT_DECL",
@@ -136,13 +143,6 @@ const RAW_EVENTS: {
     systems: PROPERTY_SYSTEMS,
     taskType: "REPORT_TRANSPORT_NOTICE",
     onlyClient: "Солнечная Архитектура",
-  },
-  {
-    date: "2026-10-25",
-    label: "ПСФ (персонифицированные сведения) за сентябрь — подача",
-    systems: ALL_SYSTEMS,
-    taskType: "REPORT_PSF",
-    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-25",
