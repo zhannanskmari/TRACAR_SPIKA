@@ -24,6 +24,11 @@ import {
   type Executor,
 } from "./client-meta";
 
+// Первые n слов текста — для превью особенностей в списке клиентов
+function firstWords(text: string, n: number): string {
+  return text.trim().split(/\s+/).slice(0, n).join(" ");
+}
+
 export default function ClientsView({
   adminName,
   clients: initialClients,
@@ -220,6 +225,11 @@ export default function ClientsView({
         <div className="font-medium text-zinc-900">{c.name}</div>
         {c.shortName && (
           <div className="text-xs text-zinc-500">{c.shortName}</div>
+        )}
+        {c.features && (
+          <div className="mt-0.5 line-clamp-2 text-xs italic text-zinc-500">
+            {firstWords(c.features, 10)}
+          </div>
         )}
       </td>
       <td className="border-b border-r border-zinc-100 px-3 py-2">

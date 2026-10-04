@@ -96,6 +96,8 @@ export default function ClientCard({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [featuresText, setFeaturesText] = useState(client.features ?? "");
 
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-blue-500";
@@ -127,6 +129,29 @@ export default function ClientCard({
       await onSaved();
     } catch {
       setError("Не удалось сохранить изменения");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleFeaturesSave() {
+    setError("");
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...toBody(values), features: featuresText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Ошибка сохранения");
+        return;
+      }
+      setFeaturesOpen(false);
+      await onSaved();
+    } catch {
+      setError("Не удалось сохранить особенности");
     } finally {
       setSaving(false);
     }
@@ -166,7 +191,25 @@ export default function ClientCard({
     },
     {
       label: "Название",
-      view: client.name,
+      view: (
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{client.name}</span>
+          <button
+            type="button"
+            onClick={() => {
+              if (featuresOpen) {
+                setFeaturesOpen(false);
+              } else {
+                setFeaturesText(client.features ?? "");
+                setFeaturesOpen(true);
+              }
+            }}
+            className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+          >
+            Особенности
+          </button>
+        </div>
+      ),
       edit: (
         <input
           value={values.name}
@@ -384,6 +427,40 @@ export default function ClientCard({
             </tbody>
           </table>
 
+          {featuresOpen && (
+            <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <div className="mb-1.5 text-xs font-semibold text-zinc-600">
+                Особенности клиента
+              </div>
+              <textarea
+                value={featuresText}
+                onChange={(e) => setFeaturesText(e.target.value)}
+                rows={6}
+                placeholder="Текстовая информация о клиенте: нюансы работы, договорённости, ограничения..."
+                className="w-full resize-y rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setFeaturesOpen(false)}
+                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-white disabled:opacity-40"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleFeaturesSave}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-40"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Сохранение..." : "Сохранить"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <p className="mt-3 rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-600">
               {error}
@@ -397,6 +474,7 @@ export default function ClientCard({
             disabled={editing}
             onClick={() => {
               setError("");
+              setFeaturesOpen(false);
               // значения формы берем из актуальных данных клиента
               setValues(toValues(client, executors));
               setEditing(true);

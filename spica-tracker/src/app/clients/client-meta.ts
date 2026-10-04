@@ -17,6 +17,7 @@ export type Client = {
   invoiceAmount: number | null;
   paymentPeriod: string;
   accountNote: string | null;
+  features: string | null;
   hasCashRegister: boolean;
   salaryViaCash: boolean;
   primaryExecutorId: string;

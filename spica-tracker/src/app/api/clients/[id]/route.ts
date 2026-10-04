@@ -66,6 +66,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (typeof body.secondaryExecutorId === "string") {
     data.secondaryExecutorId = body.secondaryExecutorId || null;
   }
+  if (typeof body.features === "string") {
+    data.features = body.features.trim() || null;
+  }
 
   const client = await prisma.client.update({
     where: { id },

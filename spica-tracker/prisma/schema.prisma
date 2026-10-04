@@ -42,6 +42,7 @@ model Client {
   invoiceAmount       Float?   // сумма счёта (в карточке клиента)
   paymentPeriod       String   @default("MONTH") // MONTH | QUARTER — оплата за месяц или за квартал
   accountNote         String?  // расч. счёт (присылает или авто) — текст
+  features            String?  // особенности клиента (свободный текст)
   hasCashRegister     Boolean  @default(false) // касса есть
   salaryViaCash       Boolean  @default(false) // зарплата выдаётся через кассу
   primaryExecutorId   String
