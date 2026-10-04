@@ -133,8 +133,8 @@ export default function ArticleView({
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
           <Link
-            href="/knowledge"
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            href="/dashboard"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition hover:bg-blue-700"
           >
             <ArrowLeft className="h-4 w-4" />
             В трекер
