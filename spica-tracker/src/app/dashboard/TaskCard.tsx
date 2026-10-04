@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
@@ -71,17 +71,17 @@ const TASK_TYPES = [
   "OTHER",
 ];
 
-// РЎРёРјРІРѕР» СЃС‚Р°С‚СѓСЃР° РєР°СЂС‚РѕС‡РєРё СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РєРѕР»РѕРЅРєРµ РґРѕСЃРєРё, РІ РєРѕС‚РѕСЂРѕР№ РѕРЅР° РЅР°С…РѕРґРёС‚СЃСЏ
+// Символ статуса карточки соответствует колонке доски, в которой она находится
 const STATUS_SYMBOL: Record<
   string,
   { icon: React.ComponentType<{ className?: string }>; label: string; cls: string }
 > = {
-  NEW: { icon: CircleDot, label: "РќРѕРІРѕРµ", cls: "text-zinc-500" },
-  IN_PROGRESS: { icon: Loader, label: "Р•Р¶РµРґРЅРµРІРЅРёРє", cls: "text-blue-500" },
-  REWORK: { icon: RefreshCw, label: "РќР° РґРѕСЂР°Р±РѕС‚РєРµ", cls: "text-amber-500" },
-  DONE: { icon: CheckCircle2, label: "Р’С‹РїРѕР»РЅРµРЅРѕ", cls: "text-green-600" },
-  SENT_TO_CLIENT: { icon: Send, label: "РћС‚РїСЂР°РІР»РµРЅРѕ РєР»РёРµРЅС‚Сѓ", cls: "text-violet-500" },
-  OVERDUE: { icon: AlertTriangle, label: "РџСЂРѕСЃСЂРѕС‡РµРЅРѕ", cls: "text-red-500" },
+  NEW: { icon: CircleDot, label: "Новое", cls: "text-zinc-500" },
+  IN_PROGRESS: { icon: Loader, label: "Ежедневник", cls: "text-blue-500" },
+  REWORK: { icon: RefreshCw, label: "На доработке", cls: "text-amber-500" },
+  DONE: { icon: CheckCircle2, label: "Выполнено", cls: "text-green-600" },
+  SENT_TO_CLIENT: { icon: Send, label: "Отправлено клиенту", cls: "text-violet-500" },
+  OVERDUE: { icon: AlertTriangle, label: "Просрочено", cls: "text-red-500" },
 };
 
 function formatDate(value: string | null): string {
@@ -186,12 +186,12 @@ export default function TaskCard({
     task.createdBy?.id === user.id;
 
   async function handleDelete() {
-    if (!window.confirm("РЈРґР°Р»РёС‚СЊ РєР°СЂС‚РѕС‡РєСѓ?")) return;
+    if (!window.confirm("Удалить карточку?")) return;
     try {
       await deleteTask(task.id);
     } catch (e) {
       console.error(e);
-      window.alert("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РєР°СЂС‚РѕС‡РєСѓ");
+      window.alert("Не удалось удалить карточку");
     }
   }
 
@@ -232,7 +232,7 @@ export default function TaskCard({
   }
 
   async function deleteComment(commentId: string) {
-    if (!window.confirm("РЈРґР°Р»РёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№?")) return;
+    if (!window.confirm("Удалить комментарий?")) return;
     const res = await fetch(`/api/tasks/${task.id}/comments/${commentId}`, {
       method: "DELETE",
     });
@@ -268,7 +268,7 @@ export default function TaskCard({
 
   async function saveEdit() {
     if (!edTitle.trim()) {
-      setSaveError("РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ");
+      setSaveError("Укажите название");
       return;
     }
     setSaving(true);
@@ -292,7 +292,7 @@ export default function TaskCard({
 
     const newDuration = edDuration === "" ? null : Math.max(0, Number(edDuration));
     const oldDuration = task.durationMinutes ?? null;
-    // РµСЃР»Рё РІРІРµРґРµРЅРѕ РЅРµРєРѕСЂСЂРµРєС‚РЅРѕРµ Р·РЅР°С‡РµРЅРёРµ вЂ” РЅРµ РѕС‚РїСЂР°РІР»СЏРµРј
+    // если введено некорректное значение — не отправляем
     if (
       edDuration !== "" &&
       newDuration !== null &&
@@ -317,7 +317,7 @@ export default function TaskCard({
       patch.factDurationMinutes = null;
     }
 
-    // РљРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРІРёС‡РЅС‹С… РґРѕРєСѓРјРµРЅС‚РѕРІ (РІРІРѕРґ РІ Р±СѓС…РіР°Р»С‚РµСЂСЃРєСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ)
+    // Количество первичных документов (ввод в бухгалтерскую программу)
     const newDocs = edDocCount === "" ? null : Math.max(0, Number(edDocCount));
     const oldDocs = task.docCount ?? null;
     if (
@@ -388,7 +388,7 @@ export default function TaskCard({
       setEditing(false);
     } catch (e) {
       console.error(e);
-      setSaveError("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ");
+      setSaveError("Не удалось сохранить");
     } finally {
       setSaving(false);
     }
@@ -402,9 +402,9 @@ export default function TaskCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      // aria-describedby РѕС‚ dnd-kit СЃРѕРґРµСЂР¶РёС‚ РЅРµСЃС‚Р°Р±РёР»СЊРЅС‹Р№ СЃС‡С‘С‚С‡РёРє
-      // (СЂР°Р·РЅС‹Р№ РЅР° СЃРµСЂРІРµСЂРµ Рё РєР»РёРµРЅС‚Рµ) вЂ” РѕС‚РєР»СЋС‡Р°РµРј, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ
-      // СЂР°СЃС…РѕР¶РґРµРЅРёР№ РіРёРґСЂР°С†РёРё; screen-reader'Сѓ СЌС‚Рѕ РЅРµ РјРµС€Р°РµС‚
+      // aria-describedby от dnd-kit содержит нестабильный счётчик
+      // (разный на сервере и клиенте) — отключаем, чтобы не было
+      // расхождений гидрации; screen-reader'у это не мешает
       aria-describedby={undefined}
       {...listeners}
       className={`group cursor-grab rounded-lg border p-2 shadow-sm active:cursor-grabbing ${
@@ -413,7 +413,7 @@ export default function TaskCard({
           : "border-zinc-200 bg-white"
       } ${isDragging ? "opacity-50" : ""}`}
       onClick={(e) => {
-        // РІ РєРѕР»РѕРЅРєРµ В«Р•Р¶РµРґРЅРµРІРЅРёРє Сѓ СЃРѕС‚СЂСѓРґРЅРёРєРѕРІВ» РєР»РёРє РїРѕ РєР°СЂС‚РѕС‡РєРµ РѕС‚РєСЂС‹РІР°РµС‚ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ
+        // в колонке «Ежедневник у сотрудников» клик по карточке открывает редактирование
         if (task.status === "IN_PROGRESS") {
           const t = e.target as HTMLElement;
           if (t.closest("button, a, input, select, textarea, label")) return;
@@ -429,7 +429,7 @@ export default function TaskCard({
               const IconCmp = s.icon;
               return (
                 <span
-                  title={`РЎС‚Р°С‚СѓСЃ: ${s.label}`}
+                  title={`Статус: ${s.label}`}
                   className={`shrink-0 ${s.cls}`}
                 >
                   <IconCmp className="h-3.5 w-3.5" />
@@ -437,9 +437,9 @@ export default function TaskCard({
               );
             })()}
           {task.urgent && (
-            // РјРµС‚РєР° В«РЎСЂРѕС‡РЅРѕВ» РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃСЂРѕС‡РЅРѕСЃС‚СЊ РѕС‚РјРµС‡РµРЅР° РІ РєР°СЂС‚РѕС‡РєРµ
+            // метка «Срочно» показывается только если срочность отмечена в карточке
             <span
-              title="РЎСЂРѕС‡РЅР°СЏ Р·Р°РґР°С‡Р°"
+              title="Срочная задача"
               className="shrink-0 rounded bg-red-100 px-1 py-0.5"
             >
               <Flame className="h-3 w-3 text-red-600" />
@@ -458,7 +458,7 @@ export default function TaskCard({
           )}
           {task.receiptDeadline && (
             <span
-              title="РЎСЂРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ"
+              title="Срок требования"
               className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-600"
             >
               <Receipt className="h-3 w-3" />
@@ -473,7 +473,7 @@ export default function TaskCard({
                 e.stopPropagation();
                 setShowComments((v) => !v);
               }}
-              title={showComments ? "РЎРєСЂС‹С‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёРё" : "РџРѕРєР°Р·Р°С‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёРё"}
+              title={showComments ? "Скрыть комментарии" : "Показать комментарии"}
               className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
             >
               <MessageSquare className="h-3 w-3" />
@@ -486,7 +486,7 @@ export default function TaskCard({
                 e.stopPropagation();
                 startEdit();
               }}
-              title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"
+              title="Редактировать"
               className="rounded p-1 text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 group-hover:opacity-100"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -502,7 +502,7 @@ export default function TaskCard({
         >
           <div className="mb-2 space-y-2">
             {comments.length === 0 && (
-              <p className="text-xs text-zinc-400">РљРѕРјРјРµРЅС‚Р°СЂРёРµРІ РїРѕРєР° РЅРµС‚</p>
+              <p className="text-xs text-zinc-400">Комментариев пока нет</p>
             )}
             {comments.map((c) => (
               <div key={c.id} className="text-xs">
@@ -515,14 +515,14 @@ export default function TaskCard({
             <input
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Р”РѕР±Р°РІРёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№..."
+              placeholder="Добавить комментарий..."
               className="min-w-0 flex-1 rounded border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
             />
             <button
               onClick={addComment}
               className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
             >
-              РћС‚РїСЂ.
+              Отпр.
             </button>
           </div>
         </div>
@@ -538,12 +538,12 @@ export default function TaskCard({
             value={edTitle}
             onChange={(e) => setEdTitle(e.target.value)}
             rows={2}
-            placeholder="РќР°Р·РІР°РЅРёРµ Р·Р°РґР°С‡Рё"
+            placeholder="Название задачи"
             className="w-full rounded-lg border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-blue-500"
           />
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
             <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-              РљР»РёРµРЅС‚
+              Клиент
             </label>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600">
               <Building2 className="h-3.5 w-3.5 shrink-0" />
@@ -555,7 +555,7 @@ export default function TaskCard({
           </div>
           <div>
             <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-              РЎС‚Р°С‚СѓСЃ
+              Статус
             </label>
             <select
               value={edStatus}
@@ -572,7 +572,7 @@ export default function TaskCard({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РўРёРї
+                Тип
               </label>
               <TaskTypeSelect
                 value={edTaskType}
@@ -583,7 +583,7 @@ export default function TaskCard({
             </div>
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                {edTaskType === "IFNS_DEMAND" ? "РЎСЂРѕРє РєРІРёС‚Р°РЅС†РёРё" : "РЎСЂРѕРє"}
+                {edTaskType === "IFNS_DEMAND" ? "Срок квитанции" : "Срок"}
               </label>
               <input
                 type="date"
@@ -596,7 +596,7 @@ export default function TaskCard({
           {edTaskType === "IFNS_DEMAND" && (
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РЎСЂРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ
+                Срок требования
               </label>
               <input
                 type="date"
@@ -609,7 +609,7 @@ export default function TaskCard({
           <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РџР»Р°РЅ, РјРёРЅ
+                План, мин
               </label>
               <input
                 type="number"
@@ -623,7 +623,7 @@ export default function TaskCard({
             </div>
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                Р¤Р°РєС‚, РјРёРЅ
+                Факт, мин
               </label>
               <input
                 type="number"
@@ -638,9 +638,9 @@ export default function TaskCard({
             <div>
               <label
                 className="mb-0.5 block text-[10px] font-medium text-zinc-500"
-                title="РљРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРІРёС‡РЅС‹С… РґРѕРєСѓРјРµРЅС‚РѕРІ, РІРІРµРґС‘РЅРЅС‹С… РІ Р±СѓС…РіР°Р»С‚РµСЂСЃРєСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ"
+                title="Количество первичных документов, введённых в бухгалтерскую программу"
               >
-                Р”РѕРєСѓРјРµРЅС‚РѕРІ
+                Документов
               </label>
               <input
                 type="number"
@@ -656,7 +656,7 @@ export default function TaskCard({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РќР°С‡Р°Р»Рѕ
+                Начало
               </label>
               <input
                 type="time"
@@ -667,7 +667,7 @@ export default function TaskCard({
             </div>
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РћРєРѕРЅС‡Р°РЅРёРµ
+                Окончание
               </label>
               <input
                 type="time"
@@ -685,19 +685,19 @@ export default function TaskCard({
               className="h-3.5 w-3.5 accent-red-600"
             />
             <Flame className="h-3.5 w-3.5 text-red-500" />
-            РЎСЂРѕС‡РЅРѕ
+            Срочно
           </label>
           {executors.length > 0 && (
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№
+                Ответственный
               </label>
               <select
                 value={edAssignedToId}
                 onChange={(e) => setEdAssignedToId(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
               >
-                <option value="">РќРµ РІС‹Р±СЂР°РЅ</option>
+                <option value="">Не выбран</option>
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -710,14 +710,14 @@ export default function TaskCard({
           {executors.length > 0 && (
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РСЃРїРѕР»РЅРёС‚РµР»СЊ
+                Исполнитель
               </label>
               <select
                 value={edExecutorId}
                 onChange={(e) => setEdExecutorId(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
               >
-                <option value="">РќРµ РІС‹Р±СЂР°РЅ</option>
+                <option value="">Не выбран</option>
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -731,7 +731,7 @@ export default function TaskCard({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                  РЎСѓРјРјР° РЅР°Р»РѕРіР°, в‚Ѕ
+                  Сумма налога, ₽
                 </label>
                 <input
                   type="number"
@@ -745,7 +745,7 @@ export default function TaskCard({
               </div>
               <div>
                 <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                  Р”Р°С‚Р° СѓРїР»Р°С‚С‹
+                  Дата уплаты
                 </label>
                 <input
                   type="date"
@@ -759,7 +759,7 @@ export default function TaskCard({
           {(edTaskType === "INVOICE" || edTaskType === "INVOICE_PAYMENT") && (
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
-                РЎСѓРјРјР° Рє РѕРїР»Р°С‚Рµ, в‚Ѕ
+                Сумма к оплате, ₽
               </label>
               <input
                 type="number"
@@ -780,11 +780,11 @@ export default function TaskCard({
           <div className="rounded-lg border border-zinc-200 p-2">
             <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-zinc-500">
               <MessageSquare className="h-3 w-3" />
-              РљРѕРјРјРµРЅС‚Р°СЂРёРё ({comments.length})
+              Комментарии ({comments.length})
             </div>
             <div className="mb-2 space-y-2">
               {comments.length === 0 && (
-                <p className="text-[11px] text-zinc-400">РљРѕРјРјРµРЅС‚Р°СЂРёРµРІ РїРѕРєР° РЅРµС‚</p>
+                <p className="text-[11px] text-zinc-400">Комментариев пока нет</p>
               )}
               {comments.map((c) => (
                 <div key={c.id} className="text-[11px] leading-snug">
@@ -797,14 +797,14 @@ export default function TaskCard({
                             setEditingCommentId(c.id);
                             setEditingCommentText(c.text);
                           }}
-                          title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"
+                          title="Редактировать"
                           className="rounded px-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
                         <button
                           onClick={() => deleteComment(c.id)}
-                          title="РЈРґР°Р»РёС‚СЊ"
+                          title="Удалить"
                           className="rounded px-1 text-zinc-400 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -823,7 +823,7 @@ export default function TaskCard({
                         onClick={() => saveCommentEdit(c.id)}
                         className="rounded bg-blue-600 px-1.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700"
                       >
-                        РћРљ
+                        ОК
                       </button>
                       <button
                         onClick={() => setEditingCommentId(null)}
@@ -845,14 +845,14 @@ export default function TaskCard({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void addComment();
                 }}
-                placeholder="Р”РѕР±Р°РІРёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№..."
+                placeholder="Добавить комментарий..."
                 className="min-w-0 flex-1 rounded border border-zinc-200 px-2 py-1 text-[11px] outline-none focus:border-blue-400"
               />
               <button
                 onClick={addComment}
                 className="rounded bg-blue-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-blue-700"
               >
-                РћС‚РїСЂ.
+                Отпр.
               </button>
             </div>
           </div>
@@ -863,7 +863,7 @@ export default function TaskCard({
               className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" />
-              {saving ? "РЎРѕС…СЂР°РЅРµРЅРёРµ..." : "РЎРѕС…СЂР°РЅРёС‚СЊ"}
+              {saving ? "Сохранение..." : "Сохранить"}
             </button>
             <button
               onClick={(e) => {
@@ -893,13 +893,13 @@ export default function TaskCard({
               {task.assignedTo && (
                 <span className="flex items-center gap-1">
                   <Clock4 className="h-3.5 w-3.5" />
-                  <span>РћС‚РІ. {initials(task.assignedTo.name)}</span>
+                  <span>Отв. {initials(task.assignedTo.name)}</span>
                 </span>
               )}
               {task.executor && (
                 <span className="flex items-center gap-1">
                   <User2 className="h-3.5 w-3.5" />
-                  <span>РСЃРї.{initials(task.executor.name)}</span>
+                  <span>Исп.{initials(task.executor.name)}</span>
                 </span>
               )}
             </span>
@@ -914,12 +914,12 @@ export default function TaskCard({
                 <span className="truncate">
                   {[
                     task.durationMinutes != null || task.factDurationMinutes != null
-                      ? `РџР»Р°РЅ: ${task.durationMinutes ?? "вЂ”"} РјРёРЅ В· Р¤Р°РєС‚: ${task.factDurationMinutes ?? "вЂ”"} РјРёРЅ`
+                      ? `План: ${task.durationMinutes ?? "—"} мин · Факт: ${task.factDurationMinutes ?? "—"} мин`
                       : null,
-                    task.docCount != null ? `Р”РѕРєСѓРјРµРЅС‚РѕРІ: ${task.docCount}` : null,
+                    task.docCount != null ? `Документов: ${task.docCount}` : null,
                   ]
                     .filter(Boolean)
-                    .join(" В· ")}
+                    .join(" · ")}
                 </span>
               </span>
             ) : (
@@ -931,11 +931,11 @@ export default function TaskCard({
                   e.stopPropagation();
                   handleDelete();
                 }}
-                title="РЈРґР°Р»РёС‚СЊ"
+                title="Удалить"
                 className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium text-zinc-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                РЈРґР°Р»РёС‚СЊ
+                Удалить
               </button>
             )}
           </div>
@@ -944,7 +944,7 @@ export default function TaskCard({
             <div className="mb-0.5 flex items-center gap-1 text-[10px] text-zinc-500">
               <Clock4 className="h-3 w-3 shrink-0" />
               <span>
-                РќР°С‡Р°Р»Рѕ: {task.startTime ?? "вЂ”"} В· РћРєРѕРЅС‡Р°РЅРёРµ: {task.endTime ?? "вЂ”"}
+                Начало: {task.startTime ?? "—"} · Окончание: {task.endTime ?? "—"}
               </span>
             </div>
           )}

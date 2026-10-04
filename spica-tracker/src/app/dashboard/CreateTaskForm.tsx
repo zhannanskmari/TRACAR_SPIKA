@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
@@ -79,7 +79,7 @@ export default function CreateTaskForm({
   const [deadline, setDeadline] = useState("");
 
   useEffect(() => {
-    // РЎРµРіРѕРґРЅСЏС€РЅСЏСЏ РґР°С‚Р° РІС‹С‡РёСЃР»СЏРµС‚СЃСЏ РЅР° РєР»РёРµРЅС‚Рµ, С‡С‚РѕР±С‹ SSR Рё РіРёРґСЂР°С†РёСЏ РЅРµ СЂР°СЃС…РѕРґРёР»РёСЃСЊ
+    // Сегодняшняя дата вычисляется на клиенте, чтобы SSR и гидрация не расходились
     const d = new Date();
     const offset = d.getTimezoneOffset();
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -100,9 +100,9 @@ export default function CreateTaskForm({
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  // РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ вЂ” СЃР°Рј СЃРѕР·РґР°С‚РµР»СЊ (РµСЃР»Рё РѕРЅ РІ СЃРїРёСЃРєРµ РёСЃРїРѕР»РЅРёС‚РµР»РµР№),
-  // РёРЅР°С‡Рµ РїРµСЂРІС‹Р№ РёСЃРїРѕР»РЅРёС‚РµР»СЊ. РРЅР°С‡Рµ РєР°СЂС‚РѕС‡РєР°, СЃРѕР·РґР°РЅРЅР°СЏ РёСЃРїРѕР»РЅРёС‚РµР»РµРј, СѓС…РѕРґРёС‚
-  // С‡СѓР¶РѕРјСѓ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕРјСѓ Рё СЃРѕР·РґР°С‚РµР»СЊ РµС‘ РЅРµ РІРёРґРёС‚.
+  // Ответственный по умолчанию — сам создатель (если он в списке исполнителей),
+  // иначе первый исполнитель. Иначе карточка, созданная исполнителем, уходит
+  // чужому ответственному и создатель её не видит.
   function defaultAssignee(): string {
     if (currentUserId && executors.some((e) => e.id === currentUserId)) {
       return currentUserId;
@@ -119,7 +119,7 @@ export default function CreateTaskForm({
         className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
       >
         <Plus className="h-4 w-4" />
-        РќРѕРІР°СЏ Р·Р°РґР°С‡Р°
+        Новая задача
       </button>
     );
   }
@@ -157,16 +157,16 @@ export default function CreateTaskForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ");
+        setError(data.error || "Ошибка создания");
         setSaving(false);
         return;
       }
-      // СЃР±СЂРѕСЃ СЃРѕСЃС‚РѕСЏРЅРёСЏ Рё Р·Р°РєСЂС‹С‚РёРµ С„РѕСЂРјС‹
+      // сброс состояния и закрытие формы
       resetForm();
-      // РѕР±РЅРѕРІРёРј РґР°РЅРЅС‹Рµ РЅР° СЃС‚СЂР°РЅРёС†Рµ Р±РµР· РїРѕР»РЅРѕР№ РїРµСЂРµР·Р°РіСЂСѓР·РєРё
+      // обновим данные на странице без полной перезагрузки
       onCreated?.();
     } catch {
-      setError("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ");
+      setError("Не удалось создать задачу");
       setSaving(false);
     }
   }
@@ -203,7 +203,7 @@ export default function CreateTaskForm({
         className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
       >
         <X className="h-4 w-4" />
-        РћС‚РјРµРЅРёС‚СЊ
+        Отменить
       </button>
 
       <form
@@ -211,13 +211,13 @@ export default function CreateTaskForm({
         className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg"
       >
         <h3 className="mb-3 text-sm font-semibold text-zinc-900">
-          РќРѕРІР°СЏ Р·Р°РґР°С‡Р°
+          Новая задача
         </h3>
 
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">
-              РљР»РёРµРЅС‚
+              Клиент
             </label>
             <select
               value={clientId}
@@ -234,13 +234,13 @@ export default function CreateTaskForm({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">
-              Р§С‚Рѕ РЅСѓР¶РЅРѕ СЃРґРµР»Р°С‚СЊ
+              Что нужно сделать
             </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              placeholder="Р’РІРµРґРёС‚Рµ Р·Р°РґР°С‡Сѓ..."
+              placeholder="Введите задачу..."
               className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
             />
           </div>
@@ -248,7 +248,7 @@ export default function CreateTaskForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                РўРёРї
+                Тип
               </label>
               <TaskTypeSelect
                 value={taskType}
@@ -265,15 +265,15 @@ export default function CreateTaskForm({
                         .slice(0, 10);
                     setDeadline(toInput(addBusinessDays(new Date(), 5)));
                     setReceiptDeadline(toInput(addBusinessDays(new Date(), 10)));
-                    // РїСѓСЃС‚РѕРµ РїРѕР»Рµ вЂ” РїРѕРґСЃС‚Р°РІР»СЏРµРј Р·Р°РіРѕР»РѕРІРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ
-                    if (!title.trim()) setTitle("РџРѕР»СѓС‡РµРЅРѕ С‚СЂРµР±РѕРІР°РЅРёРµ");
+                    // пустое поле — подставляем заголовок требования
+                    if (!title.trim()) setTitle("Получено требование");
                   }
                 }}
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                {taskType === "IFNS_DEMAND" ? "РЎСЂРѕРє РєРІРёС‚Р°РЅС†РёРё" : "РЎСЂРѕРє"}
+                {taskType === "IFNS_DEMAND" ? "Срок квитанции" : "Срок"}
               </label>
               <input
                 type="date"
@@ -287,7 +287,7 @@ export default function CreateTaskForm({
           {taskType === "IFNS_DEMAND" && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                РЎСЂРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ
+                Срок требования
               </label>
               <input
                 type="date"
@@ -301,7 +301,7 @@ export default function CreateTaskForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Р’СЂРµРјСЏ РїРѕ РїР»Р°РЅСѓ, РјРёРЅ
+                Время по плану, мин
               </label>
               <input
                 type="number"
@@ -314,7 +314,7 @@ export default function CreateTaskForm({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Р¤Р°РєС‚РёС‡РµСЃРєРѕРµ РІСЂРµРјСЏ, РјРёРЅ
+                Фактическое время, мин
               </label>
               <input
                 type="number"
@@ -330,7 +330,7 @@ export default function CreateTaskForm({
           {!isClient && executors.length > 0 && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№
+                Ответственный
               </label>
               <select
                 value={assignedToId}
@@ -350,14 +350,14 @@ export default function CreateTaskForm({
           {!isClient && executors.length > 0 && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                РСЃРїРѕР»РЅРёС‚РµР»СЊ
+                Исполнитель
               </label>
               <select
                 value={executorId}
                 onChange={(e) => setExecutorId(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               >
-                <option value="">РќРµ РІС‹Р±СЂР°РЅ</option>
+                <option value="">Не выбран</option>
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -377,14 +377,14 @@ export default function CreateTaskForm({
                 className="h-3.5 w-3.5 accent-red-600"
               />
               <Flame className="h-3.5 w-3.5 text-red-500" />
-              РЎСЂРѕС‡РЅРѕ
+              Срочно
             </label>
           )}
 
           {isInvoiceType && (
             <div className="rounded-lg bg-zinc-50 p-2">
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                РЎСѓРјРјР°, в‚Ѕ
+                Сумма, ₽
               </label>
               <input
                 type="number"
@@ -402,7 +402,7 @@ export default function CreateTaskForm({
             <div className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-600">
-                  РЎСѓРјРјР° РЅР°Р»РѕРіР°, в‚Ѕ
+                  Сумма налога, ₽
                 </label>
                 <input
                   type="number"
@@ -416,7 +416,7 @@ export default function CreateTaskForm({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-600">
-                  Р”Р°С‚Р° СѓРїР»Р°С‚С‹
+                  Дата уплаты
                 </label>
                 <input
                   type="date"
@@ -430,7 +430,7 @@ export default function CreateTaskForm({
 
           {done && (
             <p className="rounded-lg bg-green-50 px-2 py-1.5 text-xs text-green-600">
-              Р—Р°РґР°С‡Р° СЃРѕР·РґР°РЅР°
+              Задача создана
             </p>
           )}
           {error && (
@@ -445,14 +445,14 @@ export default function CreateTaskForm({
 onClick={resetForm}
               className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
             >
-              РћС‚РјРµРЅР° РІРІРѕРґР°
+              Отмена ввода
             </button>
             <button
               type="submit"
               disabled={saving}
               className="flex flex-1 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? "РЎРѕР·РґР°РЅРёРµ..." : "РЎРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ"}
+              {saving ? "Создание..." : "Создать задачу"}
             </button>
           </div>
         </div>
