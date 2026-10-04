@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Plus, X, Flame } from "lucide-react";
@@ -39,6 +39,7 @@ const TASK_TYPES = [
   "REPORT_PSF",
   "REPORT_SZV_TD",
   "REPORT_AUSN_PAY",
+  "REPORT_NDFL_AUSN",
   "IFNS_DEMAND",
   "DEMAND_RECEIPT",
   "CLIENT_REQUEST",
@@ -78,7 +79,7 @@ export default function CreateTaskForm({
   const [deadline, setDeadline] = useState("");
 
   useEffect(() => {
-    // Сегодняшняя дата вычисляется на клиенте, чтобы SSR и гидрация не расходились
+    // РЎРµРіРѕРґРЅСЏС€РЅСЏСЏ РґР°С‚Р° РІС‹С‡РёСЃР»СЏРµС‚СЃСЏ РЅР° РєР»РёРµРЅС‚Рµ, С‡С‚РѕР±С‹ SSR Рё РіРёРґСЂР°С†РёСЏ РЅРµ СЂР°СЃС…РѕРґРёР»РёСЃСЊ
     const d = new Date();
     const offset = d.getTimezoneOffset();
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -99,9 +100,9 @@ export default function CreateTaskForm({
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  // Ответственный по умолчанию — сам создатель (если он в списке исполнителей),
-  // иначе первый исполнитель. Иначе карточка, созданная исполнителем, уходит
-  // чужому ответственному и создатель её не видит.
+  // РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ вЂ” СЃР°Рј СЃРѕР·РґР°С‚РµР»СЊ (РµСЃР»Рё РѕРЅ РІ СЃРїРёСЃРєРµ РёСЃРїРѕР»РЅРёС‚РµР»РµР№),
+  // РёРЅР°С‡Рµ РїРµСЂРІС‹Р№ РёСЃРїРѕР»РЅРёС‚РµР»СЊ. РРЅР°С‡Рµ РєР°СЂС‚РѕС‡РєР°, СЃРѕР·РґР°РЅРЅР°СЏ РёСЃРїРѕР»РЅРёС‚РµР»РµРј, СѓС…РѕРґРёС‚
+  // С‡СѓР¶РѕРјСѓ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕРјСѓ Рё СЃРѕР·РґР°С‚РµР»СЊ РµС‘ РЅРµ РІРёРґРёС‚.
   function defaultAssignee(): string {
     if (currentUserId && executors.some((e) => e.id === currentUserId)) {
       return currentUserId;
@@ -118,7 +119,7 @@ export default function CreateTaskForm({
         className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
       >
         <Plus className="h-4 w-4" />
-        Новая задача
+        РќРѕРІР°СЏ Р·Р°РґР°С‡Р°
       </button>
     );
   }
@@ -156,16 +157,16 @@ export default function CreateTaskForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Ошибка создания");
+        setError(data.error || "РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ");
         setSaving(false);
         return;
       }
-      // сброс состояния и закрытие формы
+      // СЃР±СЂРѕСЃ СЃРѕСЃС‚РѕСЏРЅРёСЏ Рё Р·Р°РєСЂС‹С‚РёРµ С„РѕСЂРјС‹
       resetForm();
-      // обновим данные на странице без полной перезагрузки
+      // РѕР±РЅРѕРІРёРј РґР°РЅРЅС‹Рµ РЅР° СЃС‚СЂР°РЅРёС†Рµ Р±РµР· РїРѕР»РЅРѕР№ РїРµСЂРµР·Р°РіСЂСѓР·РєРё
       onCreated?.();
     } catch {
-      setError("Не удалось создать задачу");
+      setError("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ");
       setSaving(false);
     }
   }
@@ -202,7 +203,7 @@ export default function CreateTaskForm({
         className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
       >
         <X className="h-4 w-4" />
-        Отменить
+        РћС‚РјРµРЅРёС‚СЊ
       </button>
 
       <form
@@ -210,13 +211,13 @@ export default function CreateTaskForm({
         className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg"
       >
         <h3 className="mb-3 text-sm font-semibold text-zinc-900">
-          Новая задача
+          РќРѕРІР°СЏ Р·Р°РґР°С‡Р°
         </h3>
 
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">
-              Клиент
+              РљР»РёРµРЅС‚
             </label>
             <select
               value={clientId}
@@ -233,13 +234,13 @@ export default function CreateTaskForm({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-600">
-              Что нужно сделать
+              Р§С‚Рѕ РЅСѓР¶РЅРѕ СЃРґРµР»Р°С‚СЊ
             </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              placeholder="Введите задачу..."
+              placeholder="Р’РІРµРґРёС‚Рµ Р·Р°РґР°С‡Сѓ..."
               className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
             />
           </div>
@@ -247,7 +248,7 @@ export default function CreateTaskForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Тип
+                РўРёРї
               </label>
               <TaskTypeSelect
                 value={taskType}
@@ -264,15 +265,15 @@ export default function CreateTaskForm({
                         .slice(0, 10);
                     setDeadline(toInput(addBusinessDays(new Date(), 5)));
                     setReceiptDeadline(toInput(addBusinessDays(new Date(), 10)));
-                    // пустое поле — подставляем заголовок требования
-                    if (!title.trim()) setTitle("Получено требование");
+                    // РїСѓСЃС‚РѕРµ РїРѕР»Рµ вЂ” РїРѕРґСЃС‚Р°РІР»СЏРµРј Р·Р°РіРѕР»РѕРІРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ
+                    if (!title.trim()) setTitle("РџРѕР»СѓС‡РµРЅРѕ С‚СЂРµР±РѕРІР°РЅРёРµ");
                   }
                 }}
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                {taskType === "IFNS_DEMAND" ? "Срок квитанции" : "Срок"}
+                {taskType === "IFNS_DEMAND" ? "РЎСЂРѕРє РєРІРёС‚Р°РЅС†РёРё" : "РЎСЂРѕРє"}
               </label>
               <input
                 type="date"
@@ -286,7 +287,7 @@ export default function CreateTaskForm({
           {taskType === "IFNS_DEMAND" && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Срок требования
+                РЎСЂРѕРє С‚СЂРµР±РѕРІР°РЅРёСЏ
               </label>
               <input
                 type="date"
@@ -300,7 +301,7 @@ export default function CreateTaskForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Время по плану, мин
+                Р’СЂРµРјСЏ РїРѕ РїР»Р°РЅСѓ, РјРёРЅ
               </label>
               <input
                 type="number"
@@ -313,7 +314,7 @@ export default function CreateTaskForm({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Фактическое время, мин
+                Р¤Р°РєС‚РёС‡РµСЃРєРѕРµ РІСЂРµРјСЏ, РјРёРЅ
               </label>
               <input
                 type="number"
@@ -329,7 +330,7 @@ export default function CreateTaskForm({
           {!isClient && executors.length > 0 && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Ответственный
+                РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№
               </label>
               <select
                 value={assignedToId}
@@ -349,14 +350,14 @@ export default function CreateTaskForm({
           {!isClient && executors.length > 0 && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Исполнитель
+                РСЃРїРѕР»РЅРёС‚РµР»СЊ
               </label>
               <select
                 value={executorId}
                 onChange={(e) => setExecutorId(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
               >
-                <option value="">Не выбран</option>
+                <option value="">РќРµ РІС‹Р±СЂР°РЅ</option>
                 {executors.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -376,14 +377,14 @@ export default function CreateTaskForm({
                 className="h-3.5 w-3.5 accent-red-600"
               />
               <Flame className="h-3.5 w-3.5 text-red-500" />
-              Срочно
+              РЎСЂРѕС‡РЅРѕ
             </label>
           )}
 
           {isInvoiceType && (
             <div className="rounded-lg bg-zinc-50 p-2">
               <label className="mb-1 block text-xs font-medium text-zinc-600">
-                Сумма, ₽
+                РЎСѓРјРјР°, в‚Ѕ
               </label>
               <input
                 type="number"
@@ -401,7 +402,7 @@ export default function CreateTaskForm({
             <div className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-600">
-                  Сумма налога, ₽
+                  РЎСѓРјРјР° РЅР°Р»РѕРіР°, в‚Ѕ
                 </label>
                 <input
                   type="number"
@@ -415,7 +416,7 @@ export default function CreateTaskForm({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-600">
-                  Дата уплаты
+                  Р”Р°С‚Р° СѓРїР»Р°С‚С‹
                 </label>
                 <input
                   type="date"
@@ -429,7 +430,7 @@ export default function CreateTaskForm({
 
           {done && (
             <p className="rounded-lg bg-green-50 px-2 py-1.5 text-xs text-green-600">
-              Задача создана
+              Р—Р°РґР°С‡Р° СЃРѕР·РґР°РЅР°
             </p>
           )}
           {error && (
@@ -444,14 +445,14 @@ export default function CreateTaskForm({
 onClick={resetForm}
               className="flex items-center gap-1.5 rounded-lg bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300"
             >
-              Отмена ввода
+              РћС‚РјРµРЅР° РІРІРѕРґР°
             </button>
             <button
               type="submit"
               disabled={saving}
               className="flex flex-1 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? "Создание..." : "Создать задачу"}
+              {saving ? "РЎРѕР·РґР°РЅРёРµ..." : "РЎРѕР·РґР°С‚СЊ Р·Р°РґР°С‡Сѓ"}
             </button>
           </div>
         </div>

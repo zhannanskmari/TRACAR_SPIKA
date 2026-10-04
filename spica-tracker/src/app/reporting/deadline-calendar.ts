@@ -82,7 +82,14 @@ const RAW_EVENTS: {
   {
     date: "2026-10-03",
     label: "НДФЛ: уплата удержанного за период 23–30 сентября",
-    systems: ALL_SYSTEMS,
+    systems: NO_AUSN_SYSTEMS,
+    taskType: "REPORT_NDFL_PAY",
+    daysRule: "PAY_23_30",
+  },
+  {
+    date: "2026-10-03",
+    label: "НДФЛ на АУСН",
+    systems: ["AUSN8", "AUSN20"],
     taskType: "REPORT_NDFL_PAY",
     daysRule: "PAY_23_30",
   },
@@ -111,6 +118,14 @@ const RAW_EVENTS: {
     daysRule: "NOTICE_01_22",
     ndflNotice: true,
     skipIfNkoNoEmployees: true,
+  },
+
+  // 27 октября (вторник)
+  {
+    date: "2026-10-27",
+    label: "НДФЛ для АУСН",
+    systems: ["AUSN8", "AUSN20"],
+    taskType: "REPORT_NDFL_AUSN",
   },
 
   // 26 октября (перенос с 25 октября — воскресенье)
@@ -167,6 +182,7 @@ const RAW_EVENTS: {
     label: "УСН: уведомление об авансовом платеже за 9 месяцев",
     systems: ["USN", "USN15"],
     taskType: "REPORT_USN_NOTICE",
+    skipIfNoEmployees: true,
     skipIfNkoNoEmployees: true,
   },
   {
@@ -181,6 +197,7 @@ const RAW_EVENTS: {
     label: "Налог при АУСН за сентябрь — уплата",
     systems: ["AUSN8", "AUSN20"],
     taskType: "REPORT_AUSN_PAY",
+    skipIfNoEmployees: true,
   },
 
   // 28 октября (среда)
@@ -189,6 +206,7 @@ const RAW_EVENTS: {
     label: "УСН: уплата авансового платежа за 9 месяцев",
     systems: ["USN", "USN15"],
     taskType: "REPORT_USN_PAY",
+    skipIfNoEmployees: true,
     skipIfNkoNoEmployees: true,
   },
   {
