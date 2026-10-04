@@ -234,6 +234,13 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-28",
+    label: "НДФЛ: уплата удержанного за период 01–22 октября",
+    systems: NO_AUSN_SYSTEMS,
+    taskType: "REPORT_NDFL_PAY",
+    daysRule: "NOTICE_01_22",
+  },
+  {
+    date: "2026-10-28",
     label: "Страховые взносы по единому тарифу за сентябрь — уплата",
     systems: NO_AUSN_SYSTEMS,
     taskType: "REPORT_INSURANCE_PAY",
