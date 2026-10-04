@@ -125,9 +125,16 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-25",
-    label: "24-ФСС: ЕФС-1 (сведения о страх.взн. от несч.сл.)",
+    label: "4-ФСС: ЕФС-1 (сведения о страх.взн. от несч.сл.)",
     systems: ALL_SYSTEMS,
     taskType: "REPORT_EFS1",
+    skipIfIpWithoutEmployees: true,
+  },
+  {
+    date: "2026-10-26",
+    label: "РСВ за 9 месяцев",
+    systems: ALL_SYSTEMS,
+    taskType: "REPORT_RSV",
     skipIfIpWithoutEmployees: true,
   },
   {
@@ -194,13 +201,6 @@ const RAW_EVENTS: {
     label: "НДС: третий ежемесячный платёж за III квартал — уплата",
     systems: ["OSNO", "ESHN"],
     taskType: "REPORT_VAT_PAY",
-  },
-  {
-    date: "2026-10-28",
-    label: "РСВ (расчёт по страховым взносам) за 9 месяцев — подача",
-    systems: ALL_SYSTEMS,
-    taskType: "REPORT_RSV",
-    skipIfIpWithoutEmployees: true,
   },
   {
     date: "2026-10-28",
