@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -203,6 +203,16 @@ export default function TaskCard({
     }
     setKbArticles([]);
   }
+  // Быстрая привязка статьи: кнопка на карточке открывает
+  // редактирование и сразу ставит фокус на выбор материала
+  const kbSelectRef = useRef<HTMLSelectElement>(null);
+  const kbFocusPending = useRef(false);
+  useEffect(() => {
+    if (editing && kbFocusPending.current) {
+      kbFocusPending.current = false;
+      kbSelectRef.current?.focus();
+    }
+  }, [editing]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -608,6 +618,7 @@ export default function TaskCard({
               📚 Материал базы знаний
             </label>
             <select
+              ref={kbSelectRef}
               value={edArticleId}
               onChange={(e) => setEdArticleId(e.target.value)}
               onFocus={() => void loadKbArticles()}
@@ -934,7 +945,7 @@ export default function TaskCard({
             {task.title}
           </p>
 
-          {task.knowledgeArticle && (
+          {task.knowledgeArticle ? (
             <a
               href={`/knowledge/article/${task.knowledgeArticle.id}`}
               onClick={(e) => e.stopPropagation()}
@@ -943,6 +954,18 @@ export default function TaskCard({
             >
               📚 {task.knowledgeArticle.title}
             </a>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                kbFocusPending.current = true;
+                startEdit();
+              }}
+              title="Привязать материал базы знаний к карточке"
+              className="mb-1 flex w-full items-center gap-1 truncate rounded border border-dashed border-zinc-300 px-1.5 py-0.5 text-[11px] text-zinc-400 transition hover:border-emerald-300 hover:text-emerald-600"
+            >
+              📚 Привязать материал базы знаний
+            </button>
           )}
 
           <div className="mb-1 flex items-center justify-between gap-2 text-xs text-zinc-500">
