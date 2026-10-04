@@ -23,6 +23,8 @@ export type DeadlineEvent = {
   skipIfIpWithoutEmployees?: boolean;
   /** Не подавать для НКО без сотрудников */
   skipIfNkoNoEmployees?: boolean;
+  /** Только для клиентов с количеством сотрудников больше 0 */
+  requireEmployees?: boolean;
   /** Карточка создаётся только вручную: отметка в таблице — по факту
    * существования карточки, а не по правилу срока */
   manualOnly?: boolean;
@@ -76,6 +78,7 @@ const RAW_EVENTS: {
   onlyClient?: string;
   skipIfIpWithoutEmployees?: boolean;
   skipIfNkoNoEmployees?: boolean;
+  requireEmployees?: boolean;
   manualOnly?: boolean;
 }[] = [
   // 5 октября (перенос с 3 октября — выходной)
@@ -91,7 +94,7 @@ const RAW_EVENTS: {
     label: "НДФЛ на АУСН",
     systems: ["AUSN8", "AUSN20"],
     taskType: "REPORT_NDFL_PAY",
-    daysRule: "PAY_23_30",
+    requireEmployees: true,
   },
   {
     date: "2026-10-03",
@@ -126,6 +129,7 @@ const RAW_EVENTS: {
     label: "НДФЛ для АУСН",
     systems: ["AUSN8", "AUSN20"],
     taskType: "REPORT_NDFL_AUSN",
+    requireEmployees: true,
   },
 
   // 26 октября (перенос с 25 октября — воскресенье)
@@ -315,6 +319,9 @@ export function eventAppliesToClient(
     client.legalForm === "НКО" &&
     (client.employeeCount ?? 0) === 0
   ) {
+    return false;
+  }
+  if (event.requireEmployees && (client.employeeCount ?? 0) <= 0) {
     return false;
   }
   if (event.daysRule === "PAY_23_30") {
