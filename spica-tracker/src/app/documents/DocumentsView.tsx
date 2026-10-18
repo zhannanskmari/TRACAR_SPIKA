@@ -132,11 +132,11 @@ export default function DocumentsView({
       <main className="flex-1 overflow-auto p-6">
         <div className="mb-4 flex items-center gap-3">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/clients")}
             className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-base font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
           >
             <ArrowLeft className="h-5 w-5" />
-            На доску
+            К клиентам
           </button>
           <h1 className="text-xl font-semibold text-zinc-900">
             Ввод документов
