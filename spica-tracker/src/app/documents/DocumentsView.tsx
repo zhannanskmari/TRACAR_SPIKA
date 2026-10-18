@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileSpreadsheet, Save, Trash2, X } from "lucide-react";
-import { DOC_ACCOUNTS } from "@/lib/doc-meta";
+import { DOC_ACCOUNTS, accountLabel } from "@/lib/doc-meta";
 
 type DocClient = {
   id: string;
   name: string;
   shortName: string | null;
+  accountNote: string | null;
 };
 
 type DocEntry = {
@@ -149,6 +150,9 @@ export default function DocumentsView({
                 <th className="sticky left-0 z-10 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left">
                   Фирма
                 </th>
+                <th className="border-b border-r border-zinc-200 px-3 py-2 text-left">
+                  Способ ввода
+                </th>
                 {DOC_ACCOUNTS.map((acc) => (
                   <th
                     key={acc.key}
@@ -163,7 +167,7 @@ export default function DocumentsView({
               {clients.length === 0 && (
                 <tr>
                   <td
-                    colSpan={DOC_ACCOUNTS.length + 1}
+                    colSpan={DOC_ACCOUNTS.length + 2}
                     className="px-3 py-6 text-center text-zinc-400"
                   >
                     Клиентов пока нет
@@ -179,6 +183,9 @@ export default function DocumentsView({
                         {client.shortName}
                       </div>
                     )}
+                  </td>
+                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                    {client.accountNote}
                   </td>
                   {DOC_ACCOUNTS.map((acc) => {
                     const entry =
@@ -228,7 +235,7 @@ export default function DocumentsView({
               <div>
                 <div className="text-xs text-zinc-500">{openCell.clientName}</div>
                 <h3 className="text-lg font-semibold text-zinc-900">
-                  Счёт {openCell.account}
+                  {accountLabel(openCell.account)}
                 </h3>
               </div>
               <button

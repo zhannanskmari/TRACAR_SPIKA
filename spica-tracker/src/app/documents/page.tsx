@@ -22,13 +22,19 @@ export default async function DocumentsPage() {
     where: clientIds.length ? { clientId: { in: clientIds } } : { clientId: "" },
   });
 
+  // Фирмы без заполненного поля «расч.счёт» в таблицу не попадают
+  const withAccount = clients.filter(
+    (c) => c.accountNote && c.accountNote.trim()
+  );
+
   return (
     <DocumentsView
       userName={session.name}
-      clients={clients.map((c) => ({
+      clients={withAccount.map((c) => ({
         id: c.id,
         name: c.name,
         shortName: c.shortName,
+        accountNote: c.accountNote,
       }))}
       entries={entries.map((e) => ({
         clientId: e.clientId,
