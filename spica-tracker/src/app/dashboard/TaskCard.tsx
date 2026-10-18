@@ -149,6 +149,8 @@ export default function TaskCard({
   const [edReceiptDeadline, setEdReceiptDeadline] = useState(
     toDateInput(task.receiptDeadline)
   );
+  const [edDemandNumber, setEdDemandNumber] = useState(task.demandNumber ?? "");
+  const [edDemandDate, setEdDemandDate] = useState(toDateInput(task.demandDate));
   const [edUrgent, setEdUrgent] = useState(task.urgent);
   const [edTaxAmount, setEdTaxAmount] = useState(
     task.taxAmount != null ? String(task.taxAmount) : ""
@@ -315,6 +317,8 @@ export default function TaskCard({
     setEdTaskType(task.taskType);
     setEdDeadline(toDateInput(task.deadline) || todayDateInput());
     setEdReceiptDeadline(toDateInput(task.receiptDeadline));
+    setEdDemandNumber(task.demandNumber ?? "");
+    setEdDemandDate(toDateInput(task.demandDate));
     setEdUrgent(task.urgent);
     setEdTaxAmount(task.taxAmount != null ? String(task.taxAmount) : "");
     setEdInvoiceAmount(task.amount != null ? String(task.amount) : "");
@@ -436,6 +440,20 @@ export default function TaskCard({
     const oldReceiptDeadline = task.receiptDeadline ?? null;
     if (newReceiptDeadline !== oldReceiptDeadline) {
       patch.receiptDeadline = newReceiptDeadline;
+    }
+
+    // Номер и дата требования ИФНС
+    const newDemandNumber = edDemandNumber.trim();
+    if (newDemandNumber !== (task.demandNumber ?? "")) {
+      patch.demandNumber = newDemandNumber || null;
+    }
+
+    const newDemandDate = edDemandDate
+      ? new Date(`${edDemandDate}T12:00:00`).toISOString()
+      : null;
+    const oldDemandDate = task.demandDate ?? null;
+    if (newDemandDate !== oldDemandDate) {
+      patch.demandDate = newDemandDate;
     }
 
     if (canEditTax) {
@@ -763,6 +781,33 @@ export default function TaskCard({
               />
             </div>
           </div>
+          {(edTaskType === "IFNS_DEMAND" || edTaskType === "DEMAND_RECEIPT") && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                  Номер требования
+                </label>
+                <input
+                  type="text"
+                  value={edDemandNumber}
+                  onChange={(e) => setEdDemandNumber(e.target.value)}
+                  placeholder="№"
+                  className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
+                  Дата требования
+                </label>
+                <input
+                  type="date"
+                  value={edDemandDate}
+                  onChange={(e) => setEdDemandDate(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 px-1.5 py-1 text-xs outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
           {edTaskType === "IFNS_DEMAND" && (
             <div>
               <label className="mb-0.5 block text-[10px] font-medium text-zinc-500">
@@ -1051,6 +1096,15 @@ export default function TaskCard({
           <p className="mb-1 text-[13px] font-semibold leading-snug text-zinc-900">
             {task.title}
           </p>
+
+          {(task.demandNumber || task.demandDate) && (
+            <div className="mb-1 text-[11px] text-zinc-600">
+              {task.demandNumber && `№${task.demandNumber}`}
+              {task.demandNumber && task.demandDate && " · "}
+              {task.demandDate &&
+                `от ${new Date(task.demandDate).toLocaleDateString("ru-RU")}`}
+            </div>
+          )}
 
           {task.knowledgeArticle && (
             <a

@@ -48,6 +48,7 @@ export function serializeTask(task: TaskListRow) {
     ...task,
     deadline: toIso(task.deadline),
     receiptDeadline: toIso(task.receiptDeadline),
+    demandDate: toIso(task.demandDate),
     taxPaymentDate: toIso(task.taxPaymentDate),
     salaryPaymentDate: toIso(task.salaryPaymentDate),
     salaryCalcDate: toIso(task.salaryCalcDate),

@@ -88,6 +88,8 @@ export default function CreateTaskForm({
     );
   }, []);
   const [receiptDeadline, setReceiptDeadline] = useState("");
+  const [demandNumber, setDemandNumber] = useState("");
+  const [demandDate, setDemandDate] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [taxAmount, setTaxAmount] = useState("");
   const [taxPaymentDate, setTaxPaymentDate] = useState("");
@@ -169,6 +171,30 @@ export default function CreateTaskForm({
 
   const isInvoiceType = taskType === "INVOICE" || taskType === "INVOICE_PAYMENT";
 
+  function isoLocalDate(d: Date): string {
+    const off = d.getTimezoneOffset();
+    return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+  }
+
+  // Сроки для «Требования ИФНС»: если дата требования на 5+ рабочих дней
+  // раньше сегодняшней — срок квитанции = сегодня, срок требования = дата
+  // требования + 15 раб. дней; иначе +5 / +10 рабочих дней от сегодня.
+  function applyDemandDeadlines(dateStr: string) {
+    const todayStr = isoLocalDate(new Date());
+    const threshold5 = dateStr
+      ? isoLocalDate(addBusinessDays(new Date(`${dateStr}T12:00:00`), 5))
+      : "";
+    if (dateStr && threshold5 <= todayStr) {
+      setDeadline(todayStr);
+      setReceiptDeadline(
+        isoLocalDate(addBusinessDays(new Date(`${dateStr}T12:00:00`), 15))
+      );
+    } else {
+      setDeadline(isoLocalDate(addBusinessDays(new Date(), 5)));
+      setReceiptDeadline(isoLocalDate(addBusinessDays(new Date(), 10)));
+    }
+  }
+
   if (!open) {
     return (
       <button
@@ -195,6 +221,10 @@ export default function CreateTaskForm({
     if (deadline) body.deadline = new Date(deadline).toISOString();
     if (receiptDeadline)
       body.receiptDeadline = new Date(receiptDeadline).toISOString();
+    if (taskType === "IFNS_DEMAND") {
+      if (demandNumber.trim()) body.demandNumber = demandNumber.trim();
+      if (demandDate) body.demandDate = new Date(`${demandDate}T12:00:00`).toISOString();
+    }
     if (assignedToId) body.assignedToId = assignedToId;
     if (executorId) body.executorId = executorId;
     if (duration !== "" && !isNaN(Number(duration)))
@@ -241,6 +271,8 @@ export default function CreateTaskForm({
       return local.toISOString().slice(0, 10);
     });
     setReceiptDeadline("");
+    setDemandNumber("");
+    setDemandDate("");
     setUrgent(false);
     setTaxAmount("");
     setTaxPaymentDate("");
@@ -305,6 +337,11 @@ export default function CreateTaskForm({
               placeholder="Введите задачу..."
               className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
             />
+            {taskType === "IFNS_DEMAND" && title.trim() === "Требование" && (
+              <p className="mt-0.5 text-[11px] italic text-zinc-400">
+                заполнить, о чём
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -319,16 +356,10 @@ export default function CreateTaskForm({
                 onChange={(next) => {
                   setTaskType(next);
                   if (next === "IFNS_DEMAND") {
-                    const toInput = (d: Date) =>
-                      new Date(
-                        d.getTime() - d.getTimezoneOffset() * 60000
-                      )
-                        .toISOString()
-                        .slice(0, 10);
-                    setDeadline(toInput(addBusinessDays(new Date(), 5)));
-                    setReceiptDeadline(toInput(addBusinessDays(new Date(), 10)));
-                    // пустое поле — подставляем заголовок требования
-                    if (!title.trim()) setTitle("Получено требование");
+                    applyDemandDeadlines(demandDate);
+                    // пустое поле (или старый дефолт) — подставляем заголовок требования
+                    if (!title.trim() || title === "Получено требование")
+                      setTitle("Требование");
                   }
                 }}
               />
@@ -434,6 +465,36 @@ export default function CreateTaskForm({
             </select>
           </div>
 
+          {taskType === "IFNS_DEMAND" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-600">
+                  Номер требования
+                </label>
+                <input
+                  type="text"
+                  value={demandNumber}
+                  onChange={(e) => setDemandNumber(e.target.value)}
+                  placeholder="№"
+                  className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-600">
+                  Дата требования
+                </label>
+                <input
+                  type="date"
+                  value={demandDate}
+                  onChange={(e) => {
+                    setDemandDate(e.target.value);
+                    applyDemandDeadlines(e.target.value);
+                  }}
+                  className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
           {taskType === "IFNS_DEMAND" && (
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600">

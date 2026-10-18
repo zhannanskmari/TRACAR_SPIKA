@@ -89,6 +89,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Номер и дата требования ИФНС (для типа IFNS_DEMAND)
+  let demandNumber: string | null = null;
+  let demandDate: Date | null = null;
+  if (taskType === "IFNS_DEMAND") {
+    if (typeof body.demandNumber === "string" && body.demandNumber.trim()) {
+      demandNumber = body.demandNumber.trim();
+    }
+    if (typeof body.demandDate === "string" && body.demandDate) {
+      const d = new Date(body.demandDate);
+      if (!isNaN(d.getTime())) demandDate = d;
+    }
+  }
+
   const data: Prisma.TaskUncheckedCreateInput = {
     title,
     clientId,
@@ -97,6 +110,8 @@ export async function POST(request: NextRequest) {
     assignedToId,
     createdById: session.id,
     urgent: body.urgent === true,
+    demandNumber,
+    demandDate,
   };
 
   if (
@@ -122,14 +137,30 @@ export async function POST(request: NextRequest) {
     data.deadline = new Date();
   }
 
-  // «Требование» (ИФНС): срок по умолчанию +5 рабочих дней, срок требования +10 рабочих дней
+  // «Требование» (ИФНС):
+  // - дата требования на 5+ рабочих дней раньше сегодня → срок квитанции = сегодня,
+  //   срок требования = дата требования + 15 рабочих дней;
+  // - иначе срок по умолчанию +5 рабочих дней, срок требования +10 рабочих дней.
   if (taskType === "IFNS_DEMAND") {
-    if (!data.deadline) data.deadline = addBusinessDays(new Date(), 5);
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const dayKey = (d: Date) =>
+      d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    const demandIsOld =
+      demandDate !== null &&
+      dayKey(addBusinessDays(demandDate, 5)) <= dayKey(today);
+    if (demandIsOld && demandDate) {
+      if (!data.deadline) data.deadline = today;
+      if (!data.receiptDeadline)
+        data.receiptDeadline = addBusinessDays(demandDate, 15);
+    } else {
+      if (!data.deadline) data.deadline = addBusinessDays(new Date(), 5);
+      if (!data.receiptDeadline)
+        data.receiptDeadline = addBusinessDays(new Date(), 10);
+    }
     if (typeof body.receiptDeadline === "string" && body.receiptDeadline) {
       const d = new Date(body.receiptDeadline);
       if (!isNaN(d.getTime())) data.receiptDeadline = d;
-    } else if (!data.receiptDeadline) {
-      data.receiptDeadline = addBusinessDays(new Date(), 10);
     }
   } else if (typeof body.receiptDeadline === "string" && body.receiptDeadline) {
     const d = new Date(body.receiptDeadline);
@@ -205,13 +236,14 @@ export async function POST(request: NextRequest) {
   });
 
   // «Требование ИФНС»: параллельно создаём сопроводительную карточку
-  // «Квитанция по требованию» — подписать квитанцию к сроку квитанции
-  // (дедлайн новой карточки = «Срок квитанции» требования).
+  // «Квитанция: <название требования>» — подписать квитанцию к сроку квитанции
+  // (дедлайн новой карточки = «Срок квитанции» требования). Номер и дата
+  // требования копируются на карточку квитанции.
   let receiptTask = null;
   if (taskType === "IFNS_DEMAND" && data.deadline) {
     receiptTask = await prisma.task.create({
       data: {
-        title: "Подписать квитанцию",
+        title: `Квитанция: ${title}`,
         clientId,
         taskType: "DEMAND_RECEIPT",
         status: "NEW",
@@ -220,6 +252,8 @@ export async function POST(request: NextRequest) {
         createdById: session.id,
         urgent: data.urgent,
         deadline: data.deadline,
+        demandNumber,
+        demandDate,
       },
       select: { id: true },
     });

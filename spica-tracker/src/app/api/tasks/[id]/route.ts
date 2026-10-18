@@ -198,6 +198,20 @@ export async function PATCH(
     if (!isNaN(d.getTime())) data.receiptDeadline = d;
   }
 
+  // Номер и дата требования ИФНС
+  if (body.demandNumber === null || body.demandNumber === "") {
+    data.demandNumber = null;
+  } else if (typeof body.demandNumber === "string") {
+    data.demandNumber = body.demandNumber.trim();
+  }
+
+  if (body.demandDate === null) {
+    data.demandDate = null;
+  } else if (typeof body.demandDate === "string" && body.demandDate) {
+    const d = new Date(body.demandDate);
+    if (!isNaN(d.getTime())) data.demandDate = d;
+  }
+
   // Сумму налога / дату уплаты может менять только сотрудник/руководитель
   const canEditTax = session.role === "ADMIN" || session.role === "EXECUTOR";
   if (canEditTax) {

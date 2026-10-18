@@ -58,6 +58,7 @@ model Client {
   tasks             Task[]
   assignmentRules   AssignmentRule[]
   monthBalances     MonthBalance[]
+  docEntries        DocEntry[]
 }
 
 // Правила авто-распределения задач
@@ -103,6 +104,8 @@ model Task {
   completedAt        DateTime? // дата выполнения (переход в DONE, для таблицы отчётности)
   knowledgeArticleId String?   // ссылка на статью базы знаний
   knowledgeUrl       String?   // прямая ссылка на статью/ресурс (вводится вручную)
+  demandNumber       String?   // номер требования ИФНС (для типа IFNS_DEMAND)
+  demandDate         DateTime? // дата требования ИФНС (для типа IFNS_DEMAND)
 
   client     Client     @relation(fields: [clientId], references: [id])
   assignedTo User       @relation("TaskAssignee", fields: [assignedToId], references: [id])
@@ -137,6 +140,21 @@ model Comment {
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
+}
+
+// Ввод документов: ячейка «клиент × счёт» (51/60/62/71)
+model DocEntry {
+  id        String    @id @default(cuid())
+  clientId  String
+  account   String    // "51" | "60" | "62" | "71"
+  date      DateTime?
+  text      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, account])
 }
 
 // Документы

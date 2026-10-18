@@ -21,6 +21,8 @@ export type DashboardTask = {
   status: string;
   deadline: string | null;
   receiptDeadline: string | null;
+  demandNumber: string | null;
+  demandDate: string | null;
   taxAmount: number | null;
   taxPaymentDate: string | null;
   amount: number | null;
@@ -79,6 +81,8 @@ type RawTask = {
   status: string;
   deadline: string | null;
   receiptDeadline: string | null;
+  demandNumber: string | null;
+  demandDate: string | null;
   taxAmount: number | null;
   taxPaymentDate: string | null;
   amount: number | null;

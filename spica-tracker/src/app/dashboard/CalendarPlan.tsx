@@ -33,6 +33,8 @@ export type CalendarTask = {
   status: string;
   date: string | null;
   deadline: string | null;
+  demandNumber: string | null;
+  demandDate: string | null;
   taxPaymentDate: string | null;
   salaryCalcDate: string | null;
   salaryPaymentDate: string | null;
@@ -188,6 +190,15 @@ function formatShortDate(value: string | null): string {
   return `${dd}.${mm}`;
 }
 
+function formatFullDate(value: string | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
 // Форматирование суммы с пробелами-разделителями групп, без локали
 function formatAmount(n: number): string {
   return n
@@ -264,6 +275,13 @@ const DraggableCard = memo(function DraggableCard({
         {clientName}
       </div>
       <div className="line-clamp-2">{task.title}</div>
+      {(task.demandNumber || task.demandDate) && (
+        <div className="mt-0.5 truncate text-[10px] text-zinc-600">
+          {task.demandNumber && `№${task.demandNumber}`}
+          {task.demandNumber && task.demandDate && " · "}
+          {task.demandDate && `от ${formatFullDate(task.demandDate)}`}
+        </div>
+      )}
       {task.executor && (
         <div className="mt-0.5 truncate text-[10px] text-zinc-600">
           Исп — {initials(task.executor.name)}
@@ -354,6 +372,8 @@ function EditModal({
   const [status, setStatus] = useState(task.status);
   const [urgent, setUrgent] = useState(task.urgent);
   const [deadline, setDeadline] = useState(toDateInput(task.deadline));
+  const [demandNumber, setDemandNumber] = useState(task.demandNumber ?? "");
+  const [demandDate, setDemandDate] = useState(toDateInput(task.demandDate));
   const [duration, setDuration] = useState(
     task.durationMinutes != null ? String(task.durationMinutes) : ""
   );
@@ -471,6 +491,18 @@ function EditModal({
     }
     if (newDeadline !== sentDeadline) patch.deadline = newDeadline;
 
+    // Номер и дата требования ИФНС
+    const newDemandNumber = demandNumber.trim();
+    if (newDemandNumber !== (task.demandNumber ?? "")) {
+      patch.demandNumber = newDemandNumber || null;
+    }
+    const newDemandDate = demandDate
+      ? new Date(`${demandDate}T12:00:00`).toISOString()
+      : null;
+    if (newDemandDate !== (task.demandDate ?? null)) {
+      patch.demandDate = newDemandDate;
+    }
+
     if (canEditTax) {
       const newTax = taxAmount === "" ? null : Number(taxAmount);
       const oldTax = task.taxAmount ?? null;
@@ -563,6 +595,29 @@ function EditModal({
               className={input}
             />
           </div>
+          {(taskType === "IFNS_DEMAND" || taskType === "DEMAND_RECEIPT") && (
+            <>
+              <div>
+                <label className={label}>Номер требования</label>
+                <input
+                  type="text"
+                  value={demandNumber}
+                  onChange={(e) => setDemandNumber(e.target.value)}
+                  placeholder="№"
+                  className={input}
+                />
+              </div>
+              <div>
+                <label className={label}>Дата требования</label>
+                <input
+                  type="date"
+                  value={demandDate}
+                  onChange={(e) => setDemandDate(e.target.value)}
+                  className={input}
+                />
+              </div>
+            </>
+          )}
           <div className="sm:col-span-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
