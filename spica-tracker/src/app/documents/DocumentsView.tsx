@@ -115,7 +115,7 @@ export default function DocumentsView({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-zinc-100">
+    <div className="flex h-screen flex-col bg-zinc-100">
       <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3">
         <div className="flex items-center gap-2">
           <FileSpreadsheet className="h-5 w-5 text-blue-600" />
@@ -144,7 +144,7 @@ export default function DocumentsView({
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white">
-          <table className="w-full table-fixed border-collapse text-sm">
+          <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
             <thead>
               <tr className="bg-zinc-50 text-xs font-semibold text-zinc-600">
                 <th className="sticky left-0 top-0 z-20 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left w-[10ch]">
