@@ -143,20 +143,20 @@ export default function DocumentsView({
           </h1>
         </div>
 
-        <div className="overflow-auto rounded-xl border border-zinc-200 bg-white">
+        <div className="rounded-xl border border-zinc-200 bg-white">
           <table className="w-full table-fixed border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-xs font-semibold text-zinc-600">
-                <th className="sticky left-0 z-10 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left w-[10ch]">
+                <th className="sticky left-0 top-0 z-20 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left w-[10ch]">
                   Фирма
                 </th>
-                <th className="border-b border-r border-zinc-200 px-3 py-2 text-left w-[10ch]">
+                <th className="sticky top-0 z-10 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-left w-[10ch]">
                   Способ ввода
                 </th>
                 {DOC_ACCOUNTS.map((acc) => (
                   <th
                     key={acc.key}
-                    className="border-b border-r border-zinc-200 px-3 py-2 text-center w-[10ch]"
+                    className="sticky top-0 z-10 border-b border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-center w-[10ch]"
                   >
                     {acc.label}
                   </th>
