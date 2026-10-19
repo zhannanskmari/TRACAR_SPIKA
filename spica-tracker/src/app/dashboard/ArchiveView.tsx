@@ -224,6 +224,12 @@ export default function ArchiveView({
                           <CalendarDays className="h-3 w-3" />
                           {fmtDateTime(task.archivedAt)}
                         </div>
+                        {task.factDurationMinutes != null && (
+                          <span className="whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                            Факт: {task.factDurationMinutes} мин ={" "}
+                            {formatHours(task.factDurationMinutes)} ч
+                          </span>
+                        )}
                         <button
                           onClick={() => setViewing(task)}
                           className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
