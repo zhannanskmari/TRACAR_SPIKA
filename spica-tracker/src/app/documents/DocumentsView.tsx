@@ -277,7 +277,9 @@ export default function DocumentsView({
                             key={acc.key}
                             onClick={() => openEditor(client, acc.key)}
                             className={`cursor-pointer border-b border-r border-zinc-100 px-2 py-2 hover:bg-blue-50 ${
-                              entry ? "bg-green-50" : ""
+                              entry?.text && /введено/i.test(entry.text)
+                                ? "bg-green-50"
+                                : ""
                             }`}
                           >
                             {entry ? (
