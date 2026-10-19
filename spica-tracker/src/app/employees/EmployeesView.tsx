@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -14,7 +14,6 @@ import {
   Wallet,
   ChevronDown,
   ChevronRight,
-  CalendarDays,
 } from "lucide-react";
 import { isSpecialization, specLabel } from "@/lib/specialization";
 import { TASK_TYPE_LABELS } from "@/lib/task-meta";
@@ -238,7 +237,7 @@ export default function EmployeesView({
     });
   }
 
-  // Группировка задач сотрудника по фирмам (по алфавиту)
+  // Группировка задач сотрудника по фирмам — по убыванию времени
   type ClientGroup = {
     id: string;
     name: string;
@@ -261,9 +260,7 @@ export default function EmployeesView({
         });
       }
     }
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "ru")
-    );
+    return Array.from(map.values()).sort((a, b) => b.minutes - a.minutes);
   }
 
   return (
@@ -491,123 +488,161 @@ export default function EmployeesView({
             </span>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {employees.length === 0 && (
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-6 text-center text-sm text-zinc-400">
-                Сотрудников пока нет
-              </div>
-            )}
-            {employees.map((e) => {
-              const empTasks = tasksForEmployee(e.id);
-              const isExpanded = expanded.has(e.id);
-              return (
-                <div
-                  key={e.id}
-                  className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
-                >
-                  <button
-                    onClick={() => toggleEmployee(e.id)}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-zinc-50"
-                  >
-                    <span className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-zinc-400" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-zinc-400" />
-                      )}
-                      <UserRound className="h-4 w-4 text-zinc-400" />
-                      {e.name}
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
-                        {specLabel(e.specialization)}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                        {formatHours(factForMonth(e.id))} ч за {monthName}
-                      </span>
-                      <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
-                        {empTasks.length}
-                      </span>
-                    </span>
-                  </button>
+          <div className="overflow-auto rounded-xl border border-zinc-200 bg-white">
+            <table className="border-collapse text-sm">
+              <thead>
+                <tr className="bg-zinc-50 text-left text-xs font-semibold text-zinc-600">
+                  <th className="border-b border-r border-zinc-200 px-3 py-2">
+                    Сотрудник / Фирма / Запись
+                  </th>
+                  <th className="border-b border-r border-zinc-200 px-3 py-2">
+                    Специализация
+                  </th>
+                  <th className="border-b border-r border-zinc-200 px-3 py-2">
+                    Срок
+                  </th>
+                  <th className="border-b border-r border-zinc-200 px-3 py-2">
+                    Дата архива
+                  </th>
+                  <th className="border-b border-zinc-200 px-3 py-2 text-right">
+                    Факт
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-3 py-6 text-center text-sm text-zinc-400"
+                    >
+                      Сотрудников пока нет
+                    </td>
+                  </tr>
+                )}
+                {employees.map((e) => {
+                  const empTasks = tasksForEmployee(e.id);
+                  const isExpanded = expanded.has(e.id);
+                  return (
+                    <Fragment key={e.id}>
+                      <tr
+                        onClick={() => toggleEmployee(e.id)}
+                        className="cursor-pointer bg-white transition hover:bg-zinc-50"
+                      >
+                        <td className="border-b border-r border-zinc-100 px-3 py-2">
+                          <span className="flex items-center gap-2 font-semibold text-zinc-900">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-zinc-400" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-zinc-400" />
+                            )}
+                            <UserRound className="h-4 w-4 text-zinc-400" />
+                            {e.name}
+                          </span>
+                        </td>
+                        <td className="border-b border-r border-zinc-100 px-3 py-2">
+                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                            {specLabel(e.specialization)}
+                          </span>
+                        </td>
+                        <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-400">
+                          —
+                        </td>
+                        <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-400">
+                          {empTasks.length} записей
+                        </td>
+                        <td className="border-b px-3 py-2 text-right">
+                          <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                            {formatHours(factForMonth(e.id))} ч за {monthName}
+                          </span>
+                        </td>
+                      </tr>
 
-                  {isExpanded && (
-                    <div className="border-t border-zinc-100">
-                      {empTasks.length === 0 ? (
-                        <div className="px-3 py-4 text-sm text-zinc-400">
-                          Архивных записей нет
-                        </div>
-                      ) : (
-                        <div className="flex flex-col divide-y divide-zinc-100">
-                          {clientsForEmployee(e.id).map((cg) => {
+                      {isExpanded &&
+                        (empTasks.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="border-b border-zinc-100 bg-zinc-50/40 px-3 py-3 pl-10 text-sm text-zinc-400"
+                            >
+                              Архивных записей нет
+                            </td>
+                          </tr>
+                        ) : (
+                          clientsForEmployee(e.id).map((cg) => {
                             const key = `${e.id}:${cg.id}`;
                             const clientOpen = expandedClient.has(key);
                             return (
-                              <div key={cg.id}>
-                                <button
+                              <Fragment key={key}>
+                                <tr
                                   onClick={() => toggleClient(key)}
-                                  className="flex w-full items-center justify-between gap-2 bg-zinc-50/50 px-3 py-2 text-left transition hover:bg-zinc-100"
+                                  className="cursor-pointer bg-zinc-50/60 transition hover:bg-zinc-100"
                                 >
-                                  <span className="flex items-center gap-2 text-sm font-medium text-zinc-800">
-                                    {clientOpen ? (
-                                      <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
-                                    ) : (
-                                      <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
-                                    )}
-                                    {cg.name}
-                                  </span>
-                                  <span className="flex items-center gap-2">
+                                  <td className="border-b border-r border-zinc-100 px-3 py-2 pl-10">
+                                    <span className="flex items-center gap-2 font-medium text-zinc-800">
+                                      {clientOpen ? (
+                                        <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+                                      ) : (
+                                        <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+                                      )}
+                                      {cg.name}
+                                    </span>
+                                  </td>
+                                  <td
+                                    colSpan={3}
+                                    className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-400"
+                                  >
+                                    {cg.tasks.length} записей
+                                  </td>
+                                  <td className="border-b px-3 py-2 text-right">
                                     <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
                                       {formatHours(cg.minutes)} ч
                                     </span>
-                                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600">
-                                      {cg.tasks.length}
-                                    </span>
-                                  </span>
-                                </button>
+                                  </td>
+                                </tr>
 
-                                {clientOpen && (
-                                  <div className="flex flex-col divide-y divide-zinc-100 border-t border-zinc-100">
-                                    {cg.tasks.map((t) => (
-                                      <div
-                                        key={t.id}
-                                        className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 pl-8"
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <div className="truncate text-sm font-medium text-zinc-900">
-                                            {t.title}
-                                          </div>
-                                          <div className="text-xs text-zinc-500">
-                                            {TASK_TYPE_LABELS[t.taskType] ??
-                                              t.taskType}
-                                            {t.deadline
-                                              ? ` · срок: ${fmtDate(t.deadline)}`
-                                              : ""}
-                                          </div>
+                                {clientOpen &&
+                                  cg.tasks.map((t) => (
+                                    <tr
+                                      key={t.id}
+                                      className="bg-white hover:bg-zinc-50"
+                                    >
+                                      <td className="border-b border-r border-zinc-100 px-3 py-2 pl-16">
+                                        <div className="font-medium text-zinc-900">
+                                          {t.title}
                                         </div>
-                                        <div className="flex items-center gap-1 text-xs text-zinc-400">
-                                          <CalendarDays className="h-3 w-3" />
-                                          {fmtDate(t.archivedAt)}
+                                        <div className="text-xs text-zinc-500">
+                                          {TASK_TYPE_LABELS[t.taskType] ??
+                                            t.taskType}
                                         </div>
+                                      </td>
+                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-500">
+                                        —
+                                      </td>
+                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                                        {fmtDate(t.deadline)}
+                                      </td>
+                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                                        {fmtDate(t.archivedAt)}
+                                      </td>
+                                      <td className="border-b px-3 py-2 text-right">
                                         <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
                                           {t.factDurationMinutes != null
                                             ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
                                             : "факт не указан"}
                                         </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </Fragment>
                             );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          })
+                        ))}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>
