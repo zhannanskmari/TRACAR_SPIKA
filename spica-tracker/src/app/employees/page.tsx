@@ -33,5 +33,46 @@ export default async function EmployeesPage() {
     createdAt: e.createdAt.toISOString(),
   }));
 
-  return <EmployeesView adminName={user.name} employees={serialized} />;
+  // Архивные задачи сотрудников для раздела «Зарплата сотрудников»
+  const tasks = await prisma.task.findMany({
+    where: {
+      archivedAt: { not: null },
+      OR: [
+        { assignedToId: { in: employees.map((e) => e.id) } },
+        { executorId: { in: employees.map((e) => e.id) } },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      taskType: true,
+      deadline: true,
+      archivedAt: true,
+      factDurationMinutes: true,
+      assignedToId: true,
+      executorId: true,
+      client: { select: { id: true, name: true } },
+    },
+    orderBy: { archivedAt: "desc" },
+  });
+
+  const serializedTasks = tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    taskType: t.taskType,
+    deadline: t.deadline ? t.deadline.toISOString() : null,
+    archivedAt: t.archivedAt ? t.archivedAt.toISOString() : null,
+    factDurationMinutes: t.factDurationMinutes,
+    assignedToId: t.assignedToId,
+    executorId: t.executorId,
+    client: t.client,
+  }));
+
+  return (
+    <EmployeesView
+      adminName={user.name}
+      employees={serialized}
+      tasks={serializedTasks}
+    />
+  );
 }

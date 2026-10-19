@@ -11,8 +11,13 @@ import {
   X,
   Trash2,
   UserRound,
+  Wallet,
+  ChevronDown,
+  ChevronRight,
+  CalendarDays,
 } from "lucide-react";
 import { isSpecialization, specLabel } from "@/lib/specialization";
+import { TASK_TYPE_LABELS } from "@/lib/task-meta";
 
 type Employee = {
   id: string;
@@ -23,17 +28,46 @@ type Employee = {
   createdAt: string;
 };
 
+type EmployeeTask = {
+  id: string;
+  title: string;
+  taskType: string;
+  deadline: string | null;
+  archivedAt: string | null;
+  factDurationMinutes: number | null;
+  assignedToId: string;
+  executorId: string | null;
+  client: { id: string; name: string };
+};
+
+function fmtDate(d: string | null): string {
+  if (!d) return "—";
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ru-RU");
+}
+
+function formatHours(min: number): string {
+  return (min / 60).toLocaleString("ru-RU", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
 export default function EmployeesView({
   adminName,
   employees: initialEmployees,
+  tasks,
 }: {
   adminName: string;
   employees: Employee[];
+  tasks: EmployeeTask[];
 }) {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -163,6 +197,35 @@ export default function EmployeesView({
   const label = "mb-1 block text-xs font-medium text-zinc-600";
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500";
+
+  // «Зарплата сотрудников»: архивные задачи и факт-время за текущий месяц
+  const now = new Date();
+  const monthName = now.toLocaleDateString("ru-RU", { month: "long" });
+  function tasksForEmployee(id: string): EmployeeTask[] {
+    return tasks.filter((t) => t.assignedToId === id || t.executorId === id);
+  }
+  function factForMonth(id: string): number {
+    return tasksForEmployee(id).reduce((sum, t) => {
+      if (!t.deadline) return sum;
+      const d = new Date(t.deadline);
+      if (isNaN(d.getTime())) return sum;
+      if (
+        d.getMonth() !== now.getMonth() ||
+        d.getFullYear() !== now.getFullYear()
+      ) {
+        return sum;
+      }
+      return sum + (t.factDurationMinutes ?? 0);
+    }, 0);
+  }
+  function toggleEmployee(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="flex min-h-full flex-col bg-zinc-100">
@@ -374,6 +437,104 @@ export default function EmployeesView({
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-emerald-600" />
+            <h2 className="text-lg font-semibold text-zinc-900">
+              Зарплата сотрудников
+            </h2>
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+              {monthName} {now.getFullYear()}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {employees.length === 0 && (
+              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-6 text-center text-sm text-zinc-400">
+                Сотрудников пока нет
+              </div>
+            )}
+            {employees.map((e) => {
+              const empTasks = tasksForEmployee(e.id);
+              const isExpanded = expanded.has(e.id);
+              return (
+                <div
+                  key={e.id}
+                  className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
+                >
+                  <button
+                    onClick={() => toggleEmployee(e.id)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-zinc-50"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-zinc-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-zinc-400" />
+                      )}
+                      <UserRound className="h-4 w-4 text-zinc-400" />
+                      {e.name}
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                        {specLabel(e.specialization)}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                        {formatHours(factForMonth(e.id))} ч за {monthName}
+                      </span>
+                      <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                        {empTasks.length}
+                      </span>
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-zinc-100">
+                      {empTasks.length === 0 ? (
+                        <div className="px-3 py-4 text-sm text-zinc-400">
+                          Архивных записей нет
+                        </div>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-zinc-100">
+                          {empTasks.map((t) => (
+                            <div
+                              key={t.id}
+                              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-medium text-zinc-900">
+                                  {t.title}
+                                </div>
+                                <div className="text-xs text-zinc-500">
+                                  {t.client.name}
+                                  {" · "}
+                                  {TASK_TYPE_LABELS[t.taskType] ?? t.taskType}
+                                  {t.deadline
+                                    ? ` · срок: ${fmtDate(t.deadline)}`
+                                    : ""}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-zinc-400">
+                                <CalendarDays className="h-3 w-3" />
+                                {fmtDate(t.archivedAt)}
+                              </div>
+                              <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                {t.factDurationMinutes != null
+                                  ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
+                                  : "факт не указан"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </main>
     </div>
