@@ -130,6 +130,14 @@ export default function ArchiveView({
     }, 0);
   }
 
+  function formatHours(min: number): string {
+    const h = min / 60;
+    return h.toLocaleString("ru-RU", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+  }
+
   return (
     <div className="flex h-full flex-col overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -165,7 +173,8 @@ export default function ArchiveView({
                     )}
                     {firm.name}
                     <span className="whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                      Факт за {monthName}: {factForMonth(firm.tasks)} мин
+                      Факт за {monthName}: {factForMonth(firm.tasks)} мин ={" "}
+                      {formatHours(factForMonth(firm.tasks))} ч
                     </span>
                   </span>
                   <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-zinc-600">
