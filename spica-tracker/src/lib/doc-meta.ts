@@ -5,6 +5,8 @@ export const DOC_ACCOUNTS = [
   { key: "62", label: "62 сч" },
   { key: "71", label: "71 сч" },
   { key: "ausn", label: "Уведомления по АУСН, УСН" },
+  { key: "demand-receipt", label: "Требование квитанция" },
+  { key: "demand-answer", label: "Требование ответ" },
   { key: "extra1", label: "" },
   { key: "extra2", label: "" },
   { key: "extra3", label: "" },
