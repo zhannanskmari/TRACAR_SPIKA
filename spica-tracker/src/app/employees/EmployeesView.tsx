@@ -72,15 +72,21 @@ export default function EmployeesView({
   const [taskList, setTaskList] = useState<EmployeeTask[]>(tasks);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editFactValue, setEditFactValue] = useState("");
+  const [editTypeValue, setEditTypeValue] = useState("");
   const [savingTask, setSavingTask] = useState(false);
   const [taskError, setTaskError] = useState("");
 
-  async function saveTaskFact(id: string) {
+  async function saveTask(id: string) {
     const raw = editFactValue.trim();
     const value = raw === "" ? null : Math.max(0, Math.round(Number(raw)));
     if (raw !== "" && (value === null || isNaN(value))) {
       setTaskError("Некорректное значение");
       return;
+    }
+    const patch: Record<string, unknown> = { factDurationMinutes: value };
+    const current = taskList.find((t) => t.id === id);
+    if (current && editTypeValue && editTypeValue !== current.taskType) {
+      patch.taskType = editTypeValue;
     }
     setSavingTask(true);
     setTaskError("");
@@ -88,7 +94,7 @@ export default function EmployeesView({
       const res = await fetch(`/api/tasks/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ factDurationMinutes: value }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -97,7 +103,13 @@ export default function EmployeesView({
       }
       setTaskList((prev) =>
         prev.map((t) =>
-          t.id === id ? { ...t, factDurationMinutes: value } : t
+          t.id === id
+            ? {
+                ...t,
+                factDurationMinutes: value,
+                taskType: (patch.taskType as string) ?? t.taskType,
+              }
+            : t
         )
       );
       setEditingTaskId(null);
@@ -724,8 +736,32 @@ export default function EmployeesView({
                                               key={t.id}
                                               className="bg-white hover:bg-zinc-50"
                                             >
-                                              <td className="border-b border-r border-zinc-100 px-3 py-2 pl-24 text-sm text-zinc-900">
-                                                {t.title}
+                                              <td className="border-b border-r border-zinc-100 px-3 py-2 text-sm text-zinc-900">
+                                                <div className="flex flex-col gap-1">
+                                                  <span>{t.title}</span>
+                                                  {editingTaskId === t.id && (
+                                                    <select
+                                                      value={editTypeValue}
+                                                      onChange={(e) =>
+                                                        setEditTypeValue(
+                                                          e.target.value
+                                                        )
+                                                      }
+                                                      className="rounded border border-zinc-300 px-1.5 py-0.5 text-xs outline-none focus:border-blue-500"
+                                                    >
+                                                      {Object.entries(
+                                                        TASK_TYPE_LABELS
+                                                      ).map(([val, lbl]) => (
+                                                        <option
+                                                          key={val}
+                                                          value={val}
+                                                        >
+                                                          {lbl}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                  )}
+                                                </div>
                                               </td>
                                               <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-500">
                                                 —
@@ -753,7 +789,7 @@ export default function EmployeesView({
                                                     />
                                                     <button
                                                       onClick={() =>
-                                                        saveTaskFact(t.id)
+                                                        saveTask(t.id)
                                                       }
                                                       disabled={savingTask}
                                                       className="rounded bg-blue-600 px-1.5 py-0.5 text-[11px] font-medium text-white hover:bg-blue-700 disabled:opacity-50"
@@ -781,9 +817,12 @@ export default function EmployeesView({
                                                             )
                                                           : ""
                                                       );
+                                                      setEditTypeValue(
+                                                        t.taskType
+                                                      );
                                                       setTaskError("");
                                                     }}
-                                                    title="Изменить факт-время"
+                                                    title="Изменить тип и факт-время"
                                                     className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition ${
                                                       t.factDurationMinutes !=
                                                       null
