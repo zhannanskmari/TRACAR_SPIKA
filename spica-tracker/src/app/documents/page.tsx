@@ -35,6 +35,7 @@ export default async function DocumentsPage() {
         select: {
           clientId: true,
           taskType: true,
+          title: true,
           deadline: true,
           receiptDeadline: true,
           demandNumber: true,
@@ -44,16 +45,18 @@ export default async function DocumentsPage() {
     : [];
 
   function formatDemandText(
+    title: string,
     demandNumber: string | null,
     demandDate: Date | null
-  ): string | null {
-    if (demandNumber && demandDate) {
-      const d = demandDate.toLocaleDateString("ru-RU");
-      return `№${demandNumber} от ${d}`;
+  ): string {
+    // Суть из поля «что надо сделать» + номер и дата требования
+    const parts: string[] = [];
+    if (title.trim()) parts.push(title.trim());
+    if (demandNumber) parts.push(`№${demandNumber}`);
+    if (demandDate) {
+      parts.push(`от ${demandDate.toLocaleDateString("ru-RU")}`);
     }
-    if (demandNumber) return `№${demandNumber}`;
-    if (demandDate) return `от ${demandDate.toLocaleDateString("ru-RU")}`;
-    return null;
+    return parts.join(" ");
   }
 
   // По каждой паре (клиент, колонка) берём самую свежую карточку
@@ -66,11 +69,12 @@ export default async function DocumentsPage() {
     const key = `${t.clientId}:${account}`;
     if (autoMap.has(key)) continue;
     const date = t.taskType === "DEMAND_RECEIPT" ? t.deadline : t.receiptDeadline;
+    const text = formatDemandText(t.title, t.demandNumber, t.demandDate);
     autoMap.set(key, {
       clientId: t.clientId,
       account,
       date: date ? date.toISOString() : null,
-      text: formatDemandText(t.demandNumber, t.demandDate),
+      text: text || null,
     });
   }
   const autoEntries = Array.from(autoMap.values());
