@@ -80,15 +80,25 @@ export default async function DocumentsPage() {
   }
   const autoEntries = Array.from(autoMap.values());
 
-  // Фирмы без заполненного поля «расч.счёт» в таблицу не попадают
+  // Фирмы без заполненного поля «расч.счёт» — во вкладке «Пустышки»
   const withAccount = clients.filter(
     (c) => c.accountNote && c.accountNote.trim()
+  );
+  const withoutAccount = clients.filter(
+    (c) => !c.accountNote || !c.accountNote.trim()
   );
 
   return (
     <DocumentsView
       userName={session.name}
       clients={withAccount.map((c) => ({
+        id: c.id,
+        name: c.name,
+        shortName: c.shortName,
+        accountNote: c.accountNote,
+        taxSystem: c.taxSystem,
+      }))}
+      emptyClients={withoutAccount.map((c) => ({
         id: c.id,
         name: c.name,
         shortName: c.shortName,

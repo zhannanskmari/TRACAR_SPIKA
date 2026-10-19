@@ -63,16 +63,20 @@ function formatDate(value: string | null): string {
 export default function DocumentsView({
   userName,
   clients,
+  emptyClients,
   entries: initialEntries,
   autoEntries,
 }: {
   userName: string;
   clients: DocClient[];
+  emptyClients: DocClient[];
   entries: DocEntry[];
   autoEntries: DocEntry[];
 }) {
   const router = useRouter();
-  const groups = groupByTaxSystem(clients);
+  const [tab, setTab] = useState<"main" | "empty">("main");
+  const shownClients = tab === "empty" ? emptyClients : clients;
+  const groups = groupByTaxSystem(shownClients);
 
   const [entries, setEntries] = useState<Map<string, DocEntry>>(() => {
     const map = new Map<string, DocEntry>();
@@ -188,6 +192,29 @@ export default function DocumentsView({
           </h1>
         </div>
 
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            onClick={() => setTab("main")}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              tab === "main"
+                ? "bg-blue-600 text-white"
+                : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            Основные ({clients.length})
+          </button>
+          <button
+            onClick={() => setTab("empty")}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              tab === "empty"
+                ? "bg-blue-600 text-white"
+                : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+            }`}
+          >
+            Пустышки ({emptyClients.length})
+          </button>
+        </div>
+
         <div className="rounded-xl border border-zinc-200 bg-white">
           <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
             <thead>
@@ -209,13 +236,13 @@ export default function DocumentsView({
               </tr>
             </thead>
             <tbody>
-              {clients.length === 0 && (
+              {shownClients.length === 0 && (
                 <tr>
                   <td
                     colSpan={DOC_ACCOUNTS.length + 2}
                     className="px-3 py-6 text-center text-zinc-400"
                   >
-                    Клиентов пока нет
+                    {tab === "empty" ? "Пустышек нет" : "Клиентов пока нет"}
                   </td>
                 </tr>
               )}
@@ -240,7 +267,7 @@ export default function DocumentsView({
                         )}
                       </td>
                       <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
-                        {client.accountNote}
+                        {client.accountNote || "—"}
                       </td>
                       {DOC_ACCOUNTS.map((acc) => {
                         const entry = getEntry(client.id, acc.key);
