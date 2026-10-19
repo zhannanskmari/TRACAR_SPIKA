@@ -227,6 +227,45 @@ export default function EmployeesView({
     });
   }
 
+  // Раскрытые фирмы внутри сотрудника: ключ `${employeeId}:${clientId}`
+  const [expandedClient, setExpandedClient] = useState<Set<string>>(new Set());
+  function toggleClient(key: string) {
+    setExpandedClient((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  // Группировка задач сотрудника по фирмам (по алфавиту)
+  type ClientGroup = {
+    id: string;
+    name: string;
+    tasks: EmployeeTask[];
+    minutes: number;
+  };
+  function clientsForEmployee(id: string): ClientGroup[] {
+    const map = new Map<string, ClientGroup>();
+    for (const t of tasksForEmployee(id)) {
+      const g = map.get(t.client.id);
+      if (g) {
+        g.tasks.push(t);
+        g.minutes += t.factDurationMinutes ?? 0;
+      } else {
+        map.set(t.client.id, {
+          id: t.client.id,
+          name: t.client.name,
+          tasks: [t],
+          minutes: t.factDurationMinutes ?? 0,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "ru")
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col bg-zinc-100">
       <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3">
@@ -381,13 +420,13 @@ export default function EmployeesView({
         )}
 
         <div className="overflow-auto rounded-xl border border-zinc-200 bg-white">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full table-fixed border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold text-zinc-600">
-                <th className="border-b border-r border-zinc-200 px-3 py-2">Имя</th>
-                <th className="border-b border-r border-zinc-200 px-3 py-2">Email</th>
-                <th className="border-b border-r border-zinc-200 px-3 py-2">Специализация</th>
-                <th className="border-b px-3 py-2"></th>
+                <th className="border-b border-r border-zinc-200 px-3 py-2 w-[18ch]">Имя</th>
+                <th className="border-b border-r border-zinc-200 px-3 py-2 w-[24ch]">Email</th>
+                <th className="border-b border-r border-zinc-200 px-3 py-2 w-[12ch]">Специализация</th>
+                <th className="border-b px-3 py-2 w-[16ch]"></th>
               </tr>
             </thead>
             <tbody>
@@ -407,7 +446,9 @@ export default function EmployeesView({
                     </div>
                   </td>
                   <td className="border-b border-r border-zinc-100 px-3 py-2">
-                    {e.email}
+                    <div className="truncate" title={e.email}>
+                      {e.email}
+                    </div>
                   </td>
                   <td className="border-b border-r border-zinc-100 px-3 py-2">
                     <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
@@ -498,35 +539,68 @@ export default function EmployeesView({
                         </div>
                       ) : (
                         <div className="flex flex-col divide-y divide-zinc-100">
-                          {empTasks.map((t) => (
-                            <div
-                              key={t.id}
-                              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-medium text-zinc-900">
-                                  {t.title}
-                                </div>
-                                <div className="text-xs text-zinc-500">
-                                  {t.client.name}
-                                  {" · "}
-                                  {TASK_TYPE_LABELS[t.taskType] ?? t.taskType}
-                                  {t.deadline
-                                    ? ` · срок: ${fmtDate(t.deadline)}`
-                                    : ""}
-                                </div>
+                          {clientsForEmployee(e.id).map((cg) => {
+                            const key = `${e.id}:${cg.id}`;
+                            const clientOpen = expandedClient.has(key);
+                            return (
+                              <div key={cg.id}>
+                                <button
+                                  onClick={() => toggleClient(key)}
+                                  className="flex w-full items-center justify-between gap-2 bg-zinc-50/50 px-3 py-2 text-left transition hover:bg-zinc-100"
+                                >
+                                  <span className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+                                    {clientOpen ? (
+                                      <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+                                    ) : (
+                                      <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
+                                    )}
+                                    {cg.name}
+                                  </span>
+                                  <span className="flex items-center gap-2">
+                                    <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                      {formatHours(cg.minutes)} ч
+                                    </span>
+                                    <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                                      {cg.tasks.length}
+                                    </span>
+                                  </span>
+                                </button>
+
+                                {clientOpen && (
+                                  <div className="flex flex-col divide-y divide-zinc-100 border-t border-zinc-100">
+                                    {cg.tasks.map((t) => (
+                                      <div
+                                        key={t.id}
+                                        className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 pl-8"
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="truncate text-sm font-medium text-zinc-900">
+                                            {t.title}
+                                          </div>
+                                          <div className="text-xs text-zinc-500">
+                                            {TASK_TYPE_LABELS[t.taskType] ??
+                                              t.taskType}
+                                            {t.deadline
+                                              ? ` · срок: ${fmtDate(t.deadline)}`
+                                              : ""}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs text-zinc-400">
+                                          <CalendarDays className="h-3 w-3" />
+                                          {fmtDate(t.archivedAt)}
+                                        </div>
+                                        <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                          {t.factDurationMinutes != null
+                                            ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
+                                            : "факт не указан"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex items-center gap-1 text-xs text-zinc-400">
-                                <CalendarDays className="h-3 w-3" />
-                                {fmtDate(t.archivedAt)}
-                              </div>
-                              <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                                {t.factDurationMinutes != null
-                                  ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
-                                  : "факт не указан"}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
