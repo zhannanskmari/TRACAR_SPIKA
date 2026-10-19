@@ -42,10 +42,12 @@ export default function DocumentsView({
   userName,
   clients,
   entries: initialEntries,
+  autoEntries,
 }: {
   userName: string;
   clients: DocClient[];
   entries: DocEntry[];
+  autoEntries: DocEntry[];
 }) {
   const router = useRouter();
 
@@ -54,6 +56,26 @@ export default function DocumentsView({
     for (const e of initialEntries) map.set(cellKey(e.clientId, e.account), e);
     return map;
   });
+
+  // Автозаполнение из карточек доски (только если нет сохранённой записи)
+  const autoMap = useState<Map<string, DocEntry>>(() => {
+    const map = new Map<string, DocEntry>();
+    for (const e of autoEntries) map.set(cellKey(e.clientId, e.account), e);
+    return map;
+  })[0];
+
+  function getEntry(clientId: string, account: string): DocEntry | null {
+    return (
+      entries.get(cellKey(clientId, account)) ??
+      autoMap.get(cellKey(clientId, account)) ??
+      null
+    );
+  }
+
+  function isAuto(clientId: string, account: string): boolean {
+    const key = cellKey(clientId, account);
+    return !entries.has(key) && autoMap.has(key);
+  }
 
   // Открытая ячейка для редактирования
   const [openCell, setOpenCell] = useState<{
@@ -67,7 +89,7 @@ export default function DocumentsView({
   const [error, setError] = useState("");
 
   function openEditor(client: DocClient, account: string) {
-    const entry = entries.get(cellKey(client.id, account)) ?? null;
+    const entry = getEntry(client.id, account);
     setOpenCell({ clientId: client.id, account, clientName: client.name });
     setDate(toDateInput(entry?.date ?? null));
     setText(entry?.text ?? "");
@@ -188,8 +210,8 @@ export default function DocumentsView({
                     {client.accountNote}
                   </td>
                   {DOC_ACCOUNTS.map((acc) => {
-                    const entry =
-                      entries.get(cellKey(client.id, acc.key)) ?? null;
+                    const entry = getEntry(client.id, acc.key);
+                    const auto = isAuto(client.id, acc.key);
                     return (
                       <td
                         key={acc.key}
@@ -197,14 +219,14 @@ export default function DocumentsView({
                         className="cursor-pointer border-b border-r border-zinc-100 px-2 py-2 hover:bg-blue-50"
                       >
                         {entry ? (
-                          <div className="text-xs">
+                          <div className={`text-xs ${auto ? "italic text-zinc-400" : ""}`}>
                             {entry.date && (
-                              <div className="font-medium text-zinc-700">
+                              <div className={`font-medium ${auto ? "" : "text-zinc-700"}`}>
                                 {formatDate(entry.date)}
                               </div>
                             )}
                             {entry.text && (
-                              <div className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
+                              <div className="line-clamp-3 whitespace-pre-wrap">
                                 {entry.text}
                               </div>
                             )}
@@ -237,6 +259,11 @@ export default function DocumentsView({
                 <h3 className="text-lg font-semibold text-zinc-900">
                   {accountLabel(openCell.account)}
                 </h3>
+                {isAuto(openCell.clientId, openCell.account) && (
+                  <div className="mt-0.5 text-[11px] italic text-zinc-400">
+                    из карточки на доске — при сохранении заменится
+                  </div>
+                )}
               </div>
               <button
                 onClick={closeEditor}
