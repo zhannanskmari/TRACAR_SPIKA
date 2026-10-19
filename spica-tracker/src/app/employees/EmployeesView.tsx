@@ -68,6 +68,46 @@ export default function EmployeesView({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  // Инлайн-редактирование факт-времени архивной карточки
+  const [taskList, setTaskList] = useState<EmployeeTask[]>(tasks);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editFactValue, setEditFactValue] = useState("");
+  const [savingTask, setSavingTask] = useState(false);
+  const [taskError, setTaskError] = useState("");
+
+  async function saveTaskFact(id: string) {
+    const raw = editFactValue.trim();
+    const value = raw === "" ? null : Math.max(0, Math.round(Number(raw)));
+    if (raw !== "" && (value === null || isNaN(value))) {
+      setTaskError("Некорректное значение");
+      return;
+    }
+    setSavingTask(true);
+    setTaskError("");
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ factDurationMinutes: value }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setTaskError(body.error || "Не удалось сохранить");
+        return;
+      }
+      setTaskList((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, factDurationMinutes: value } : t
+        )
+      );
+      setEditingTaskId(null);
+    } catch {
+      setTaskError("Ошибка сети");
+    } finally {
+      setSavingTask(false);
+    }
+  }
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -201,7 +241,7 @@ export default function EmployeesView({
   const now = new Date();
   const monthName = now.toLocaleDateString("ru-RU", { month: "long" });
   function tasksForEmployee(id: string): EmployeeTask[] {
-    return tasks.filter((t) => t.assignedToId === id || t.executorId === id);
+    return taskList.filter((t) => t.assignedToId === id || t.executorId === id);
   }
   function factForMonth(id: string): number {
     return tasksForEmployee(id).reduce((sum, t) => {
@@ -525,6 +565,11 @@ export default function EmployeesView({
               {monthName} {now.getFullYear()}
             </span>
           </div>
+          {taskError && (
+            <p className="mb-2 rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-600">
+              {taskError}
+            </p>
+          )}
 
           <div className="overflow-auto rounded-xl border border-zinc-200 bg-white">
             <table className="border-collapse text-sm">
@@ -692,11 +737,65 @@ export default function EmployeesView({
                                                 {fmtDate(t.archivedAt)}
                                               </td>
                                               <td className="border-b px-3 py-2 text-right">
-                                                <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                                                  {t.factDurationMinutes != null
-                                                    ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
-                                                    : "факт не указан"}
-                                                </span>
+                                                {editingTaskId === t.id ? (
+                                                  <span className="flex items-center justify-end gap-1">
+                                                    <input
+                                                      type="number"
+                                                      min={0}
+                                                      value={editFactValue}
+                                                      onChange={(e) =>
+                                                        setEditFactValue(
+                                                          e.target.value
+                                                        )
+                                                      }
+                                                      autoFocus
+                                                      className="w-16 rounded border border-zinc-300 px-1.5 py-0.5 text-xs outline-none focus:border-blue-500"
+                                                    />
+                                                    <button
+                                                      onClick={() =>
+                                                        saveTaskFact(t.id)
+                                                      }
+                                                      disabled={savingTask}
+                                                      className="rounded bg-blue-600 px-1.5 py-0.5 text-[11px] font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                                    >
+                                                      {savingTask ? "..." : "ОК"}
+                                                    </button>
+                                                    <button
+                                                      onClick={() =>
+                                                        setEditingTaskId(null)
+                                                      }
+                                                      className="rounded border border-zinc-300 px-1.5 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-50"
+                                                    >
+                                                      Отмена
+                                                    </button>
+                                                  </span>
+                                                ) : (
+                                                  <button
+                                                    onClick={() => {
+                                                      setEditingTaskId(t.id);
+                                                      setEditFactValue(
+                                                        t.factDurationMinutes !=
+                                                          null
+                                                          ? String(
+                                                              t.factDurationMinutes
+                                                            )
+                                                          : ""
+                                                      );
+                                                      setTaskError("");
+                                                    }}
+                                                    title="Изменить факт-время"
+                                                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition ${
+                                                      t.factDurationMinutes !=
+                                                      null
+                                                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                                        : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                                                    }`}
+                                                  >
+                                                    {t.factDurationMinutes != null
+                                                      ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
+                                                      : "задать факт"}
+                                                  </button>
+                                                )}
                                               </td>
                                             </tr>
                                           ))}
