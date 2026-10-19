@@ -249,25 +249,34 @@ export default function EmployeesView({
   const input =
     "w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500";
 
-  // «Зарплата сотрудников»: архивные задачи и факт-время за текущий месяц
+  // «Зарплата сотрудников»: архивные задачи и факт-время за выбранный месяц
   const now = new Date();
   const monthName = now.toLocaleDateString("ru-RU", { month: "long" });
+  const months = [
+    { key: `${now.getFullYear()}-${now.getMonth()}`, label: monthName, year: now.getFullYear(), month: now.getMonth() },
+    { key: `${now.getFullYear()}-${now.getMonth() - 1}`, label: new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("ru-RU", { month: "long" }), year: new Date(now.getFullYear(), now.getMonth() - 1, 1).getFullYear(), month: new Date(now.getFullYear(), now.getMonth() - 1, 1).getMonth() },
+  ];
+  const [activeMonth, setActiveMonth] = useState(months[0].key);
+  const monthLabel =
+    months.find((m) => m.key === activeMonth)?.label ?? monthName;
+  function inActiveMonth(deadline: string | null): boolean {
+    if (!deadline) return false;
+    const d = new Date(deadline);
+    if (isNaN(d.getTime())) return false;
+    const sel = months.find((m) => m.key === activeMonth);
+    if (!sel) return false;
+    return d.getMonth() === sel.month && d.getFullYear() === sel.year;
+  }
   function tasksForEmployee(id: string): EmployeeTask[] {
-    return taskList.filter((t) => t.assignedToId === id || t.executorId === id);
+    return taskList.filter(
+      (t) => (t.assignedToId === id || t.executorId === id) && inActiveMonth(t.deadline)
+    );
   }
   function factForMonth(id: string): number {
-    return tasksForEmployee(id).reduce((sum, t) => {
-      if (!t.deadline) return sum;
-      const d = new Date(t.deadline);
-      if (isNaN(d.getTime())) return sum;
-      if (
-        d.getMonth() !== now.getMonth() ||
-        d.getFullYear() !== now.getFullYear()
-      ) {
-        return sum;
-      }
-      return sum + (t.factDurationMinutes ?? 0);
-    }, 0);
+    return tasksForEmployee(id).reduce(
+      (sum, t) => sum + (t.factDurationMinutes ?? 0),
+      0
+    );
   }
   function toggleEmployee(id: string) {
     setExpanded((prev) => {
@@ -573,9 +582,21 @@ export default function EmployeesView({
             <h2 className="text-lg font-semibold text-zinc-900">
               Зарплата сотрудников
             </h2>
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
-              {monthName} {now.getFullYear()}
-            </span>
+            <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-0.5">
+              {months.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setActiveMonth(m.key)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition ${
+                    activeMonth === m.key
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
           </div>
           {taskError && (
             <p className="mb-2 rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-600">
@@ -648,7 +669,7 @@ export default function EmployeesView({
                         </td>
                         <td className="border-b px-3 py-2 text-right">
                           <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                            {formatHours(factForMonth(e.id))} ч за {monthName}
+                            {formatHours(factForMonth(e.id))} ч за {monthLabel}
                           </span>
                         </td>
                       </tr>
