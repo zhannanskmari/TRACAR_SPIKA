@@ -82,7 +82,8 @@ export default function ArchiveView({
   restoringId: string | null;
 }) {
   const [viewing, setViewing] = useState<DashboardTask | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // По умолчанию видны только фирмы; список архивов раскрывается по клику
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // Фирмы — по алфавиту, архивы сгруппированы внутри своей фирмы
   const firms = (() => {
@@ -106,7 +107,7 @@ export default function ArchiveView({
   })();
 
   function toggleFirm(id: string) {
-    setCollapsed((prev) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -131,7 +132,7 @@ export default function ArchiveView({
       ) : (
         <div className="flex flex-col gap-2">
           {firms.map((firm) => {
-            const isCollapsed = collapsed.has(firm.id);
+            const isExpanded = expanded.has(firm.id);
             return (
               <div
                 key={firm.id}
@@ -142,10 +143,10 @@ export default function ArchiveView({
                   className="flex w-full items-center justify-between gap-2 bg-zinc-50 px-3 py-2 text-left transition hover:bg-zinc-100"
                 >
                   <span className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
-                    {isCollapsed ? (
-                      <ChevronRight className="h-4 w-4 text-zinc-400" />
-                    ) : (
+                    {isExpanded ? (
                       <ChevronDown className="h-4 w-4 text-zinc-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-zinc-400" />
                     )}
                     {firm.name}
                   </span>
@@ -154,7 +155,7 @@ export default function ArchiveView({
                   </span>
                 </button>
 
-                {!isCollapsed && (
+                {isExpanded && (
                   <div className="flex flex-col gap-2 p-2">
                     {firm.tasks.map((task) => (
                       <div
