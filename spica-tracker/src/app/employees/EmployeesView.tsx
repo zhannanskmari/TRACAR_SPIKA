@@ -237,6 +237,44 @@ export default function EmployeesView({
     });
   }
 
+  // Раскрытые типы внутри фирмы: ключ `${employeeId}:${clientId}:${taskType}`
+  const [expandedType, setExpandedType] = useState<Set<string>>(new Set());
+  function toggleType(key: string) {
+    setExpandedType((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  // Группировка задач внутри фирмы по типу карточки — по убыванию времени
+  type TypeGroup = { taskType: string; tasks: EmployeeTask[]; minutes: number };
+  function typesForClient(clientGroup: ClientGroup): TypeGroup[] {
+    const map = new Map<string, TypeGroup>();
+    for (const t of clientGroup.tasks) {
+      const g = map.get(t.taskType);
+      if (g) {
+        g.tasks.push(t);
+        g.minutes += t.factDurationMinutes ?? 0;
+      } else {
+        map.set(t.taskType, {
+          taskType: t.taskType,
+          tasks: [t],
+          minutes: t.factDurationMinutes ?? 0,
+        });
+      }
+    }
+    return Array.from(map.values())
+      .map((g) => ({
+        ...g,
+        tasks: [...g.tasks].sort(
+          (a, b) => (b.factDurationMinutes ?? 0) - (a.factDurationMinutes ?? 0)
+        ),
+      }))
+      .sort((a, b) => b.minutes - a.minutes);
+  }
+
   // Группировка задач сотрудника по фирмам — по убыванию времени
   type ClientGroup = {
     id: string;
@@ -602,38 +640,69 @@ export default function EmployeesView({
                                 </tr>
 
                                 {clientOpen &&
-                                  cg.tasks.map((t) => (
-                                    <tr
-                                      key={t.id}
-                                      className="bg-white hover:bg-zinc-50"
-                                    >
-                                      <td className="border-b border-r border-zinc-100 px-3 py-2 pl-16">
-                                        <div className="font-medium text-zinc-900">
-                                          {t.title}
-                                        </div>
-                                        <div className="text-xs text-zinc-500">
-                                          {TASK_TYPE_LABELS[t.taskType] ??
-                                            t.taskType}
-                                        </div>
-                                      </td>
-                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-500">
-                                        —
-                                      </td>
-                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
-                                        {fmtDate(t.deadline)}
-                                      </td>
-                                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
-                                        {fmtDate(t.archivedAt)}
-                                      </td>
-                                      <td className="border-b px-3 py-2 text-right">
-                                        <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                                          {t.factDurationMinutes != null
-                                            ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
-                                            : "факт не указан"}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  typesForClient(cg).map((tg) => {
+                                    const typeKey = `${key}:${tg.taskType}`;
+                                    const typeOpen = expandedType.has(typeKey);
+                                    return (
+                                      <Fragment key={typeKey}>
+                                        <tr
+                                          onClick={() => toggleType(typeKey)}
+                                          className="cursor-pointer bg-zinc-100/50 transition hover:bg-zinc-100"
+                                        >
+                                          <td className="border-b border-r border-zinc-100 px-3 py-2 pl-16">
+                                            <span className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                                              {typeOpen ? (
+                                                <ChevronDown className="h-3 w-3 text-zinc-400" />
+                                              ) : (
+                                                <ChevronRight className="h-3 w-3 text-zinc-400" />
+                                              )}
+                                              {TASK_TYPE_LABELS[tg.taskType] ??
+                                                tg.taskType}
+                                            </span>
+                                          </td>
+                                          <td
+                                            colSpan={3}
+                                            className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-400"
+                                          >
+                                            {tg.tasks.length} записей
+                                          </td>
+                                          <td className="border-b px-3 py-2 text-right">
+                                            <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                              {formatHours(tg.minutes)} ч
+                                            </span>
+                                          </td>
+                                        </tr>
+
+                                        {typeOpen &&
+                                          tg.tasks.map((t) => (
+                                            <tr
+                                              key={t.id}
+                                              className="bg-white hover:bg-zinc-50"
+                                            >
+                                              <td className="border-b border-r border-zinc-100 px-3 py-2 pl-24 text-sm text-zinc-900">
+                                                {t.title}
+                                              </td>
+                                              <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-500">
+                                                —
+                                              </td>
+                                              <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                                                {fmtDate(t.deadline)}
+                                              </td>
+                                              <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                                                {fmtDate(t.archivedAt)}
+                                              </td>
+                                              <td className="border-b px-3 py-2 text-right">
+                                                <span className="whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                                  {t.factDurationMinutes != null
+                                                    ? `${t.factDurationMinutes} мин = ${formatHours(t.factDurationMinutes)} ч`
+                                                    : "факт не указан"}
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                      </Fragment>
+                                    );
+                                  })}
                               </Fragment>
                             );
                           })
