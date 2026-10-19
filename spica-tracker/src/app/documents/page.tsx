@@ -30,6 +30,7 @@ export default async function DocumentsPage() {
           clientId: { in: clientIds },
           taskType: { in: ["DEMAND_RECEIPT", "IFNS_DEMAND"] },
           archivedAt: null,
+          status: { notIn: ["DONE", "SENT_TO_CLIENT"] },
         },
         orderBy: { createdAt: "desc" },
         select: {
@@ -92,6 +93,7 @@ export default async function DocumentsPage() {
         name: c.name,
         shortName: c.shortName,
         accountNote: c.accountNote,
+        taxSystem: c.taxSystem,
       }))}
       entries={entries.map((e) => ({
         clientId: e.clientId,

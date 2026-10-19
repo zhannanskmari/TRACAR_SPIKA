@@ -329,6 +329,23 @@ export async function PATCH(
     }
   }
 
+  // Требование/квитанция переведены в «Выполнено»/«Отправлено клиенту» —
+  // убираем соответствующие данные из таблицы «Ввод документов».
+  const demandAccount =
+    updated.taskType === "DEMAND_RECEIPT"
+      ? "demand-receipt"
+      : updated.taskType === "IFNS_DEMAND"
+        ? "demand-answer"
+        : null;
+  const wasDone = task.status === "DONE" || task.status === "SENT_TO_CLIENT";
+  const isDone =
+    updated.status === "DONE" || updated.status === "SENT_TO_CLIENT";
+  if (demandAccount && !wasDone && isDone) {
+    await prisma.docEntry.deleteMany({
+      where: { clientId: updated.clientId, account: demandAccount },
+    });
+  }
+
   return NextResponse.json({ task: updated });
 }
 

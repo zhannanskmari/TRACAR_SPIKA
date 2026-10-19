@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileSpreadsheet, Save, Trash2, X } from "lucide-react";
 import { DOC_ACCOUNTS, accountLabel } from "@/lib/doc-meta";
+import { TAX_SYSTEMS, taxLabel } from "@/app/clients/client-meta";
 
 type DocClient = {
   id: string;
   name: string;
   shortName: string | null;
   accountNote: string | null;
+  taxSystem: string;
 };
 
 type DocEntry = {
@@ -21,6 +23,26 @@ type DocEntry = {
 
 function cellKey(clientId: string, account: string): string {
   return `${clientId}:${account}`;
+}
+
+// Порядок групп — как в справочнике видов налогообложения
+const GROUP_ORDER = [...TAX_SYSTEMS.map((t) => t.label), "Другое"];
+
+function groupByTaxSystem(
+  clients: DocClient[]
+): { label: string; clients: DocClient[] }[] {
+  const map = new Map<string, DocClient[]>();
+  for (const c of clients) {
+    const known = TAX_SYSTEMS.some((t) => t.value === c.taxSystem);
+    const label = known ? taxLabel(c.taxSystem) : "Другое";
+    const list = map.get(label);
+    if (list) list.push(c);
+    else map.set(label, [c]);
+  }
+  return GROUP_ORDER.filter((label) => map.has(label)).map((label) => ({
+    label,
+    clients: map.get(label) ?? [],
+  }));
 }
 
 function toDateInput(value: string | null): string {
@@ -50,6 +72,7 @@ export default function DocumentsView({
   autoEntries: DocEntry[];
 }) {
   const router = useRouter();
+  const groups = groupByTaxSystem(clients);
 
   const [entries, setEntries] = useState<Map<string, DocEntry>>(() => {
     const map = new Map<string, DocEntry>();
@@ -196,48 +219,60 @@ export default function DocumentsView({
                   </td>
                 </tr>
               )}
-              {clients.map((client) => (
-                <tr key={client.id} className="align-top">
-                  <td className="sticky left-0 z-10 border-b border-r border-zinc-100 bg-white px-3 py-2">
-                    <div className="font-medium text-zinc-900">{client.name}</div>
-                    {client.shortName && (
-                      <div className="text-xs text-zinc-500">
-                        {client.shortName}
-                      </div>
-                    )}
-                  </td>
-                  <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
-                    {client.accountNote}
-                  </td>
-                  {DOC_ACCOUNTS.map((acc) => {
-                    const entry = getEntry(client.id, acc.key);
-                    const auto = isAuto(client.id, acc.key);
-                    return (
-                      <td
-                        key={acc.key}
-                        onClick={() => openEditor(client, acc.key)}
-                        className="cursor-pointer border-b border-r border-zinc-100 px-2 py-2 hover:bg-blue-50"
-                      >
-                        {entry ? (
-                          <div className={`text-xs ${auto ? "italic text-zinc-400" : ""}`}>
-                            {entry.date && (
-                              <div className={`font-medium ${auto ? "" : "text-zinc-700"}`}>
-                                {formatDate(entry.date)}
-                              </div>
-                            )}
-                            {entry.text && (
-                              <div className="line-clamp-3 whitespace-pre-wrap">
-                                {entry.text}
-                              </div>
-                            )}
+              {groups.map((group) => (
+                <Fragment key={group.label}>
+                  <tr>
+                    <td
+                      colSpan={DOC_ACCOUNTS.length + 2}
+                      className="border-b border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-600"
+                    >
+                      {group.label}
+                    </td>
+                  </tr>
+                  {group.clients.map((client) => (
+                    <tr key={client.id} className="align-top">
+                      <td className="sticky left-0 z-10 border-b border-r border-zinc-100 bg-white px-3 py-2">
+                        <div className="font-medium text-zinc-900">{client.name}</div>
+                        {client.shortName && (
+                          <div className="text-xs text-zinc-500">
+                            {client.shortName}
                           </div>
-                        ) : (
-                          <div className="text-center text-zinc-300">—</div>
                         )}
                       </td>
-                    );
-                  })}
-                </tr>
+                      <td className="border-b border-r border-zinc-100 px-3 py-2 text-xs text-zinc-600">
+                        {client.accountNote}
+                      </td>
+                      {DOC_ACCOUNTS.map((acc) => {
+                        const entry = getEntry(client.id, acc.key);
+                        const auto = isAuto(client.id, acc.key);
+                        return (
+                          <td
+                            key={acc.key}
+                            onClick={() => openEditor(client, acc.key)}
+                            className="cursor-pointer border-b border-r border-zinc-100 px-2 py-2 hover:bg-blue-50"
+                          >
+                            {entry ? (
+                              <div className={`text-xs ${auto ? "italic text-zinc-400" : ""}`}>
+                                {entry.date && (
+                                  <div className={`font-medium ${auto ? "" : "text-zinc-700"}`}>
+                                    {formatDate(entry.date)}
+                                  </div>
+                                )}
+                                {entry.text && (
+                                  <div className="line-clamp-3 whitespace-pre-wrap">
+                                    {entry.text}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-center text-zinc-300">—</div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>
