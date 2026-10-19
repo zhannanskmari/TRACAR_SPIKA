@@ -270,7 +270,7 @@ export default function DashboardView({
     if (archiveBusy) return;
     if (
       !window.confirm(
-        "Перенести в архив все активные карточки со сроком до сегодняшнего дня?"
+        "Выполненные карточки со сроком до сегодня уйдут в архив, невыполненные будут перенесены на следующий рабочий день. Продолжить?"
       )
     ) {
       return;
@@ -285,11 +285,15 @@ export default function DashboardView({
       }
       const data = await res.json();
       const count = typeof data.count === "number" ? data.count : 0;
-      setArchiveMsg(
-        count > 0
-          ? `В архив перенесено: ${count}`
-          : "Карточек со сроком до сегодня нет"
-      );
+      const moved = typeof data.moved === "number" ? data.moved : 0;
+      if (count > 0 || moved > 0) {
+        const parts: string[] = [];
+        if (count > 0) parts.push(`в архив: ${count}`);
+        if (moved > 0) parts.push(`на следующий рабочий день: ${moved}`);
+        setArchiveMsg(`Готово — ${parts.join(", ")}`);
+      } else {
+        setArchiveMsg("Карточек со сроком до сегодня нет");
+      }
       await refreshTasks();
       await refreshCalendar();
       await refreshArchived();

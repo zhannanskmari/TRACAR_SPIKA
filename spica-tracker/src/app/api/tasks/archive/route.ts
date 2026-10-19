@@ -15,6 +15,15 @@ export async function GET() {
   return NextResponse.json({ tasks });
 }
 
+// Следующий рабочий день (пн–пт) с сохранением времени суток исходной даты
+function nextBusinessDayKeepingTime(from: Date): Date {
+  const d = new Date(from);
+  do {
+    d.setDate(d.getDate() + 1);
+  } while (d.getDay() === 0 || d.getDay() === 6);
+  return d;
+}
+
 export async function POST() {
   const session = await getSession();
   if (!session) {
@@ -26,7 +35,7 @@ export async function POST() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // «Конец дня»: в архив попадают активные карточки со сроком до сегодня
+  // «Конец дня»: обработка карточек со сроком до сегодня
   const now = new Date();
   const endOfToday = new Date(
     now.getFullYear(),
@@ -38,15 +47,38 @@ export async function POST() {
     999
   );
 
-  const result = await prisma.task.updateMany({
+  // 1. Выполненные карточки со сроком до сегодня — в архив
+  const archived = await prisma.task.updateMany({
     where: {
       archivedAt: null,
       deadline: { lte: endOfToday },
-      status: { notIn: ["NEW", "IN_PROGRESS", "REWORK"] },
+      status: { in: ["DONE", "SENT_TO_CLIENT"] },
       ...tasksVisibilityWhere(session),
     },
     data: { archivedAt: now },
   });
 
-  return NextResponse.json({ count: result.count });
+  // 2. Невыполненные со сроком до сегодня — на следующий рабочий день
+  const unfinished = await prisma.task.findMany({
+    where: {
+      archivedAt: null,
+      deadline: { lte: endOfToday },
+      status: { in: ["NEW", "IN_PROGRESS", "REWORK", "OVERDUE"] },
+      ...tasksVisibilityWhere(session),
+    },
+    select: { id: true, deadline: true },
+  });
+
+  for (const t of unfinished) {
+    const newDeadline = nextBusinessDayKeepingTime(t.deadline ?? now);
+    await prisma.task.update({
+      where: { id: t.id },
+      data: { deadline: newDeadline },
+    });
+  }
+
+  return NextResponse.json({
+    count: archived.count,
+    moved: unfinished.length,
+  });
 }
