@@ -194,6 +194,8 @@ export default function DashboardView({
   const [filterExecutorId, setFilterExecutorId] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
   const [changesText, setChangesText] = useState<string | null>(null);
+  const [changesSeen, setChangesSeen] = useState(true);
+  const [latestChange, setLatestChange] = useState("");
 
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
@@ -213,16 +215,74 @@ export default function DashboardView({
     router.refresh();
   }
 
+  // Метка «версии» файла изменений: последний блок (заголовок + первый пункт).
+  // Хранится в localStorage, чтобы показать бейдж «есть изменения».
+  function extractLatest(text: string): { key: string; line: string } {
+    const lines = text.split(/\r?\n/);
+    let headerIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^ИЗМЕНЕНИЯ В ТРЕКЕРЕ ЗАДАЧ/i.test(lines[i].trim())) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx === -1) {
+      const first = lines.find((l) => l.trim());
+      return { key: first?.trim() ?? "", line: first?.trim() ?? "" };
+    }
+    const header = lines[headerIdx].trim();
+    // первый непустой пункт после заголовка (пропускаем разделитель ===)
+    let item = "";
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if (!t || /^=+$/.test(t)) continue;
+      item = t;
+      break;
+    }
+    return { key: `${header}|${item}`, line: item || header };
+  }
+
+  // Проверяем наличие новых изменений при загрузке страницы
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/changes.txt", { cache: "no-store" });
+        if (!res.ok) return;
+        const text = await res.text();
+        const { key, line } = extractLatest(text);
+        if (cancelled || !key) return;
+        setLatestChange(line);
+        const seen = window.localStorage.getItem("spica_changes_seen");
+        setChangesSeen(seen === key);
+      } catch {
+        // игнорируем
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Кнопка «Изменения в трекере задач»: показывает текст файла изменений
   async function openChanges() {
     setChangesOpen(true);
     if (changesText == null) {
       try {
-        const res = await fetch("/changes.txt");
-        setChangesText(await res.text());
+        const res = await fetch("/changes.txt", { cache: "no-store" });
+        const text = await res.text();
+        setChangesText(text);
+        const { key, line } = extractLatest(text);
+        setLatestChange(line);
+        window.localStorage.setItem("spica_changes_seen", key);
+        setChangesSeen(true);
       } catch {
         setChangesText("Не удалось загрузить файл изменений");
       }
+    } else {
+      const { key } = extractLatest(changesText);
+      window.localStorage.setItem("spica_changes_seen", key);
+      setChangesSeen(true);
     }
   }
 
@@ -585,10 +645,19 @@ export default function DashboardView({
           </span>
           <button
             onClick={openChanges}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              changesSeen
+                ? "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                : "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100"
+            }`}
           >
             <ScrollText className="h-4 w-4" />
             Изменения в трекере задач
+            {!changesSeen && (
+              <span className="ml-0.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                есть изменения
+              </span>
+            )}
           </button>
           {user.role !== "CLIENT" && (
             <Link
@@ -622,9 +691,16 @@ export default function DashboardView({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
-              <span className="text-sm font-semibold text-zinc-900">
-                Изменения в трекере задач
-              </span>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-zinc-900">
+                  Изменения в трекере задач
+                </div>
+                {latestChange && (
+                  <div className="truncate text-xs font-medium text-amber-700">
+                    Последнее: {latestChange}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setChangesOpen(false)}
                 className="rounded-md px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
