@@ -252,6 +252,50 @@ export default function DashboardView({
     }
   }, []);
 
+  // Локальное обновление карточки календаря после переноса/сохранения —
+  // без повторной загрузки всего списка (это и была задержка при перетаскивании)
+  const applyCalendarPatch = useCallback(
+    (id: string, patch: Record<string, unknown>) => {
+      setCalendar((prev) => {
+        if (!prev) return prev;
+        return prev.map((c) => ({
+          ...c,
+          tasks: c.tasks.map((t) => {
+            if (t.id !== id) return t;
+            const next = { ...t } as typeof t & Record<string, unknown>;
+            if (patch.deadline !== undefined) next.deadline = patch.deadline as string | null;
+            if (patch.receiptDeadline !== undefined)
+              next.receiptDeadline = patch.receiptDeadline as string | null;
+            if (patch.startTime !== undefined)
+              next.startTime = patch.startTime as string | null;
+            if (patch.title !== undefined) next.title = patch.title as string;
+            if (patch.taskType !== undefined) next.taskType = patch.taskType as string;
+            if (patch.status !== undefined) next.status = patch.status as string;
+            if (patch.durationMinutes !== undefined)
+              next.durationMinutes = patch.durationMinutes as number | null;
+            if (patch.factDurationMinutes !== undefined)
+              next.factDurationMinutes = patch.factDurationMinutes as number | null;
+            if (patch.docCount !== undefined)
+              next.docCount = patch.docCount as number | null;
+            if (patch.taxAmount !== undefined)
+              next.taxAmount = patch.taxAmount as number | null;
+            if (patch.taxPaymentDate !== undefined)
+              next.taxPaymentDate = patch.taxPaymentDate as string | null;
+            // Дата в колонке календаря: «Требование ИФНС» — по сроку требования,
+            // иначе — по сроку карточки
+            const rec = next.receiptDeadline as string | null;
+            next.date =
+              next.taskType === "IFNS_DEMAND" && rec
+                ? rec
+                : ((next.deadline as string | null) ?? null);
+            return next;
+          }),
+        }));
+      });
+    },
+    []
+  );
+
   const refreshArchived = useCallback(async () => {
     try {
       const res = await fetch("/api/tasks/archive", { cache: "no-store" });
@@ -370,7 +414,11 @@ export default function DashboardView({
   }, [tab, refreshTasks, refreshCalendar, refreshArchived]);
 
   const patchTask = useCallback(
-    async (id: string, data: Record<string, unknown>) => {
+    async (
+      id: string,
+      data: Record<string, unknown>,
+      opts?: { refresh?: boolean }
+    ) => {
       const res = await fetch(`/api/tasks/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -380,8 +428,9 @@ export default function DashboardView({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Ошибка обновления");
       }
-      // сразу подтягиваем свежие данные, чтобы изменения были видны мгновенно
-      await refreshTasks();
+      // для канбана подтягиваем свежие данные сразу; календарь обновляет
+      // своё состояние локально и лишний запрос ему не нужен
+      if (opts?.refresh !== false) await refreshTasks();
       return (await res.json()).task;
     },
     [refreshTasks]
@@ -819,8 +868,10 @@ export default function DashboardView({
             canEditTax={canEditTax}
             executors={executors}
             onSave={async (id, data) => {
-              await patchTask(id, data);
-              await refreshCalendar();
+              await patchTask(id, data, { refresh: false });
+              applyCalendarPatch(id, data);
+              // список задач обновляем в фоне, чтобы не тормозить перенос
+              refreshTasks();
             }}
           />
         )}

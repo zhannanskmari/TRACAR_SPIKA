@@ -20,15 +20,21 @@ export function toIso(value: Date | string | null | undefined): string | null {
 
 // Дедлайн на заданный день с сохранением времени суток исходной даты
 // (drag-and-drop карточки между днями в календаре).
+// Можно передать slotTime "ЧЧ:ММ", тогда время берётся из слота.
 // Без исходной даты — полдень, чтобы карточка не уплыла на соседний день
 // из-за часового пояса.
 export function deadlineForDayIso(
   dateIso: string | null | undefined,
-  day: Date
+  day: Date,
+  slotTime?: string | null
 ): string {
   let hh = 12;
   let mm = 0;
-  if (dateIso) {
+  const slot = slotTime ? /^(\d{1,2}):(\d{2})$/.exec(slotTime) : null;
+  if (slot) {
+    hh = Number(slot[1]);
+    mm = Number(slot[2]);
+  } else if (dateIso) {
     const d = new Date(dateIso);
     if (!isNaN(d.getTime())) {
       hh = d.getHours();

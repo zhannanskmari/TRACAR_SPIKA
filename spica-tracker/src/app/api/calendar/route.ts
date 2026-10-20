@@ -42,12 +42,14 @@ export async function GET() {
   const clientIds = clients.map((c) => c.id);
 
   const tasks = await prisma.task.findMany({
-    where:
-      session.role === "EXECUTOR"
+    where: {
+      archivedAt: null,
+      ...(session.role === "EXECUTOR"
         ? {
             OR: [{ assignedToId: session.id }, { executorId: session.id }],
           }
-        : { clientId: { in: clientIds } },
+        : { clientId: { in: clientIds } }),
+    },
     include: {
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },

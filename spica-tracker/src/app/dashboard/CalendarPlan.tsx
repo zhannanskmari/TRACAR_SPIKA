@@ -325,15 +325,20 @@ const DraggableCard = memo(function DraggableCard({
 const DaySlot = memo(function DaySlot({
   id,
   dayKey,
+  slotTime,
   weekend,
   children,
 }: {
   id: string;
   dayKey: string;
+  slotTime: string | null;
   weekend: boolean;
   children: React.ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id, data: { dayKey } });
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    data: { dayKey, slotTime },
+  });
   return (
     <td
       ref={setNodeRef}
@@ -925,25 +930,38 @@ export default function CalendarPlan({
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     const targetKey = over?.data.current?.dayKey as string | undefined;
+    const targetSlot = over?.data.current?.slotTime as string | null | undefined;
     const src = active.data.current as
       | { task: CalendarTask; clientName: string }
       | undefined;
     clearDrag();
     if (!targetKey || !src) return;
     const curKey = src.task.date ? dayKey(new Date(src.task.date)) : "";
-    if (curKey === targetKey) return; // бросили в тот же день
+    if (curKey === targetKey) {
+      // Бросили в тот же день: меняем только время (слот), если он задан
+      if (targetSlot == null || targetSlot === src.task.startTime) return;
+      try {
+        await onSave(src.task.id, { startTime: targetSlot });
+      } catch {
+        showMoveError("Не удалось перенести карточку");
+      }
+      return;
+    }
     const targetDay = days.find((d) => dayKey(d) === targetKey);
     if (!targetDay) return;
     try {
-      const iso = deadlineForDayIso(src.task.date, targetDay);
-      // «Требование ИФНС» стоит в календаре по окончательному сроку —
-      // перенос двигает именно его, иначе карточка вернётся на старый день
-      await onSave(
-        src.task.id,
+      // Время суток: если бросили в конкретный слот — берём его, иначе
+      // сохраняем исходное время карточки
+      const iso = deadlineForDayIso(src.task.date, targetDay, targetSlot);
+      const patch: Record<string, unknown> =
         src.task.taskType === "IFNS_DEMAND"
           ? { receiptDeadline: iso }
-          : { deadline: iso }
-      );
+          : { deadline: iso };
+      // Дополнительно фиксируем время начала в слоте броска
+      if (targetSlot != null) patch.startTime = targetSlot;
+      // «Требование ИФНС» стоит в календаре по окончательному сроку —
+      // перенос двигает именно его, иначе карточка вернётся на старый день
+      await onSave(src.task.id, patch);
     } catch {
       showMoveError("Не удалось перенести карточку");
     }
@@ -1078,6 +1096,7 @@ export default function CalendarPlan({
                       key={i}
                       id={`cell:${k}:${si}`}
                       dayKey={k}
+                      slotTime={time}
                       weekend={we}
                     >
                       {items.map(({ task: t, clientName }) => (
