@@ -145,10 +145,13 @@ export default function ArchiveView({
   return (
     <div className="flex h-full flex-col overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-800">
+        <h2 className="flex items-center text-sm font-semibold text-zinc-800">
           Архив задач
           <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
             {tasks.length}
+          </span>
+          <span className="ml-2 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+            Факт за {monthName}: {formatHours(factForMonth(tasks))} ч
           </span>
         </h2>
       </div>
