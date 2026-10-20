@@ -197,6 +197,30 @@ export default function DashboardView({
   const [changesSeen, setChangesSeen] = useState(true);
   const [latestChange, setLatestChange] = useState("");
 
+  // Разбиваем файл изменений на последний блок (текущая дата) и остальную часть.
+  // Последний блок показывается первым (сверху) и подсвечивается — сразу видно,
+  // что изменилось.
+  let changesSplit: { header: string; latest: string; rest: string } | null = null;
+  if (changesText != null) {
+    const lines = changesText.split(/\r?\n/);
+    let headerIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^ИЗМЕНЕНИЯ В ТРЕКЕРЕ ЗАДАЧ/i.test(lines[i].trim())) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx === -1) {
+      changesSplit = { header: "", latest: changesText, rest: "" };
+    } else {
+      changesSplit = {
+        header: lines[headerIdx].trim(),
+        latest: lines.slice(headerIdx).join("\n").trimEnd(),
+        rest: lines.slice(0, headerIdx).join("\n").trimEnd(),
+      };
+    }
+  }
+
   const canEditTax = user.role === "ADMIN" || user.role === "EXECUTOR";
   const isClient = user.role === "CLIENT";
   // Упрощённая панель: только «Доска задач» и «Календарь» —
@@ -231,6 +255,8 @@ export default function DashboardView({
       return { key: first?.trim() ?? "", line: first?.trim() ?? "" };
     }
     const header = lines[headerIdx].trim();
+    // дата из заголовка «ИЗМЕНЕНИЯ В ТРЕКЕРЕ ЗАДАЧ — 20 октября 2026»
+    const datePart = header.replace(/^ИЗМЕНЕНИЯ В ТРЕКЕРЕ ЗАДАЧ\s*—\s*/i, "");
     // первый непустой пункт после заголовка (пропускаем разделитель ===)
     let item = "";
     for (let i = headerIdx + 1; i < lines.length; i++) {
@@ -239,7 +265,7 @@ export default function DashboardView({
       item = t;
       break;
     }
-    return { key: `${header}|${item}`, line: item || header };
+    return { key: `${header}|${item}`, line: `${datePart}: ${item}` };
   }
 
   // Проверяем наличие новых изменений при загрузке страницы
@@ -509,7 +535,9 @@ export default function DashboardView({
   );
 
   async function openCalendar() {
-    setLoadingCalendar(true);
+    // Лоадер — только при первой загрузке; если данные уже есть,
+    // показываем календарь сразу и обновляем в фоне
+    if (calendar === null) setLoadingCalendar(true);
     try {
       const res = await fetch("/api/calendar", { cache: "no-store" });
       if (res.ok) {
@@ -709,9 +737,27 @@ export default function DashboardView({
               </button>
             </div>
             <div className="overflow-y-auto px-5 py-4">
-              <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700">
-                {changesText ?? "Загрузка…"}
-              </pre>
+              {changesSplit ? (
+                <>
+                  <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      Последние изменения
+                    </div>
+                    <pre className="whitespace-pre-wrap font-sans text-sm font-medium text-amber-900">
+                      {changesSplit.latest}
+                    </pre>
+                  </div>
+                  {changesSplit.rest && (
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700">
+                      {changesSplit.rest}
+                    </pre>
+                  )}
+                </>
+              ) : (
+                <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700">
+                  {changesText ?? "Загрузка…"}
+                </pre>
+              )}
             </div>
           </div>
         </div>
