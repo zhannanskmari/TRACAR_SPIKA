@@ -514,9 +514,14 @@ export default function DashboardView({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Ошибка обновления");
       }
-      // для канбана подтягиваем свежие данные сразу; календарь обновляет
-      // своё состояние локально и лишний запрос ему не нужен
-      if (opts?.refresh !== false) await refreshTasks();
+      // для канбана подтягиваем свежие данные сразу; календарь и быстрый
+      // перенос карточек обновляют своё состояние локально, а полный список
+      // дозагружаем в фоне — чтобы UI не ждал ответа
+      if (opts?.refresh === false) {
+        void refreshTasks();
+      } else {
+        await refreshTasks();
+      }
       return (await res.json()).task;
     },
     [refreshTasks]

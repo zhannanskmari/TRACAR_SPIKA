@@ -150,7 +150,8 @@ export default function KanbanBoard({
   tasks: DashboardTask[];
   patchTask: (
     id: string,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
+    opts?: { refresh?: boolean }
   ) => Promise<unknown>;
   deleteTask: (id: string) => Promise<unknown>;
   user: { id: string; role: string };
@@ -310,83 +311,112 @@ export default function KanbanBoard({
     const { active, over } = event;
     const source = dragSourceRef.current;
     dragSourceRef.current = null;
-    if (!over) return;
-
-    // Куда карточка попала по факту (onDragOver уже переместил её между колонками)
-    const endContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over.id as string);
-    if (!endContainer || !overContainer) return;
-
-    const activeIndex = columns[endContainer].findIndex(
-      (t) => t.id === active.id
-    );
-    const overIndex = columns[overContainer].findIndex(
-      (t) => t.id === over.id
-    );
-
-    // Перетаскивание внутри одной колонки: сохраняем новый порядок локально,
-    // чтобы карточка не «откатывалась» на прежнее место после отпускания.
-    // (Поле порядка в БД нет — порядок живёт в state и при равных датах
-    // сохраняется стабильной сортировкой.)
+    const activeId = active.id as string;
     const fromStatus = source?.fromStatus;
-    if (fromStatus && fromStatus === endContainer) {
-      if (activeIndex === -1) return;
-      let target = overIndex;
-      if (target === -1) target = columns[endContainer].length - 1;
-      const list = columns[endContainer];
-      const moved = list[activeIndex];
-      const nextList = list.filter((t) => t.id !== active.id);
-      nextList.splice(target, 0, moved);
-      setColumns((prev) => ({ ...prev, [endContainer]: nextList }));
+    if (!over) {
+      // Бросили вне колонки: возвращаем карточку на исходное место
+      if (fromStatus) {
+        setColumns((prev) => {
+          let original: DashboardTask | undefined;
+          for (const s of COLUMN_ORDER) {
+            const found = (prev[s] ?? []).find((t) => t.id === activeId);
+            if (found) original = found;
+          }
+          if (!original) return prev;
+          const next: Record<string, DashboardTask[]> = {};
+          for (const s of COLUMN_ORDER) {
+            next[s] = (prev[s] ?? []).filter((t) => t.id !== activeId);
+          }
+          next[fromStatus] = [...(next[fromStatus] ?? []), original];
+          return next;
+        });
+      }
       return;
     }
 
-    // Сохраняем смену статуса, если исходная колонка отличается от конечной.
-    // Это происходит и когда onDragOver уже визуально переместил карточку
-    // (тогда endContainer === overContainer), и при прямом пересечении колонок.
-    if (fromStatus && fromStatus !== endContainer) {
-      const activeTask = columns[endContainer][activeIndex] ?? findTask(active.id as string);
-      if (!activeTask) return;
-      try {
-        const patchData: Record<string, unknown> = { status: endContainer };
-        const now = nowTime();
-        if (endContainer === "IN_PROGRESS") {
-          // «Начало» — время переноса в «Ежедневник у сотрудников»;
-          // «Крайний срок» — сегодняшняя дата, чтобы карточка встала на сегодня.
-          // «Требование ИФНС» не трогаем: его сроки — важные данные
-          // (срок квитанции и окончательный срок), а в календаре он стоит
-          // по окончательному сроку, который перенос не затирает.
-          patchData.startTime = now;
-          if (activeTask.taskType !== "IFNS_DEMAND") {
-            patchData.deadline = new Date().toISOString();
+    // Целевая колонка — та, куда реально бросили (даже если onDragOver
+    // не успел визуально перенести карточку)
+    const targetStatus = findContainer(over.id as string);
+    if (!targetStatus) return;
+    const activeTask = findTask(activeId);
+    if (!activeTask) return;
+
+    // Перетаскивание внутри одной колонки — меняем только локальный порядок
+    if (fromStatus === targetStatus) {
+      setColumns((prev) => {
+        const list = prev[targetStatus] ?? [];
+        const activeIndex = list.findIndex((t) => t.id === activeId);
+        if (activeIndex === -1) return prev;
+        let target = list.findIndex((t) => t.id === over.id);
+        if (target === -1) target = list.length - 1;
+        const moved = list[activeIndex];
+        const nextList = list.filter((t) => t.id !== activeId);
+        nextList.splice(target, 0, moved);
+        return { ...prev, [targetStatus]: nextList };
+      });
+      return;
+    }
+
+    // Смена статуса (перенос между колонками)
+    const patchData: Record<string, unknown> = { status: targetStatus };
+    const now = nowTime();
+    if (targetStatus === "IN_PROGRESS") {
+      // «Начало» — время переноса в «Ежедневник у сотрудников»;
+      // «Крайний срок» — сегодняшняя дата, чтобы карточка встала на сегодня.
+      // «Требование ИФНС» не трогаем: его сроки — важные данные
+      // (срок квитанции и окончательный срок), а в календаре он стоит
+      // по окончательному сроку, который перенос не затирает.
+      patchData.startTime = now;
+      if (activeTask.taskType !== "IFNS_DEMAND") {
+        patchData.deadline = new Date().toISOString();
+      }
+    } else if (targetStatus === "DONE") {
+      // «Окончание» — время переноса на «Выполнено»; факт = разница
+      patchData.endTime = now;
+      if (activeTask.startTime) {
+        const diff = toMinutes(now) - toMinutes(activeTask.startTime);
+        if (diff >= 0) patchData.factDurationMinutes = diff;
+      }
+    }
+
+    // Оптимистично переносим карточку в целевую колонку сразу,
+    // не дожидаясь ответа сервера
+    setColumns((prev) => {
+      const next: Record<string, DashboardTask[]> = {};
+      for (const s of COLUMN_ORDER) {
+        next[s] = (prev[s] ?? []).filter((t) => t.id !== activeId);
+      }
+      const moved = {
+        ...activeTask,
+        ...(patchData as Partial<DashboardTask>),
+        status: targetStatus,
+      };
+      next[targetStatus] = [...(next[targetStatus] ?? []), moved];
+      return next;
+    });
+
+    try {
+      await patchTask(activeTask.id, patchData, { refresh: false });
+    } catch (e) {
+      console.error(e);
+      window.alert(
+        `Не удалось переместить карточку: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+      // откат — возвращаем карточку в исходную колонку
+      if (fromStatus) {
+        setColumns((prev) => {
+          const next: Record<string, DashboardTask[]> = {};
+          for (const s of COLUMN_ORDER) {
+            next[s] = (prev[s] ?? []).filter((t) => t.id !== activeId);
           }
-        } else if (endContainer === "DONE") {
-          // «Окончание» — время переноса на «Выполнено»; факт = разница
-          patchData.endTime = now;
-          if (activeTask.startTime) {
-            const diff = toMinutes(now) - toMinutes(activeTask.startTime);
-            if (diff >= 0) patchData.factDurationMinutes = diff;
-          }
-        }
-        await patchTask(activeTask.id, patchData);
-      } catch (e) {
-        console.error(e);
-        window.alert(
-          `Не удалось переместить карточку: ${
-            e instanceof Error ? e.message : String(e)
-          }`
-        );
-        // откат — возвращаем карточку в исходную колонку
-        setColumns((prev) => ({
-          ...prev,
-          [fromStatus]: [
-            ...(prev[fromStatus] ?? []).filter((t) => t.id !== activeTask.id),
+          next[fromStatus] = [
+            ...(next[fromStatus] ?? []),
             { ...activeTask, status: fromStatus },
-          ],
-          [endContainer]: (prev[endContainer] ?? []).filter(
-            (t) => t.id !== activeTask.id
-          ),
-        }));
+          ];
+          return next;
+        });
       }
     }
   }
