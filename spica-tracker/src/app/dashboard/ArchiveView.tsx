@@ -85,7 +85,7 @@ export default function ArchiveView({
   // По умолчанию видны только фирмы; список архивов раскрывается по клику
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Фирмы — по алфавиту, архивы сгруппированы внутри своей фирмы
+  // Фирмы — по убыванию суммарного фактического времени, архивы внутри фирмы
   const firms = (() => {
     const map = new Map<
       string,
@@ -101,9 +101,13 @@ export default function ArchiveView({
           tasks: [t],
         });
     }
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "ru")
-    );
+    const totalFact = (list: DashboardTask[]) =>
+      list.reduce((sum, t) => sum + (t.factDurationMinutes ?? 0), 0);
+    return Array.from(map.values()).sort((a, b) => {
+      const diff = totalFact(b.tasks) - totalFact(a.tasks);
+      if (diff !== 0) return diff;
+      return a.name.localeCompare(b.name, "ru");
+    });
   })();
 
   function toggleFirm(id: string) {
