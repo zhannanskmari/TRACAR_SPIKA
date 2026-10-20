@@ -142,14 +142,6 @@ const RAW_EVENTS: {
   },
   {
     date: "2026-10-25",
-    label: "ПСВ за сентябрь",
-    systems: NO_AUSN_SYSTEMS,
-    taskType: "REPORT_PSF",
-    skipIfIpWithoutEmployees: true,
-    skipIfNkoNoEmployees: true,
-  },
-  {
-    date: "2026-10-25",
     label: "4-ФСС: ЕФС-1 (сведения о страх.взн. от несч.сл.)",
     systems: NO_AUSN_SYSTEMS,
     taskType: "REPORT_EFS1",
