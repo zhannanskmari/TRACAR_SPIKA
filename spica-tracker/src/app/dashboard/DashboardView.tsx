@@ -367,6 +367,38 @@ export default function DashboardView({
               next.taxAmount = patch.taxAmount as number | null;
             if (patch.taxPaymentDate !== undefined)
               next.taxPaymentDate = patch.taxPaymentDate as string | null;
+            if (patch.demandNumber !== undefined)
+              next.demandNumber = patch.demandNumber as string | null;
+            if (patch.demandDate !== undefined)
+              next.demandDate = patch.demandDate as string | null;
+            if (patch.endTime !== undefined)
+              next.endTime = patch.endTime as string | null;
+            if (patch.urgent !== undefined)
+              next.urgent = patch.urgent as boolean;
+            if (patch.assignedToId !== undefined) {
+              const u = executors.find(
+                (e) => e.id === (patch.assignedToId as string)
+              );
+              next.assignedTo = u
+                ? {
+                    id: u.id,
+                    name: u.name,
+                    specialization: u.specialization,
+                  }
+                : null;
+            }
+            if (patch.executorId !== undefined) {
+              const u = patch.executorId
+                ? executors.find((e) => e.id === (patch.executorId as string))
+                : undefined;
+              next.executor = u
+                ? {
+                    id: u.id,
+                    name: u.name,
+                    specialization: u.specialization,
+                  }
+                : null;
+            }
             // Дата в колонке календаря: «Требование ИФНС» — по сроку требования,
             // иначе — по сроку карточки
             const rec = next.receiptDeadline as string | null;
@@ -379,7 +411,7 @@ export default function DashboardView({
         }));
       });
     },
-    []
+    [executors]
   );
 
   const refreshArchived = useCallback(async () => {

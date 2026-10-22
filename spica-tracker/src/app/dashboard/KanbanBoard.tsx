@@ -35,16 +35,26 @@ function sameTask(a: DashboardTask, b: DashboardTask): boolean {
     a.taskType === b.taskType &&
     a.status === b.status &&
     a.deadline === b.deadline &&
+    a.receiptDeadline === b.receiptDeadline &&
+    a.demandNumber === b.demandNumber &&
+    a.demandDate === b.demandDate &&
     a.taxAmount === b.taxAmount &&
     a.taxPaymentDate === b.taxPaymentDate &&
     a.amount === b.amount &&
+    a.salaryPaymentDate === b.salaryPaymentDate &&
+    a.salaryCalcDate === b.salaryCalcDate &&
     a.urgent === b.urgent &&
     a.isClientNotified === b.isClientNotified &&
     a.durationMinutes === b.durationMinutes &&
     a.factDurationMinutes === b.factDurationMinutes &&
+    a.docCount === b.docCount &&
     a.startTime === b.startTime &&
     a.endTime === b.endTime &&
-    a.assignedTo?.id === b.assignedTo?.id
+    a.archivedAt === b.archivedAt &&
+    a.knowledgeUrl === b.knowledgeUrl &&
+    (a.knowledgeArticle?.id ?? "") === (b.knowledgeArticle?.id ?? "") &&
+    a.assignedTo?.id === b.assignedTo?.id &&
+    (a.executor?.id ?? "") === (b.executor?.id ?? "")
   );
 }
 

@@ -391,6 +391,7 @@ function EditModal({
   const [startTime, setStartTime] = useState(task.startTime ?? "");
   const [endTime, setEndTime] = useState(task.endTime ?? "");
   const [assignedToId, setAssignedToId] = useState(task.assignedTo?.id ?? "");
+  const [executorId, setExecutorId] = useState(task.executor?.id ?? "");
   const [taxAmount, setTaxAmount] = useState(
     task.taxAmount != null ? String(task.taxAmount) : ""
   );
@@ -421,6 +422,11 @@ function EditModal({
     const oldAssigned = task.assignedTo?.id ?? "";
     if (assignedToId && assignedToId !== oldAssigned) {
       patch.assignedToId = assignedToId;
+    }
+
+    const oldExecutor = task.executor?.id ?? "";
+    if (executorId !== oldExecutor) {
+      patch.executorId = executorId || null;
     }
 
     const newDuration = duration === "" ? null : Math.max(0, Number(duration));
@@ -684,21 +690,39 @@ function EditModal({
           </div>
 
           {executors.length > 0 && (
-            <div className="sm:col-span-2">
-              <label className={label}>Ответственный</label>
-              <select
-                value={assignedToId}
-                onChange={(e) => setAssignedToId(e.target.value)}
-                className={input}
-              >
-                <option value="">—</option>
-                {executors.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                    {specSuffix(u.specialization)}
-                  </option>
-                ))}
-              </select>
+            <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>Ответственный</label>
+                <select
+                  value={assignedToId}
+                  onChange={(e) => setAssignedToId(e.target.value)}
+                  className={input}
+                >
+                  <option value="">—</option>
+                  {executors.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                      {specSuffix(u.specialization)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={label}>Исполнитель</label>
+                <select
+                  value={executorId}
+                  onChange={(e) => setExecutorId(e.target.value)}
+                  className={input}
+                >
+                  <option value="">—</option>
+                  {executors.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                      {specSuffix(u.specialization)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
