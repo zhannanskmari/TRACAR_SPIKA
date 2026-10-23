@@ -42,15 +42,34 @@ export async function GET() {
   const clientIds = clients.map((c) => c.id);
 
   const tasks = await prisma.task.findMany({
-    where: {
-      archivedAt: null,
-      ...(session.role === "EXECUTOR"
+    where:
+      session.role === "EXECUTOR"
         ? {
             OR: [{ assignedToId: session.id }, { executorId: session.id }],
           }
-        : { clientId: { in: clientIds } }),
-    },
-    include: {
+        : { clientId: { in: clientIds } },
+    // Архивные карточки в календаре остаются (убираются только с доски),
+    // поэтому выбираем ровно нужные поля — без комментариев и документов
+    select: {
+      id: true,
+      clientId: true,
+      title: true,
+      taskType: true,
+      status: true,
+      deadline: true,
+      receiptDeadline: true,
+      demandNumber: true,
+      demandDate: true,
+      taxPaymentDate: true,
+      salaryCalcDate: true,
+      salaryPaymentDate: true,
+      taxAmount: true,
+      durationMinutes: true,
+      factDurationMinutes: true,
+      docCount: true,
+      startTime: true,
+      endTime: true,
+      urgent: true,
       client: { select: { id: true, name: true, taxSystem: true } },
       assignedTo: { select: { id: true, name: true, specialization: true } },
       executor: { select: { id: true, name: true, specialization: true } },
